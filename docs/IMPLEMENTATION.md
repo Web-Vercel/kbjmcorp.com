@@ -67,3 +67,12 @@ After the owner's explicit development authorization, the isolated replacement g
 - Built application started on port 3004; `SMOKE_BASE_URL=http://127.0.0.1:3004 SMOKE_EXPECT_UNCONFIGURED=1 npm run test:smoke`: 31 checks passed, including both protected account redirects and invalid auth payloads.
 - A smoke test exposed a listener-host/public-origin mismatch; fixed and covered by regression tests before the final passing run.
 - No hosted Supabase, actual CAPTCHA network, real handset SMS delivery, or live authenticated dashboard data was validated. No external accounts, databases, provider spending, pushes or deployments were created.
+
+## Mainland client experience iteration
+- Added a localized mobile navigation disclosure with destination links, Escape-to-close, focus return and outside-click dismissal.
+- Added six bilingual FAQ entries addressing first overseas campaigns, budgets, AI limitations, account permissions, reporting availability and inquiry follow-up. No client results or guaranteed outcomes are invented.
+- Reworked inquiries to accept an 11-digit mainland phone number or email, with a target-market selector, localized inline errors, focus on the first invalid field and duplicate-submit protection. Phone contacts are normalized to +86 on the server; inquiry submission never sends SMS or creates an Auth account.
+- Added `003_inquiry_contacts.sql` for nullable email, validated phone contacts, target markets and a database contact-method constraint. Apply after migrations 001 and 002 in the separately selected project. No hosted migration has been run.
+- `npm test`: 50 passed. Production build including TypeScript: passed. Running-server checks: 33 passed. Chromium: 7 scenarios passed across 320, 375, 768 and 1440px widths, including no horizontal overflow, mobile menu navigation, FAQ interaction, localized validation and retention of a phone inquiry after a real local 503 response. No uncaught browser errors were observed.
+- Mobile and desktop screenshots were captured locally and visually reviewed. These checks establish local rendering and interaction, not mainland mobile-network reachability, hosted database connectivity or actual SMS delivery.
+- The owner requested continued development; production/main replacement has not been performed as part of this iteration. Publishing updates to the already authorized next-rebuild preview branch preserves its independent root history.

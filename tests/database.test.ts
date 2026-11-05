@@ -17,6 +17,7 @@ beforeAll(async () => {
     insert into auth.users values('${alice}'),('${bob}'),('${unlinked}');`);
   await db.exec(await readFile(new URL("../supabase/migrations/001_initial.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/002_auth_rate_limits.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/003_inquiry_contacts.sql", import.meta.url), "utf8"));
   await db.exec(`insert into public.organizations(id,name) values('${orgA}','Client A'),('${orgB}','Client B');
     insert into public.memberships values('${orgA}','${alice}','viewer'),('${orgB}','${bob}','owner');
     insert into public.ad_accounts(id,organization_id,platform,external_id) values
@@ -79,5 +80,18 @@ describe("Executed atomic database rate limits", () => {
       return tx.query<{ wait: number }>("select public.consume_auth_limits(array['service:test'],array[1],array[60]) as wait");
     });
     expect(result.rows[0].wait).toBe(0);
+  });
+});
+
+describe("Executed phone-or-email inquiry constraints", () => {
+  it("accepts a phone-only lead without creating an Auth account", async () => {
+    await db.exec("insert into public.inquiries(company,phone_e164,message,locale,consent_at,consent_version) values('Phone Client','+8613800138000','Mainland phone inquiry test','zh',now(),'inquiry-v2')");
+    const result = await db.query<{ email: string | null; phone_e164: string }>("select email,phone_e164 from public.inquiries where company='Phone Client'");
+    expect(result.rows).toEqual([{ email: null, phone_e164: "+8613800138000" }]);
+    expect((await db.query<{ count: number }>("select count(*)::integer as count from auth.users")).rows[0].count).toBe(3);
+  });
+  it("rejects missing contact methods and malformed international phone numbers", async () => {
+    await expect(db.exec("insert into public.inquiries(company,message,locale,consent_at,consent_version) values('No Contact','Missing contact details test','zh',now(),'inquiry-v2')")).rejects.toThrow(/check constraint/);
+    await expect(db.exec("insert into public.inquiries(company,phone_e164,message,locale,consent_at,consent_version) values('Bad Phone','123','Invalid contact phone test','zh',now(),'inquiry-v2')")).rejects.toThrow(/check constraint/);
   });
 });

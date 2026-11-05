@@ -33,3 +33,13 @@ SMOKE_EXPECT_UNCONFIGURED=1 npm run test:smoke
 Omit `SMOKE_EXPECT_UNCONFIGURED` for a configured environment to skip the valid inquiry submission. Set `SMOKE_BASE_URL` to target a different local port. The smoke suite makes no valid SMS/OTP request; `npm test` uses provider test doubles and local PostgreSQL, not real SMS.
 
 See `docs/IMPLEMENTATION.md` for architecture, required Vercel build settings and the independent root-history strategy. The independent `next-rebuild` branch is used for GitHub review and Vercel Preview. Production and hosted database migrations remain unchanged. See `docs/VERCEL_PREVIEW.md` for viewing instructions.
+
+The homepage now includes bilingual FAQ and mobile navigation. Inquiries accept a mainland phone number or email (at least one), plus a target market; this is independent of SMS sign-in. Apply all three SQL migrations in order before connecting hosted inquiry storage.
+
+Real-browser checks use the environment's installed Chromium:
+
+```sh
+SMOKE_BASE_URL=http://127.0.0.1:3001 SMOKE_EXPECT_UNCONFIGURED=1 npm run test:browser
+```
+
+`CHROMIUM_PATH` can select another installed Chromium executable. These checks run against a local built server, verify four screen widths, and write screenshots under `/tmp`; they do not validate mainland network access. Omit `SMOKE_EXPECT_UNCONFIGURED` to skip valid inquiry submission when checking a configured instance.

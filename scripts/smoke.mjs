@@ -19,6 +19,8 @@ checks++;
 for (const locale of ["zh", "en"]) {
   const lang = locale === "zh" ? "zh-CN" : "en";
   const home = await page(`/${locale}`, lang, locale === "zh" ? "让好产品" : "Great products.");
+  assert.ok(home.includes(locale === "zh" ? "您可能想了解的事。" : "A few useful answers."), "Localized FAQ is present");
+  assert.ok(home.includes('name="phone"'), "Phone contact input is present");
   for (const slug of slugs) {
     assert.ok(home.includes(`href="/${locale}/services/${slug}"`));
     const html = await page(`/${locale}/services/${slug}`, lang, locale === "zh" ? "可讨论的交付范围" : "Potential scope");
@@ -48,6 +50,7 @@ async function post(body, expected, headers = {}) {
 }
 await post("{", 400);
 await post("{}", 400);
+await post(JSON.stringify({ ...valid, email: "", phone: "" }), 400);
 await post(JSON.stringify({ ...valid, consent: false }), 400);
 await post(JSON.stringify({ ...valid, email: "invalid" }), 400);
 await post(JSON.stringify({ ...valid, website: "https://spam.example" }), 400);
@@ -58,6 +61,7 @@ await post(JSON.stringify(valid), 415, { "Content-Type": "text/plain" });
 // It must never send test inquiries to a live database.
 if (process.env.SMOKE_EXPECT_UNCONFIGURED === "1") {
   await post(JSON.stringify(valid), 503);
+  await post(JSON.stringify({ ...valid, email: "", phone: "13800138000", market: "north-america" }), 503);
 }
 for (const locale of ["zh", "en"]) {
   const response = await fetch(new URL(`/${locale}/account`, base), { redirect: "manual" });
