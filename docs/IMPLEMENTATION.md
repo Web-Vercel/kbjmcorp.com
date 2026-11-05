@@ -76,3 +76,10 @@ After the owner's explicit development authorization, the isolated replacement g
 - `npm test`: 50 passed. Production build including TypeScript: passed. Running-server checks: 33 passed. Chromium: 7 scenarios passed across 320, 375, 768 and 1440px widths, including no horizontal overflow, mobile menu navigation, FAQ interaction, localized validation and retention of a phone inquiry after a real local 503 response. No uncaught browser errors were observed.
 - Mobile and desktop screenshots were captured locally and visually reviewed. These checks establish local rendering and interaction, not mainland mobile-network reachability, hosted database connectivity or actual SMS delivery.
 - The owner requested continued development; production/main replacement has not been performed as part of this iteration. Publishing updates to the already authorized next-rebuild preview branch preserves its independent root history.
+
+## Owner reference-image visual update
+- Replaced the public header/footer KBJM wordmark with the reference-inspired 智点未来 / AI 广告服务 lockup, retaining KBJM as corporate attribution in the footer.
+- Added a reusable SVG AI mark, dotted globe, green orbital motif, white background, pale green halo, sweeping background arcs and bottom waves. The SVG is an approximate reconstruction from the supplied screenshot, not an original logo asset or a claim of pixel-exact reproduction.
+- Retained the previously approved Chinese ChatGPT advertising copy and English counterpart. The reference image guides presentation; it does not silently replace that approved wording.
+- Added separate phone/tablet layouts and a browser assertion that the hero artwork does not overlap the copy.
+- Production build including TypeScript passed; 33 existing running-server route/API checks passed; final Chromium run passed 8 scenarios across 320, 375, 768, 1024 and 1440px widths. Desktop/mobile screenshots were visually reviewed. No hosted deployment or real SMS was validated.

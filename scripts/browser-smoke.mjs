@@ -8,7 +8,7 @@ let checks = 0;
 try {
   const page = await browser.newPage();
   page.on("pageerror", error => errors.push(error.message));
-  for (const width of [320, 375, 768, 1440]) {
+  for (const width of [320, 375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${base}/zh`, { waitUntil: "networkidle" });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `No horizontal overflow at ${width}px`);
@@ -20,6 +20,11 @@ try {
       await expect(toggle).toHaveAttribute("aria-expanded", "false");
       await expect(page).toHaveURL(/#faq$/);
     }
+    assert.equal(await page.evaluate(() => {
+      const copy = document.querySelector(".hero-copy").getBoundingClientRect();
+      const artwork = document.querySelector(".hero-visual .brand-lockup").getBoundingClientRect();
+      return artwork.left >= copy.right || artwork.top >= copy.bottom;
+    }), true, `Brand artwork does not overlap hero copy at ${width}px`);
     checks++;
   }
   await page.setViewportSize({ width: 375, height: 900 });
@@ -58,5 +63,5 @@ try {
   await page.goto(`${base}/zh`, { waitUntil: "networkidle" });
   await page.screenshot({ path: "/tmp/kbjm-desktop.png", fullPage: true });
   assert.deepEqual(errors, [], "No uncaught browser errors");
-  console.log(`Passed ${checks} browser scenarios across four viewport sizes; screenshots saved under /tmp.`);
+  console.log(`Passed ${checks} browser scenarios across five viewport sizes; screenshots saved under /tmp.`);
 } finally { await browser.close(); }
