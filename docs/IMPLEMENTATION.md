@@ -111,3 +111,9 @@ After the owner's explicit development authorization, the isolated replacement g
 - The graphic is labeled as an illustrative service workflow, not live campaign data. It contains no third-party name/logo, invented performance figures or claim of completed dashboard integration.
 - Removed the unused public OpenAI SVG and its accompanying source/license files from the current tree. This does not purge earlier Git commits or assert legal clearance for every remaining reference.
 - Production build including TypeScript passed. Running-server checks: 33 passed. Chromium: 9 scenarios passed across six widths, including all four workflow stages, absent third-party branding/images in the hero and non-overlapping layout.
+
+## Requested hero-design restoration
+- Restored the earlier ChatGPT logo card and its three capability panels at the owner's request, using the previously retained SVG and source/license files.
+- Preserved the preceding Ads Manager wording removals in service copy and FAQ; the restored card's agency caption uses generic campaign-management wording.
+- Discarded the unpublished abstract-orbit asset/component changes. No generated abstract artwork was published to the website repository.
+- Production build including TypeScript, 33 running-server checks and 9 Chromium scenarios across six widths passed for the restored design.

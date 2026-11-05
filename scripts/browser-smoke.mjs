@@ -14,10 +14,10 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `No horizontal overflow at ${width}px`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("让中国品牌，");
     await expect(page.locator(".hero .actions .button")).toHaveCount(0);
-    await expect(page.locator(".hero-visual .workflow-stages li")).toHaveCount(4);
-    await expect(page.locator(".hero-visual")).toContainText("服务流程示意");
-    assert.equal(/ChatGPT|OpenAI|Ads Manager/.test(await page.locator(".hero-visual").innerText()), false, "Original workflow artwork contains no third-party branding");
-    await expect(page.locator('.hero-visual img')).toHaveCount(0);
+    await expect(page.locator('.hero-visual img[src="/images/openai.svg"]')).toHaveCount(1);
+    assert.equal(await page.locator(".hero-visual img").evaluate(image => image.complete && image.naturalWidth > 0), true, "Restored ChatGPT symbol loaded");
+    await expect(page.locator(".hero-visual .chatgpt-platform strong")).toHaveText("ChatGPT");
+    await expect(page.locator(".hero-visual .chatgpt-features>div")).toHaveCount(3);
     await expect(page.getByRole("heading", { name: "ChatGPT 广告代理服务", exact: true })).toHaveCount(1);
     assert.equal((await page.locator("body").innerText()).includes("KBJM"), false, "Old public brand labels are removed");
     if (width < 851) {
