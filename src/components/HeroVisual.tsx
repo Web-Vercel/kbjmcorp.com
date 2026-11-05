@@ -1,27 +1,28 @@
-import Image from "next/image";
 import type { Locale } from "@/lib/content";
 
 export default function HeroVisual({ locale }: { locale: Locale }) {
   const zh = locale === "zh";
-  const features = zh ? [
-    ["01", "代理投放", "OpenAI Ads Manager"],
-    ["02", "市场规划", "全球布局与指定市场"],
-    ["03", "客户平台", "进度与数据集中掌握"],
+  const stages = zh ? [
+    ["01", "需求确认", "目标 · 市场 · 预算"],
+    ["02", "素材准备", "内容 · 创意 · 审核"],
+    ["03", "投放跟进", "进度 · 沟通 · 调整"],
+    ["04", "数据复盘", "表现 · 分析 · 反馈"],
   ] : [
-    ["01", "Agency", "OpenAI Ads Manager"],
-    ["02", "Markets", "Global & selected markets"],
-    ["03", "Client view", "Progress and data together"],
+    ["01", "Define", "Goals · Markets · Budget"],
+    ["02", "Prepare", "Content · Creative · Review"],
+    ["03", "Manage", "Progress · Updates · Changes"],
+    ["04", "Review", "Performance · Analysis · Feedback"],
   ];
-  return <div className="hero-visual chatgpt-visual" aria-hidden="true">
+  const views = zh ? ["项目进度", "投放流程", "数据报告"] : ["Progress", "Workflow", "Reports"];
+  return <div className="hero-visual workflow-visual" aria-hidden="true">
     <div className="hero-halo"/><div className="brand-orbit brand-orbit-one"/><div className="brand-orbit brand-orbit-two"/><div className="brand-orbit brand-orbit-three"/>
-    <span className="orbit-point orbit-point-one"/><span className="orbit-point orbit-point-two"/><span className="orbit-point orbit-point-three"/>
-    <div className="chatgpt-card hero-artwork">
-      <div className="chatgpt-card-top"><span className="platform-indicator"/><span>{zh ? "AI 对话中的品牌机遇" : "BRAND OPPORTUNITIES IN AI CONVERSATION"}</span><span className="platform-spark" aria-hidden="true">✦</span></div>
-      <div className="chatgpt-platform"><div className="chatgpt-symbol"><Image src="/images/openai.svg" alt="" width={80} height={80}/></div><div><strong>ChatGPT</strong><span>{zh ? "新一代 AI 广告营销" : "A new era of AI advertising"}</span></div></div>
-      <div className="chatgpt-connection"><span/><span/><span/></div>
-      <div className="chatgpt-features">{features.map(([n, title, description]) => <div key={n}><span className="feature-index">{n}</span><strong>{title}</strong><p>{description}</p></div>)}</div>
-      <div className="chatgpt-card-bottom"><span>{zh ? "从用户需求，到品牌价值" : "FROM CUSTOMER INTENT TO BRAND VALUE"}</span><span>↗</span></div>
+    <span className="orbit-point orbit-point-one"/><span className="orbit-point orbit-point-two"/>
+    <div className="workflow-card hero-artwork">
+      <div className="workflow-card-top"><span className="workspace-symbol"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg></span><span>智点未来</span><span className="workflow-demo">{zh ? "服务流程示意" : "SERVICE ILLUSTRATION"}</span></div>
+      <div className="workflow-heading"><strong>{zh ? "广告项目，一览全程" : "Your campaign. A clear view."}</strong><span>{zh ? "每一步有进展，每一环可了解" : "Understand every stage of the process"}</span></div>
+      <ol className="workflow-stages">{stages.map(([number, title, description]) => <li key={number}><span className="workflow-number">{number}</span><div><strong>{title}</strong><p>{description}</p></div><span className="workflow-arrow">↗</span></li>)}</ol>
+      <div className="workflow-client-view"><div className="workflow-view-title"><span>{zh ? "客户平台视图" : "CLIENT WORKSPACE"}</span><span>{zh ? "集中查看" : "ONE PLACE"}</span></div><div className="workflow-view-items">{views.map((view, index) => <span key={view}><svg viewBox="0 0 20 20" fill="none">{index === 0 ? <><path d="M4 5h12M4 10h8M4 15h10"/><circle cx="15" cy="10" r="1"/></> : index === 1 ? <><rect x="2" y="7" width="5" height="6" rx="1"/><rect x="13" y="7" width="5" height="6" rx="1"/><path d="M7 10h6M10 7l3 3-3 3"/></> : <><path d="M3 3v14h14M7 13V9m4 4V6m4 7V4"/></>}</svg>{view}</span>)}</div></div>
+      <div className="workflow-card-bottom"><span>{zh ? "流程与功能示意 · 非实时投放数据" : "ILLUSTRATIVE WORKFLOW · NOT LIVE CAMPAIGN DATA"}</span><span aria-hidden="true">↗</span></div>
     </div>
-    <span className="orbit-dust dust-one"/><span className="orbit-dust dust-two"/><span className="orbit-dust dust-three"/>
   </div>;
 }

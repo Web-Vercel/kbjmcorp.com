@@ -2,8 +2,8 @@ export type Locale = "zh" | "en";
 export const content = {
 zh: {
  nav: ["服务能力", "合作流程", "联系我们"], tag: "为中国企业，连接全球机遇", headline: ["让中国品牌，", "被世界看见。"], intro: "智点未来专注于新一代人工智能广告营销，现阶段以 ChatGPT 广告投放服务为核心，帮助中国企业在全球领先的 AI 对话平台中，向海外潜在客户展示品牌、产品与服务。", introSecondary: "我们提供广告策略规划、创意制作、投放管理及效果分析，帮助企业精准触达目标受众，提升国际品牌知名度，并持续探索更多 AI 平台带来的全球营销机遇。", secondary: "探索我们的服务", label: "AI × 创意 × 全球增长", market: "跨越语言，连接市场", markets: ["北美市场", "欧洲市场", "亚太市场"],
- serviceLabel: "我们的服务", serviceTitle: "ChatGPT 广告代理，流程与数据清晰可见。", serviceIntro: "以 OpenAI Ads Manager 为投放管理基础，面向中国大陆企业提供 ChatGPT 广告代理服务，并逐步通过线上客户平台集中呈现投放进展与客户数据。", services: [
- ["01", "ChatGPT 广告代理服务", "面向中国大陆企业，围绕 OpenAI Ads Manager 提供 ChatGPT 广告投放代理服务，协助品牌与产品进入 AI 对话场景。", "中国企业 / Ads Manager / ChatGPT 广告"],
+ serviceLabel: "我们的服务", serviceTitle: "ChatGPT 广告代理，流程与数据清晰可见。", serviceIntro: "面向中国大陆企业提供 ChatGPT 广告代理服务，并逐步通过线上客户平台集中呈现投放进展与客户数据。", services: [
+ ["01", "ChatGPT 广告代理服务", "面向中国大陆企业，提供 ChatGPT 广告投放代理服务，协助品牌与产品进入 AI 对话场景。", "中国企业 / 投放代理 / ChatGPT 广告"],
  ["02", "全球与指定市场投放", "根据业务目标规划全球或指定市场推广，匹配投放范围与受众方案；实际可投市场以平台当前开放能力为准。", "推广目标 / 市场规划 / 定向方案"],
  ["03", "广告制作与投放执行", "从产品信息、广告素材到投放配置与审核跟进，统筹执行各环节，并在平台支持范围内持续调整。", "素材制作 / 投放管理 / 审核跟进"],
  ["04", "线上客户管理平台", "客户平台将集中呈现项目进度、投放流程和广告数据，让企业随时看清自己的推广全貌。", "客户专属视图 / 流程追踪 / 数据总览"] ],
@@ -12,8 +12,8 @@ zh: {
 },
 en: {
  nav: ["Services", "Our process", "Let’s talk"], tag: "CONNECTING CHINESE BUSINESSES TO GLOBAL OPPORTUNITIES", headline: ["Chinese brands.", "Seen by the world."], intro: "智点未来 focuses on the next generation of AI advertising and marketing. With ChatGPT advertising services at the core of our current offering, we help Chinese businesses showcase their brands, products and services to potential overseas customers on a leading conversational AI platform.", introSecondary: "We provide advertising strategy, creative production, campaign management and performance analysis to help businesses reach their target audiences, build international brand awareness and explore the global marketing opportunities emerging across more AI platforms.", secondary: "Explore our services", label: "AI × CREATIVITY × GLOBAL GROWTH", market: "Across languages. Across markets.", markets: ["North America", "Europe", "Asia Pacific"],
- serviceLabel: "WHAT WE DO", serviceTitle: "ChatGPT advertising. Clear processes. Visible data.", serviceIntro: "We provide ChatGPT advertising agency services for mainland Chinese businesses through OpenAI Ads Manager, with an evolving client platform designed to bring campaign progress and client data into one place.", services: [
- ["01", "ChatGPT advertising agency", "Agency services for mainland Chinese businesses using OpenAI Ads Manager to place brand and product advertising in ChatGPT.", "Chinese businesses / Ads Manager / ChatGPT ads"],
+ serviceLabel: "WHAT WE DO", serviceTitle: "ChatGPT advertising. Clear processes. Visible data.", serviceIntro: "We provide ChatGPT advertising agency services for mainland Chinese businesses, with an evolving client platform designed to bring campaign progress and client data into one place.", services: [
+ ["01", "ChatGPT advertising agency", "Agency services for mainland Chinese businesses promoting their brands and products through advertising in ChatGPT.", "Chinese businesses / Agency services / ChatGPT ads"],
  ["02", "Global & selected markets", "Plan global expansion or promotion in selected markets around your business goals. Actual market availability and targeting depend on the platform’s current capabilities.", "Business goals / Market planning / Targeting"],
  ["03", "Creative & campaign execution", "Coordinate product information, advertising assets, campaign setup and review follow-up, with ongoing adjustments within the platform’s supported capabilities.", "Ad production / Campaign management / Review follow-up"],
  ["04", "Online client management", "The client platform will bring project progress, advertising workflows and campaign data together, helping businesses see the complete picture of their promotion.", "Client-specific views / Process tracking / Data overview"] ],

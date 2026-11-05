@@ -15,8 +15,8 @@ export const serviceDetails: Record<Locale, Record<ServiceSlug, ServiceDetail>> 
   zh: {
     strategy: {
       title: "ChatGPT 广告代理服务",
-      summary: "智点未来面向中国大陆企业提供广告代理服务，以 OpenAI Ads Manager 为投放管理基础，围绕 ChatGPT 内的广告场景，协助客户推广品牌、产品与服务。",
-      deliverables: ["品牌、产品与推广需求梳理", "围绕 OpenAI Ads Manager 制定投放代理方案", "明确客户授权、投放流程与服务分工", "约定媒体预算、代理服务范围与沟通机制"],
+      summary: "智点未来面向中国大陆企业提供广告代理服务，围绕 ChatGPT 内的广告场景，协助客户推广品牌、产品与服务。",
+      deliverables: ["品牌、产品与推广需求梳理", "根据推广需求制定投放代理方案", "明确客户授权、投放流程与服务分工", "约定媒体预算、代理服务范围与沟通机制"],
       inputs: "企业与产品介绍、推广目标、预期预算，以及在平台支持方式下提供的必要账户授权。无需通过咨询表单提交密码或密钥。",
     },
     creative: {
@@ -27,7 +27,7 @@ export const serviceDetails: Record<Locale, Record<ServiceSlug, ServiceDetail>> 
     },
     media: {
       title: "广告制作与投放执行",
-      summary: "将品牌与产品信息转化为符合平台要求的广告素材，围绕 OpenAI Ads Manager 统筹投放配置、审核跟进与后续管理，让客户清楚了解每个执行环节。",
+      summary: "将品牌与产品信息转化为符合平台要求的广告素材，统筹投放配置、审核跟进与后续管理，让客户清楚了解每个执行环节。",
       deliverables: ["产品卖点、广告文案与素材整理制作", "按平台规范准备广告内容与落地信息", "在授权范围内配置投放并跟进审核状态", "持续跟进投放进展并提出调整建议"],
       inputs: "品牌规范、产品资料、可证明的广告表述、目标落地页与必要授权。广告能否上线取决于平台审核，媒体费用与服务费用分别确认。",
     },
@@ -42,8 +42,8 @@ export const serviceDetails: Record<Locale, Record<ServiceSlug, ServiceDetail>> 
   en: {
     strategy: {
       title: "ChatGPT advertising agency",
-      summary: "智点未来 provides advertising agency services for mainland Chinese businesses. Using OpenAI Ads Manager as the campaign-management foundation, we help clients promote brands, products and services through advertising in ChatGPT.",
-      deliverables: ["Clarify brand, product and advertising requirements", "Develop an agency plan around OpenAI Ads Manager", "Define client permissions, campaign workflows and responsibilities", "Agree media budgets, agency scope and communication"],
+      summary: "智点未来 provides advertising agency services for mainland Chinese businesses. We help clients promote brands, products and services through advertising in ChatGPT.",
+      deliverables: ["Clarify brand, product and advertising requirements", "Develop an agency plan around your advertising goals", "Define client permissions, campaign workflows and responsibilities", "Agree media budgets, agency scope and communication"],
       inputs: "Your business and products, advertising goals, budget and necessary account access through platform-supported permissions. Do not submit passwords or keys through the inquiry form.",
     },
     creative: {
@@ -54,7 +54,7 @@ export const serviceDetails: Record<Locale, Record<ServiceSlug, ServiceDetail>> 
     },
     media: {
       title: "Creative & campaign execution",
-      summary: "Turn brand and product information into platform-appropriate advertising assets. Coordinate campaign setup, review follow-up and ongoing management through OpenAI Ads Manager, giving clients a clear view of each execution stage.",
+      summary: "Turn brand and product information into platform-appropriate advertising assets. Coordinate campaign setup, review follow-up and ongoing management, giving clients a clear view of each execution stage.",
       deliverables: ["Prepare product messaging, ad copy and creative assets", "Prepare advertising content and destination information to platform requirements", "Configure authorized campaigns and follow review status", "Monitor progress and recommend adjustments"],
       inputs: "Brand guidelines, product information, substantiated claims, landing pages and necessary permissions. Platform review determines ad approval; media spend and agency fees are agreed separately.",
     },
