@@ -18,6 +18,7 @@ beforeAll(async () => {
   await db.exec(await readFile(new URL("../supabase/migrations/001_initial.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/002_auth_rate_limits.sql", import.meta.url), "utf8"));
   await db.exec(await readFile(new URL("../supabase/migrations/003_inquiry_contacts.sql", import.meta.url), "utf8"));
+  await db.exec(await readFile(new URL("../supabase/migrations/004_global_inquiry_market.sql", import.meta.url), "utf8"));
   await db.exec(`insert into public.organizations(id,name) values('${orgA}','Client A'),('${orgB}','Client B');
     insert into public.memberships values('${orgA}','${alice}','viewer'),('${orgB}','${bob}','owner');
     insert into public.ad_accounts(id,organization_id,platform,external_id) values
@@ -94,4 +95,10 @@ describe("Executed phone-or-email inquiry constraints", () => {
     await expect(db.exec("insert into public.inquiries(company,message,locale,consent_at,consent_version) values('No Contact','Missing contact details test','zh',now(),'inquiry-v2')")).rejects.toThrow(/check constraint/);
     await expect(db.exec("insert into public.inquiries(company,phone_e164,message,locale,consent_at,consent_version) values('Bad Phone','123','Invalid contact phone test','zh',now(),'inquiry-v2')")).rejects.toThrow(/check constraint/);
   });
+});
+
+it("persists the Global market option with the executed database constraint", async () => {
+  await db.exec("insert into public.inquiries(company,email,message,locale,consent_at,consent_version,target_market) values('Global Client','global@example.com','Global brand growth inquiry','en',now(),'inquiry-v2','global')");
+  const result = await db.query<{ target_market: string }>("select target_market from public.inquiries where company='Global Client'");
+  expect(result.rows).toEqual([{ target_market: "global" }]);
 });

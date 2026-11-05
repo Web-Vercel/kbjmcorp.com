@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 type Props = { params: Promise<{ locale: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  return { title: locale === "zh" ? "隐私说明（开发草案） | KBJM" : "Privacy notice (development draft) | KBJM", robots: { index: false, follow: false } };
+  return { title: locale === "zh" ? "隐私说明（开发草案） | 智点未来" : "Privacy notice (development draft) | 智点未来", robots: { index: false, follow: false } };
 }
 export default async function Privacy({ params }: Props) {
   const { locale } = await params;

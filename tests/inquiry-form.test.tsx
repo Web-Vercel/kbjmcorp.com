@@ -24,10 +24,11 @@ it("accepts a phone-only inquiry without forcing an email or sending SMS", async
   fetchMock.mockResolvedValue(new Response("{}", { status: 201 }));
   render(<InquiryForm locale="zh" />);
   const user = await fillCompanyAndMessage(); await user.type(screen.getByLabelText("联系电话（中国大陆）"), "13800138000");
-  await user.selectOptions(screen.getByLabelText("计划进入的市场"), "north-america");
+  await user.selectOptions(screen.getByLabelText("计划进入的市场"), "global");
   await user.click(screen.getByRole("button", { name: /发送合作咨询/ }));
   await waitFor(() => expect(screen.getByRole("status").textContent).toContain("咨询已收到"));
   expect(fetchMock).toHaveBeenCalledTimes(1);
+  expect(fetchMock).toHaveBeenCalledWith("/api/inquiries", expect.objectContaining({ body: expect.stringContaining('"market":"global"') }));
   expect(fetchMock).toHaveBeenCalledWith("/api/inquiries", expect.objectContaining({ body: expect.stringContaining('"phone":"13800138000"') }));
 });
 it("retains entered contact details if the backend is unconfigured", async () => {

@@ -20,6 +20,10 @@ for (const locale of ["zh", "en"]) {
   const lang = locale === "zh" ? "zh-CN" : "en";
   const home = await page(`/${locale}`, lang, locale === "zh" ? "让中国品牌，" : "Chinese brands.");
   assert.ok(home.includes("ChatGPT") && home.includes("智点未来"), "Updated advertising positioning is present");
+  assert.ok(home.includes('value="global"'), "Global market choice is present");
+  assert.ok(home.includes(locale === "zh" ? "品牌增长策略" : "Brand growth strategy"), "Brand growth service is localized");
+  assert.ok(!home.includes("KBJM"), "Old brand labels are removed");
+  assert.ok(!home.includes(locale === "zh" ? "聊聊您的出海计划" : "Discuss your global plans"), "Removed hero CTA stays absent");
   assert.ok(home.includes(locale === "zh" ? "您可能想了解的事。" : "A few useful answers."), "Localized FAQ is present");
   assert.ok(home.includes('name="phone"'), "Phone contact input is present");
   for (const slug of slugs) {
@@ -62,7 +66,7 @@ await post(JSON.stringify(valid), 415, { "Content-Type": "text/plain" });
 // It must never send test inquiries to a live database.
 if (process.env.SMOKE_EXPECT_UNCONFIGURED === "1") {
   await post(JSON.stringify(valid), 503);
-  await post(JSON.stringify({ ...valid, email: "", phone: "13800138000", market: "north-america" }), 503);
+  await post(JSON.stringify({ ...valid, email: "", phone: "13800138000", market: "global" }), 503);
 }
 for (const locale of ["zh", "en"]) {
   const response = await fetch(new URL(`/${locale}/account`, base), { redirect: "manual" });

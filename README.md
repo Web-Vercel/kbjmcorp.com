@@ -34,7 +34,7 @@ Omit `SMOKE_EXPECT_UNCONFIGURED` for a configured environment to skip the valid 
 
 See `docs/IMPLEMENTATION.md` for architecture, required Vercel build settings and the independent root-history strategy. The independent `next-rebuild` branch is used for GitHub review and Vercel Preview. Production and hosted database migrations remain unchanged. See `docs/VERCEL_PREVIEW.md` for viewing instructions.
 
-The homepage now includes bilingual FAQ and mobile navigation. Inquiries accept a mainland phone number or email (at least one), plus a target market; this is independent of SMS sign-in. Apply all three SQL migrations in order before connecting hosted inquiry storage.
+The homepage now includes bilingual FAQ and mobile navigation. Inquiries accept a mainland phone number or email (at least one), plus a target market; this is independent of SMS sign-in. Apply all four SQL migrations in order before connecting hosted inquiry storage.
 
 Real-browser checks use the environment's installed Chromium:
 

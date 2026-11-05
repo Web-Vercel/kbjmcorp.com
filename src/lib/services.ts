@@ -12,10 +12,10 @@ type ServiceDetail = {
 export const serviceDetails: Record<Locale, Record<ServiceSlug, ServiceDetail>> = {
   zh: {
     strategy: {
-      title: "出海增长策略",
-      summary: "先明确市场与客户，再决定如何投入。围绕产品优势、竞争环境和购买路径，构建可执行的市场进入方案。",
-      deliverables: ["目标市场与竞争格局分析", "核心受众与价值主张梳理", "广告渠道优先级与测试计划", "预算场景与衡量指标建议"],
-      inputs: "产品介绍、目标市场、已有营销数据，以及预期预算范围。",
+      title: "品牌增长策略",
+      summary: "从品牌定位与受众需求出发，梳理产品价值、市场机会与客户决策路径，将品牌认知、广告表达和业务增长连接起来。",
+      deliverables: ["品牌定位与竞争格局分析", "核心受众与品牌价值主张梳理", "面向全球市场的品牌传播与广告测试计划", "品牌认知及业务增长的衡量指标建议"],
+      inputs: "品牌与产品介绍、业务目标、目标受众、现有品牌素材与营销数据，以及预期预算范围。",
     },
     creative: {
       title: "AI 广告创意",
@@ -38,10 +38,10 @@ export const serviceDetails: Record<Locale, Record<ServiceSlug, ServiceDetail>> 
   },
   en: {
     strategy: {
-      title: "Global growth strategy",
-      summary: "Understand the market and customer before allocating spend. Build a practical market-entry plan around product strengths, competition and the buying journey.",
-      deliverables: ["Target-market and competitive landscape review", "Audience and value proposition development", "Channel priorities and a structured test plan", "Budget scenarios and measurement recommendations"],
-      inputs: "Your product overview, target markets, existing marketing data and indicative budget.",
+      title: "Brand growth strategy",
+      summary: "Start with brand positioning and audience needs. Connect product value, market opportunities and customer decisions to build recognition, effective advertising and business growth.",
+      deliverables: ["Brand positioning and competitive landscape review", "Core audiences and brand value proposition", "Global brand communication and advertising test plans", "Measurement for brand recognition and business growth"],
+      inputs: "Your brand and products, business goals, target audiences, current brand assets, marketing data and indicative budget.",
     },
     creative: {
       title: "AI advertising creative",

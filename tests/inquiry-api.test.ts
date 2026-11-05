@@ -24,3 +24,8 @@ it("does not claim success if the database rejects the record", async () => {
   fixture.insert.mockResolvedValue({ error: { message: "private schema detail" } }); const response = await POST(request(valid));
   expect(response.status).toBe(502); expect(await response.text()).not.toContain("private schema detail");
 });
+
+it("accepts and saves the Global market choice", async () => {
+  expect((await POST(request({ ...valid, market: "global" }))).status).toBe(201);
+  expect(fixture.insert).toHaveBeenCalledWith(expect.objectContaining({ target_market: "global" }));
+});

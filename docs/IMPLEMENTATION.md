@@ -83,3 +83,12 @@ After the owner's explicit development authorization, the isolated replacement g
 - Retained the previously approved Chinese ChatGPT advertising copy and English counterpart. The reference image guides presentation; it does not silently replace that approved wording.
 - Added separate phone/tablet layouts and a browser assertion that the hero artwork does not overlap the copy.
 - Production build including TypeScript passed; 33 existing running-server route/API checks passed; final Chromium run passed 8 scenarios across 320, 375, 768, 1024 and 1440px widths. Desktop/mobile screenshots were visually reviewed. No hosted deployment or real SMS was validated.
+
+## Requested six-part brand and service revision
+- Removed the public KBJM attribution from the inquiry consent and footer, and replaced residual public page titles/labels with 智点未来. Repository identity and infrastructure remain unchanged.
+- Added Global / 全球 consistently to inquiry choices, shared validation and persistence. `004_global_inquiry_market.sql` extends the database constraint after migrations 001–003; it has only been executed in the local test database.
+- Removed the hero contact CTA in both languages, retaining the service exploration link and contact section.
+- Replaced the hero agency-logo lockup with a ChatGPT-centered platform card featuring advertising strategy, creative expression and performance insights. The OpenAI symbol is hosted locally from the pinned Simple Icons v13.0.0 SVG, with source attribution and CC0 license retained. No partnership, endorsement, fake metrics or live integration is asserted.
+- Replaced overseas growth strategy with brand growth strategy on the homepage and detail page, including positioning, audience, communication and measurement content.
+- Rewrote the three service-experience stages around clear service scope, efficient ChatGPT-centered delivery and a unified customer information view. The customer-center integration is described as forthcoming, matching actual development status.
+- `npm test`: 52 passed. Production build and TypeScript passed. Existing running-server checks: 33 passed. Final Chromium run: 9 scenarios passed across six widths (320/375/768/1024/1201/1440), including logo loading, absent legacy branding/CTA, Global selection and non-overlapping artwork. Desktop/mobile screenshots were visually reviewed.
