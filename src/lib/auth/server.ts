@@ -1,10 +1,10 @@
 import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getAuthConfig } from "./config";
+import { getSessionConfig } from "./config";
 
 export async function authClient(writable = false) {
-  const config = getAuthConfig();
+  const config = getSessionConfig();
   if (!config) return null;
   const store = await cookies();
   return createServerClient(config.url, config.key, {

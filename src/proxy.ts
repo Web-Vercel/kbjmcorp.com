@@ -1,10 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getAuthConfig } from "@/lib/auth/config";
+import { getSessionConfig } from "@/lib/auth/config";
 
 // Refresh SSR session cookies before Server Components render protected pages.
 export async function proxy(request: NextRequest) {
-  const config = getAuthConfig();
+  const config = getSessionConfig();
   let response = NextResponse.next({ request });
   if (!config) return response;
   const client = createServerClient(config.url, config.key, {
@@ -23,4 +23,4 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;
 }
-export const config = { matcher: ["/zh/account/:path*", "/en/account/:path*"] };
+export const config = { matcher: ["/zh/account/:path*", "/en/account/:path*", "/zh/admin/:path*", "/en/admin/:path*"] };

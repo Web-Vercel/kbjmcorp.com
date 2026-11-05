@@ -117,3 +117,10 @@ After the owner's explicit development authorization, the isolated replacement g
 - Preserved the preceding Ads Manager wording removals in service copy and FAQ; the restored card's agency caption uses generic campaign-management wording.
 - Discarded the unpublished abstract-orbit asset/component changes. No generated abstract artwork was published to the website repository.
 - Production build including TypeScript, 33 running-server checks and 9 Chromium scenarios across six widths passed for the restored design.
+
+## Phase 2 — first staff CRM/backend iteration
+The owner selected isolated local testing, deferring the deployment region and any new cloud project. Implemented internal staff authentication/MFA, protected inquiries and follow-up, atomic phone-or-email conversion to client organizations, internal projects, platform-account ownership records, append-only browser-protected audit records and provider-neutral read integration types. No real advertising account or hosted database was accessed.
+
+A separate bilingual public preview (`/zh/admin-preview`, `/en/admin-preview`) is explicitly fictional and read-only. Live staff paths require verified active staff membership plus authenticator MFA; user metadata and client organization roles cannot grant staff access. Staff session handling was separated from the customer SMS activation switch. Internal workflow states do not control actual advertising.
+
+`npm test`: 105 passed. Production build including TypeScript: passed. Public route checks: 33 passed. Staff-route and browser-preview checks: 28 passed, including anonymous redirects and two languages at four widths. Desktop/mobile workspace screenshots were visually reviewed. These are local SQL/provider-double/browser results, not hosted Supabase/MFA/SMS or advertising-platform integration evidence. See `PHASE2_BACKEND.md` for completed and pending scope.

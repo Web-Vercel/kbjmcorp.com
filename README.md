@@ -34,7 +34,7 @@ Omit `SMOKE_EXPECT_UNCONFIGURED` for a configured environment to skip the valid 
 
 See `docs/IMPLEMENTATION.md` for architecture, required Vercel build settings and the independent root-history strategy. The independent `next-rebuild` branch is used for GitHub review and Vercel Preview. Production and hosted database migrations remain unchanged. See `docs/VERCEL_PREVIEW.md` for viewing instructions.
 
-The homepage now includes bilingual FAQ and mobile navigation. Inquiries accept a mainland phone number or email (at least one), plus a target market; this is independent of SMS sign-in. Apply all four SQL migrations in order before connecting hosted inquiry storage.
+The homepage now includes bilingual FAQ and mobile navigation. Inquiries accept a mainland phone number or email (at least one), plus a target market; this is independent of SMS sign-in. Apply migrations 001–004 in order before connecting hosted inquiry storage; the staff workspace additionally requires migration 005.
 
 Real-browser checks use the environment's installed Chromium:
 
@@ -43,3 +43,17 @@ SMOKE_BASE_URL=http://127.0.0.1:3001 SMOKE_EXPECT_UNCONFIGURED=1 npm run test:br
 ```
 
 `CHROMIUM_PATH` can select another installed Chromium executable. These checks run against a local built server, verify four screen widths, and write screenshots under `/tmp`; they do not validate mainland network access. Omit `SMOKE_EXPECT_UNCONFIGURED` to skip valid inquiry submission when checking a configured instance.
+
+## Phase 2: staff CRM and workspace
+
+The first backend iteration adds protected staff inquiries/follow-up, atomic client conversion, internal projects, account-ownership records and audit events. Staff password + authenticator MFA is independent of customer SMS sign-in. Apply migration `005_staff_crm_projects.sql` only after reviewing the selected test environment; no hosted database has been provisioned by this task.
+
+Public **read-only fictional preview**: `/zh/admin-preview` and `/en/admin-preview`.
+Protected staff sign-in: `/{zh|en}/admin/login`; workspace: `/{zh|en}/admin`.
+
+```sh
+# Against an unconfigured, locally running build:
+SMOKE_BASE_URL=http://127.0.0.1:3016 SMOKE_EXPECT_UNCONFIGURED=1 npm run test:admin
+```
+
+The preview does not provide a demo login, persist edits or connect to a real ad account. Real manual CRUD/login tests require a configured test backend and staff identity. See `docs/PHASE2_BACKEND.md` for scope, bootstrap, permissions, evidence and integration boundaries.
