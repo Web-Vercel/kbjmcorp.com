@@ -1,0 +1,18 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { content } from "@/lib/content";
+import InquiryForm from "@/components/InquiryForm";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
+import { serviceSlugs } from "@/lib/services";
+export function generateStaticParams(){return [{locale:"zh"},{locale:"en"}];}
+export async function generateMetadata({params}: {params:Promise<{locale:string}>}){const {locale}=await params; return {title:locale==="en"?"KBJM | AI-powered global growth":"KBJM | AI 驱动的全球增长",alternates:{languages:{"zh-CN":"/zh",en:"/en"}}};}
+export default async function Page({params}: {params:Promise<{locale:string}>}) {
+ const {locale}=await params; if(locale!=="zh"&&locale!=="en")notFound(); const t=content[locale];
+ return <><SiteHeader locale={locale}/> <main id="main"><section className="hero wrap"><div className="hero-copy"><p className="eyebrow"><span className="dot"/>{t.tag}</p><h1>{t.headline[0]}<br/><em>{t.headline[1]}</em></h1><p className="intro">{t.intro}</p><div className="actions"><a className="button" href="#contact">{t.cta}<span aria-hidden="true">↗</span></a><a className="text-link" href="#services">{t.secondary} ↓</a></div></div><div className="orbital" aria-hidden="true"><div className="orbit one"/><div className="orbit two"/><div className="orbit three"/><div className="globe">K<span>CONNECT TO WHAT’S NEXT</span></div><span className="coordinate top">STRATEGY → IMPACT</span><span className="coordinate bottom">创造力，无界。</span><span className="satellite"/></div><div className="hero-bottom"><span>{t.label}</span><span>01 / KBJM</span></div></section>
+ <div className="market-strip"><div className="wrap market-inner"><p>{t.market}</p>{t.markets.map(m=><span key={m}>{m}<b aria-hidden="true">↗</b></span>)}</div></div>
+ <section className="section wrap" id="services"><p className="eyebrow">{t.serviceLabel}</p><div className="section-heading"><h2>{t.serviceTitle}</h2><p>{t.serviceIntro}</p></div><div className="services">{t.services.map(([n,title,desc,meta],i)=><article key={n}><div className="card-top"><span>{n}</span><span aria-hidden="true">↗</span></div><h3>{title}</h3><p>{desc}</p><small>{meta}</small><Link className="service-link" href={`/${locale}/services/${serviceSlugs[i]}`}>{locale==="zh"?"了解服务":"Explore service"} ↗</Link></article>)}</div></section>
+ <section className="process" id="process"><div className="section wrap"><p className="eyebrow">{t.processLabel}</p><h2>{t.processTitle}</h2><div className="steps">{t.steps.map(([title,desc],i)=><article key={title}><span>0{i+1}</span><h3>{title}</h3><p>{desc}</p></article>)}</div></div></section>
+ <section className="section wrap contact" id="contact"><div><p className="eyebrow">{t.contactLabel}</p><h2>{t.contactTitle}</h2><p>{t.contactText}</p><div className="contact-mark" aria-hidden="true">Let’s<br/><em>go global.</em><span>↗</span></div></div><InquiryForm locale={locale}/></section></main>
+ <SiteFooter locale={locale}/></>;
+}
