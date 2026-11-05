@@ -18,7 +18,8 @@ assert.equal(redirect.headers.get("location"), "/zh");
 checks++;
 for (const locale of ["zh", "en"]) {
   const lang = locale === "zh" ? "zh-CN" : "en";
-  const home = await page(`/${locale}`, lang, locale === "zh" ? "让好产品" : "Great products.");
+  const home = await page(`/${locale}`, lang, locale === "zh" ? "让中国品牌，" : "Chinese brands.");
+  assert.ok(home.includes("ChatGPT") && home.includes("智点未来"), "Updated advertising positioning is present");
   assert.ok(home.includes(locale === "zh" ? "您可能想了解的事。" : "A few useful answers."), "Localized FAQ is present");
   assert.ok(home.includes('name="phone"'), "Phone contact input is present");
   for (const slug of slugs) {

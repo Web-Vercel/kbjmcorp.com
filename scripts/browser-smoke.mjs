@@ -12,7 +12,7 @@ try {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`${base}/zh`, { waitUntil: "networkidle" });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `No horizontal overflow at ${width}px`);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("让好产品");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("让中国品牌，");
     if (width < 851) {
       const toggle = page.getByRole("button", { name: /菜单/ });
       await toggle.click(); await expect(toggle).toHaveAttribute("aria-expanded", "true");
