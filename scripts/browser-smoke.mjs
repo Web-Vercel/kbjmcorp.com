@@ -34,9 +34,12 @@ try {
   }
   await page.setViewportSize({ width: 375, height: 900 });
   await page.goto(`${base}/zh`, { waitUntil: "networkidle" });
-  const question = page.getByText("广告预算和服务费用如何确定？", { exact: true });
+  const question = page.getByText("需要多少预算？广告费和代理服务费怎么计算？", { exact: true });
   await question.click();
-  await expect(page.getByText(/媒体投放预算与服务费用分别确认/)).toBeVisible();
+  await expect(page.getByText(/媒体投放预算与代理服务费用分别确认/)).toBeVisible();
+  await page.getByText("广告账户、客户资料和数据如何管理？", { exact: true }).click();
+  await expect(page.getByText(/客户平台按公司权限展示信息/)).toBeVisible();
+  await expect(page.locator("#faq summary").last().locator(".faq-number")).toHaveText("10");
   checks++;
   // Only exercise a valid lead submission on an explicitly unconfigured local instance.
   if (process.env.SMOKE_EXPECT_UNCONFIGURED === "1") {

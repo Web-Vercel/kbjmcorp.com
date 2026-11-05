@@ -99,3 +99,8 @@ After the owner's explicit development authorization, the isolated replacement g
 - Market planning is conditional on the platform's actual available markets, settings and formats. Agency copy does not claim official partnership status or an already completed reporting integration.
 - Client-platform copy explains the intended consolidated workflow/data view. Its detail page distinguishes the implemented access foundations from forthcoming data connections, workflow views and reporting.
 - Production build including TypeScript passed. Running-server checks: 33 passed. Chromium: 9 scenarios passed across six widths; the resulting desktop screenshot was visually reviewed. No hosted deployment or advertising-platform connection was verified.
+
+## Mainland advertiser FAQ rewrite
+- Replaced the six generic FAQ entries with ten paired Chinese/English questions following a Chinese business's pre-launch and post-launch concerns: suitability, placement versus organic recommendations, market availability, materials/language needs, budgets and agency fees, responsibilities, launch/change/pause timing, progress/data visibility, performance evaluation and account/data handling.
+- Answers describe current ChatGPT/OpenAI Ads Manager agency scope, condition eligibility and available controls on the actual platform, and distinguish planned client reporting from enabled features. They do not invent pricing, approval times, supported territories, guaranteed sales or access to private conversations.
+- Updated numbering to support question 10 correctly. Production build including TypeScript passed; 33 running-server checks and 9 Chromium scenarios across six widths passed, including budget/data FAQ expansion and the final question number.
