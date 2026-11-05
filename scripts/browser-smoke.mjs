@@ -16,7 +16,7 @@ try {
     await expect(page.locator(".hero .actions .button")).toHaveCount(0);
     await expect(page.locator('.hero-visual img[src="/images/openai.svg"]')).toHaveCount(1);
     assert.equal(await page.locator(".hero-visual img").evaluate(image => image.complete && image.naturalWidth > 0), true, "ChatGPT symbol loaded");
-    await expect(page.getByRole("heading", { name: "品牌增长策略", exact: true })).toHaveCount(1);
+    await expect(page.getByRole("heading", { name: "ChatGPT 广告代理服务", exact: true })).toHaveCount(1);
     assert.equal((await page.locator("body").innerText()).includes("KBJM"), false, "Old public brand labels are removed");
     if (width < 851) {
       const toggle = page.getByRole("button", { name: /菜单/ });

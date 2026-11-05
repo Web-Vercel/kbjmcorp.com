@@ -92,3 +92,10 @@ After the owner's explicit development authorization, the isolated replacement g
 - Replaced overseas growth strategy with brand growth strategy on the homepage and detail page, including positioning, audience, communication and measurement content.
 - Rewrote the three service-experience stages around clear service scope, efficient ChatGPT-centered delivery and a unified customer information view. The customer-center integration is described as forthcoming, matching actual development status.
 - `npm test`: 52 passed. Production build and TypeScript passed. Existing running-server checks: 33 passed. Final Chromium run: 9 scenarios passed across six widths (320/375/768/1024/1201/1440), including logo loading, absent legacy branding/CTA, Global selection and non-overlapping artwork. Desktop/mobile screenshots were visually reviewed.
+
+## Ads Manager agency business positioning
+- Replaced the generic four marketing capabilities with the owner's actual service model: ChatGPT advertising agency services for mainland Chinese businesses through OpenAI Ads Manager; global/selected-market planning; creative and campaign execution; and online client management.
+- Updated both languages on the homepage, all four detail pages and the hero's three capability labels. Existing service URLs remain stable for published links.
+- Market planning is conditional on the platform's actual available markets, settings and formats. Agency copy does not claim official partnership status or an already completed reporting integration.
+- Client-platform copy explains the intended consolidated workflow/data view. Its detail page distinguishes the implemented access foundations from forthcoming data connections, workflow views and reporting.
+- Production build including TypeScript passed. Running-server checks: 33 passed. Chromium: 9 scenarios passed across six widths; the resulting desktop screenshot was visually reviewed. No hosted deployment or advertising-platform connection was verified.

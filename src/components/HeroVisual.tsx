@@ -4,13 +4,13 @@ import type { Locale } from "@/lib/content";
 export default function HeroVisual({ locale }: { locale: Locale }) {
   const zh = locale === "zh";
   const features = zh ? [
-    ["01", "广告策略", "围绕需求，连接品牌"],
-    ["02", "创意表达", "让产品价值清晰可见"],
-    ["03", "效果洞察", "让每一步优化有据可依"],
+    ["01", "代理投放", "OpenAI Ads Manager"],
+    ["02", "市场规划", "全球布局与指定市场"],
+    ["03", "客户平台", "进度与数据集中掌握"],
   ] : [
-    ["01", "Ad strategy", "Connect intent and brands"],
-    ["02", "Creative", "Make product value clear"],
-    ["03", "Insights", "Inform the next improvement"],
+    ["01", "Agency", "OpenAI Ads Manager"],
+    ["02", "Markets", "Global & selected markets"],
+    ["03", "Client view", "Progress and data together"],
   ];
   return <div className="hero-visual chatgpt-visual" aria-hidden="true">
     <div className="hero-halo"/><div className="brand-orbit brand-orbit-one"/><div className="brand-orbit brand-orbit-two"/><div className="brand-orbit brand-orbit-three"/>

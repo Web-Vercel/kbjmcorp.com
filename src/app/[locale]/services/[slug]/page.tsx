@@ -26,6 +26,7 @@ export default async function ServicePage({ params }: Props) {
       <Link className="text-link" href={`/${locale}#services`}>← {zh ? "全部服务" : "All services"}</Link>
       <p className="eyebrow">{zh ? "服务能力 / 智点未来" : "OUR CAPABILITIES / 智点未来"}</p>
       <h1>{detail.title}</h1><p className="detail-intro">{detail.summary}</p>
+      {detail.availability && <p className="service-availability">{detail.availability}</p>}
       <div className="detail-grid">
         <section><h2>{zh ? "可讨论的交付范围" : "Potential scope"}</h2><ul className="deliverables">{detail.deliverables.map((item, i) => <li key={item}><span>0{i + 1}</span>{item}</li>)}</ul></section>
         <aside className="detail-aside"><h2>{zh ? "从这些信息开始" : "What helps us begin"}</h2><p>{detail.inputs}</p><p>{zh ? "具体交付物、时间与费用将在了解需求后书面约定，不承诺特定广告效果。" : "Deliverables, timing and fees are agreed in writing after discovery. Specific advertising results are not guaranteed."}</p><Link className="button" href={`/${locale}#contact`}>{zh ? "讨论合作需求" : "Discuss your project"}<span aria-hidden="true">↗</span></Link></aside>
