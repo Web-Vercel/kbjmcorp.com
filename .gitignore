@@ -5,3 +5,7 @@ out/
 !.env.example
 *.tsbuildinfo
 *.log
+
+# Local Supabase CLI state
+supabase/.temp/
+supabase/.branches/

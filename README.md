@@ -57,3 +57,6 @@ SMOKE_BASE_URL=http://127.0.0.1:3016 SMOKE_EXPECT_UNCONFIGURED=1 npm run test:ad
 ```
 
 The preview does not provide a demo login, persist edits or connect to a real ad account. Real manual CRUD/login tests require a configured test backend and staff identity. See `docs/PHASE2_BACKEND.md` for scope, bootstrap, permissions, evidence and integration boundaries.
+
+
+客户中心迭代：`/zh/client-preview` 和 `/en/client-preview` 提供虚构只读客户视角；员工演示页底部可点击进入。真实 `/account` 与项目详情使用用户会话和公司权限；内部管理员可在 `/admin/clients` 核实后授予或撤销只读权限。需迁移 006。真实本地身份服务启动受镜像源网络访问限制，尚未完成登录/持久化页面联调；详见 [第二阶段说明](docs/PHASE2_BACKEND.md)。

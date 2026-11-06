@@ -5,6 +5,7 @@ import { POST as projectPost,PATCH as projectPatch } from "@/app/api/admin/proje
 import { POST as accountPost } from "@/app/api/admin/accounts/route";
 import { PATCH as inquiryPatch } from "@/app/api/admin/inquiries/[id]/route";
 import { POST as convert } from "@/app/api/admin/inquiries/[id]/convert/route";
+import { POST as membershipPost } from "@/app/api/admin/memberships/route";
 const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function request(path:string,data:unknown,method='POST',origin='https://site.example'){return new Request(`https://site.example/api/admin/${path}`,{method,headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(data)});}
 beforeEach(()=>{
@@ -23,3 +24,7 @@ it("handles duplicate account identity without leaking raw database details",asy
 it("attributes notes to the signed-in staff user",async()=>{expect((await inquiryPatch(request(`inquiries/${id}`,{action:'note',body:'Follow-up fixture',author_id:'attacker'},'PATCH'),{params:Promise.resolve({id})})).status).toBe(201);expect(mocks.insert).toHaveBeenCalledWith({inquiry_id:id,author_id:'fixture-staff',body:'Follow-up fixture'});});
 it("uses the atomic conversion function and handles missing records",async()=>{const response=await convert(request('convert',{companyName:'Fixture company'}),{params:Promise.resolve({id})});expect(response.status).toBe(200);expect(mocks.rpc).toHaveBeenCalledWith('convert_inquiry_to_client',{p_inquiry_id:id,p_company_name:'Fixture company'});mocks.rpc.mockResolvedValue({data:null,error:{code:'P0002'}});expect((await convert(request('convert',{companyName:'Fixture company'}),{params:Promise.resolve({id})})).status).toBe(404);});
 it("reports no matching project instead of false success",async()=>{mocks.row.mockResolvedValue({data:null,error:null});expect((await projectPatch(request('projects',{id,status:'paused'},'PATCH'))).status).toBe(404);});
+
+it("requires explicit verification confirmation for client access changes",async()=>{expect((await membershipPost(request('memberships',{organizationId:id,userId:id,action:'grant_viewer'}))).status).toBe(400);expect(mocks.rpc).not.toHaveBeenCalled();});
+it("blocks operator access assignment and cross-origin requests",async()=>{const context=await mocks.guard();mocks.guard.mockResolvedValue({...context,role:'operator'});const body={organizationId:id,userId:id,action:'grant_viewer',confirm:'on'};expect((await membershipPost(request('memberships',body))).status).toBe(403);expect((await membershipPost(request('memberships',body,'POST','https://other.example'))).status).toBe(403);expect(mocks.rpc).not.toHaveBeenCalled();});
+it("uses a protected RPC for verified client access without trusting caller-supplied role",async()=>{const response=await membershipPost(request('memberships',{organizationId:id,userId:id,action:'grant_viewer',confirm:'on',role:'admin'}));expect(response.status).toBe(200);expect(mocks.rpc).toHaveBeenCalledWith('set_client_access',{p_organization_id:id,p_user_id:id,p_action:'grant_viewer'});expect(response.headers.get('Cache-Control')).toContain('no-store');});

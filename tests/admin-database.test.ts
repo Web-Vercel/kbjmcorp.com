@@ -108,3 +108,36 @@ describe("External account mapping boundaries",()=>{
   await expect(asUser(admin,'aal2',"insert into public.ad_accounts(organization_id,platform,external_id,label,connection_status) values($1,'openai_ads','fake-connected','Fake','connected')",[orgA])).rejects.toThrow(/permission denied/);
  });
 });
+
+describe("End-to-end local business workflow and client access",()=>{
+ it("converts an inquiry, creates a project, grants verified access and revokes it",async()=>{
+  const lead=await db.query<{id:string}>("insert into public.inquiries(company,phone_e164,message,locale,consent_at,consent_version) values('Local workflow fixture','+8613900139000','Fictional workflow requirement','zh',now(),'inquiry-v2') returning id");
+  const converted=await asUser<{id:string}>(admin,'aal2',"select public.convert_inquiry_to_client($1,'Workflow client') as id",[lead.rows[0].id]);const org=converted.rows[0].id;
+  const project=await asUser<{id:string}>(admin,'aal2',"insert into public.projects(organization_id,name,target_market,created_by) values($1,'Workflow project','global',$2) returning id",[org,admin]);
+  expect((await asUser(alice,'aal1','select * from public.projects where id=$1',[project.rows[0].id])).rows).toEqual([]);
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_viewer')",[org,alice]);
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_viewer')",[org,alice]);
+  expect((await db.query("select * from public.memberships where organization_id=$1",[org])).rows).toHaveLength(1);
+  await asUser(operator,'aal2',"update public.projects set status='review' where id=$1",[project.rows[0].id]);
+  expect((await asUser<{status:string}>(alice,'aal1','select status from public.projects where id=$1',[project.rows[0].id])).rows).toEqual([{status:'review'}]);
+  expect((await asUser(bob,'aal1','select * from public.projects where id=$1',[project.rows[0].id])).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select * from public.inquiry_notes')).rows).toEqual([]);
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'revoke')",[org,alice]);
+  expect((await asUser(alice,'aal1','select * from public.projects where id=$1',[project.rows[0].id])).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select * from public.organizations where id=$1',[org])).rows).toEqual([]);
+  const audits=await db.query<{operation:string}>("select operation from public.audit_events where entity_type='client_access' and entity_id=$1 order by created_at",[org]);expect(audits.rows.map(r=>r.operation)).toEqual(['INSERT','DELETE']);
+ });
+ it("does not permit clients, operators or password-only staff to assign access",async()=>{
+  for(const [id,aal] of [[alice,'aal2'],[operator,'aal2'],[admin,'aal1'],[disabled,'aal2']] as const)await expect(asUser(id,aal,"select public.set_client_access($1,$2,'grant_viewer')",[orgB,alice])).rejects.toThrow(/Forbidden/);
+ });
+ it("rejects nonexistent users and internal staff as client members",async()=>{
+  for(const target of ['99999999-9999-4999-8999-999999999999',operator])await expect(asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_viewer')",[orgA,target])).rejects.toThrow(/Invalid association|Staff identity/);
+ });
+ it("does not allow a browser to bypass the access RPC",async()=>{
+  await expect(asUser(admin,'aal2',"insert into public.memberships values($1,$2,'owner')",[orgB,alice])).rejects.toThrow(/permission denied/);
+ });
+ it("keeps an existing membership's role on idempotent assignment",async()=>{
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_viewer')",[orgA,alice]);
+  expect((await db.query<{role:string}>("select role from public.memberships where organization_id=$1 and user_id=$2",[orgA,alice])).rows[0].role).toBe('owner');
+ });
+});

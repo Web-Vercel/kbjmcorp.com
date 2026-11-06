@@ -10,7 +10,8 @@
     "test:smoke": "node scripts/smoke.mjs",
     "test": "vitest run",
     "test:browser": "node scripts/browser-smoke.mjs",
-    "test:admin": "node scripts/admin-smoke.mjs"
+    "test:admin": "node scripts/admin-smoke.mjs",
+    "test:client": "node scripts/client-smoke.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
