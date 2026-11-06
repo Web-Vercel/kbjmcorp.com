@@ -62,3 +62,5 @@ The preview does not provide a demo login, persist edits or connect to a real ad
 客户中心迭代：`/zh/client-preview` 和 `/en/client-preview` 提供虚构只读客户视角；员工演示页底部可点击进入。真实 `/account` 与项目详情使用用户会话和公司权限；内部管理员可在 `/admin/clients` 核实后授予或撤销只读权限。需迁移 006。真实本地身份服务启动受镜像源网络访问限制，尚未完成登录/持久化页面联调；详见 [第二阶段说明](docs/PHASE2_BACKEND.md)。
 
 项目协作迭代：`/zh/workflow-preview`（英文 `/en/workflow-preview`）提供仅在浏览器内存中运行的交互演示，可从客户演示页进入。真实项目详情现有推广需求、创意版本、双向审核与客户确认；仅公司协作成员及通过 MFA 的内部员工可执行各自操作。需迁移 007；引用素材目前使用文字与 HTTPS 外部链接。新增 `npm run test:workflow`，完整的就绪状态和真实服务阻塞见 [PHASE2_READINESS.md](docs/PHASE2_READINESS.md)。
+
+客户后台当前主线已调整为“充值与余额 + 每月广告费用与中文报告”。`/zh/client-preview` 可试用虚构充值登记，并查看 `/zh/client-preview/reports/demo-2026-10` 的中英月报与打印/保存 PDF；原项目协作位于辅助折叠区。迁移 008 提供独立财务权限、待核对充值、资金流水与月报架构，未接支付、实际入账、真实文件导入或翻译服务。详见 [资金与月报说明](docs/CLIENT_FUNDS_REPORTS.md)。

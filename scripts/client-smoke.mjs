@@ -17,7 +17,7 @@ try{
   await page.goto(`${base}/${locale}/admin-preview`,{waitUntil:'networkidle'});
   await page.getByRole('link',{name:locale==='zh'?'查看客户中心演示':'View client preview'}).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/client-preview$`));
-  await expect(page.getByRole('heading',{level:1})).toHaveText(locale==='zh'?'您的品牌，进展清晰可见。':'Your brand. Clear progress.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText(locale==='zh'?'账户资金清晰，每月花费有据。':'Clear funds. Accountable monthly spending.');
   await expect(page.locator('.admin-demo-banner')).toBeVisible();
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`No overflow ${locale}/${width}`);
   assert.equal(await page.locator('form').count(),0,'Public preview has no mutation forms');

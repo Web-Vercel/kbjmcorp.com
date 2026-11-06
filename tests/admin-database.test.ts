@@ -212,3 +212,49 @@ describe("Collaboration authority changes",()=>{
   const audit=await db.query<{operation:string}>("select operation from public.audit_events where entity_type='client_access' and entity_id=$1 and changes->>'target_user_id'=$2 order by created_at desc",[orgB,bob]);expect(audit.rows[0].operation).toBe('UPDATE');
  });
 });
+describe("Agency funds and source-based monthly statements",()=>{
+ let wallet:string;let report:string;
+ it("requires explicit finance access, separate from company collaboration",async()=>{
+  const result=await db.query<{id:string}>("insert into public.client_wallets(organization_id,currency) values($1,'CAD') returning id",[orgA]);wallet=result.rows[0].id;
+  expect((await asUser(alice,'aal1','select * from public.get_client_wallets()')).rows).toEqual([]);
+  await db.query("insert into public.finance_access(organization_id,user_id,role) values($1,$2,'manager')",[orgA,alice]);
+  expect((await asUser<{balance_minor:string}>(alice,'aal1','select * from public.get_client_wallets()')).rows[0].balance_minor).toBe('0');
+ });
+ it("records a topup request without creating money or trusting a posted status",async()=>{
+  await asUser(alice,'aal1',"select public.request_client_topup($1,100000,'fixture-reference')",[wallet]);
+  expect((await asUser<{balance_minor:string}>(alice,'aal1','select * from public.get_client_wallets()')).rows[0].balance_minor).toBe('0');
+  expect((await asUser<{status:string}>(alice,'aal1','select status from public.client_topups')).rows).toEqual([{status:'pending'}]);
+  await expect(asUser(alice,'aal1',"update public.client_topups set status='credited'")).rejects.toThrow(/permission denied/);
+  await expect(asUser(alice,'aal1',"insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CAD','topup',100000,'Fake credit','fake-credit')",[wallet,orgA])).rejects.toThrow(/permission denied/);
+ });
+ it("isolates funds from another company and read-only financial access cannot request topups",async()=>{
+  expect((await asUser(bob,'aal1','select * from public.get_client_wallets()')).rows).toEqual([]);
+  await expect(asUser(bob,'aal1',"select public.request_client_topup($1,100,'forbidden-reference')",[wallet])).rejects.toThrow(/Forbidden/);
+  await db.query("update public.finance_access set role='viewer' where organization_id=$1 and user_id=$2",[orgA,alice]);
+  await expect(asUser(alice,'aal1',"select public.request_client_topup($1,100,'readonly-reference')",[wallet])).rejects.toThrow(/Forbidden/);
+  await db.query("update public.finance_access set role='manager' where organization_id=$1 and user_id=$2",[orgA,alice]);
+ });
+ it("derives balances exactly from posted entries and prevents overwriting history",async()=>{
+  await db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CAD','topup',100000,'Verified fixture credit','credit-1'),($1,$2,'CAD','ad_spend',-23500,'Platform fixture spend','report-1'),($1,$2,'CAD','service_fee',-1500,'Fixture agency fee','report-1')",[wallet,orgA]);
+  const balance=await asUser<{balance_minor:string;credited_minor:string}>(alice,'aal1','select balance_minor,credited_minor from public.get_client_wallets()');expect(balance.rows).toEqual([{balance_minor:'75000',credited_minor:'100000'}]);
+  await expect(db.query("update public.wallet_entries set amount_minor=999 where wallet_id=$1",[wallet])).rejects.toThrow(/immutable/);
+  await expect(db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'USD','topup',100,'Cross currency','wrong-currency')",[wallet,orgA])).rejects.toThrow(/foreign key/);
+  await expect(db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CAD','topup',100000,'Duplicate receipt','credit-1')",[wallet,orgA])).rejects.toThrow(/unique constraint/);
+ });
+ it("keeps drafts private and refuses publication without provenance, translation and reconciled details",async()=>{
+  const result=await db.query<{id:string}>("insert into public.monthly_ad_reports(wallet_id,organization_id,currency,month,ad_spend_minor,source_language,source_filename,source_timezone) values($1,$2,'CAD','2026-10-01',23500,'en','fixture-source.csv','America/Toronto') returning id",[wallet,orgA]);report=result.rows[0].id;
+  expect((await asUser(alice,'aal1','select id from public.monthly_ad_reports')).rows).toEqual([]);
+  await expect(db.query('update public.monthly_ad_reports set published_at=now() where id=$1',[report])).rejects.toThrow();
+  await db.query("insert into public.monthly_ad_report_lines(report_id,campaign,market,spend_minor) values($1,'Fixture campaign','Canada',23500)",[report]);
+  await expect(db.query("update public.monthly_ad_reports set published_at=now(),source_storage_key='private/fixture.csv',source_sha256=repeat('a',64),reviewed_by=$2 where id=$1",[report,admin])).rejects.toThrow(/check constraint/);
+  await db.query("update public.monthly_ad_reports set ad_account_id='aaaaaaaa-1111-4111-8111-111111111111',source_account_name='Fixture source account',translation_status='reviewed',summary_zh='虚构中文说明',source_storage_key='private/fixture.csv',source_sha256=repeat('a',64),reviewed_by=$2,published_at=now() where id=$1",[report,admin]);
+  expect((await asUser(alice,'aal1','select id from public.monthly_ad_reports')).rows).toEqual([{id:report}]);
+ });
+ it("protects published statements, private source locations and other companies' reports",async()=>{
+  await expect(asUser(alice,'aal1','select source_storage_key from public.monthly_ad_reports')).rejects.toThrow(/permission denied/);
+  expect((await asUser(bob,'aal1','select id from public.monthly_ad_reports')).rows).toEqual([]);
+  expect((await asUser(bob,'aal1','select * from public.monthly_ad_report_lines')).rows).toEqual([]);
+  await expect(db.query("update public.monthly_ad_report_lines set spend_minor=0 where report_id=$1",[report])).rejects.toThrow(/immutable/);
+  await expect(db.query("update public.monthly_ad_reports set summary_zh='覆盖内容' where id=$1",[report])).rejects.toThrow(/immutable/);
+ });
+});

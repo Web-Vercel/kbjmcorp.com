@@ -8,6 +8,7 @@ try {
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET'&&r.method()!=='HEAD')businessRequests.push(r.url());});
  for(const locale of ['zh','en']){
   const zh=locale==='zh';await page.goto(`${base}/${locale}/client-preview`,{waitUntil:'networkidle'});
+  await page.locator('details.billing-supplement > summary').click();
   await page.getByRole('link',{name:zh?'体验需求提交与创意确认':'Try briefs and creative approval'}).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/workflow-preview$`));checks++;
   const submit=page.getByRole('button',{name:zh?'提交并保留版本':'Submit version'});
