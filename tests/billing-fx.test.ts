@@ -1,0 +1,7 @@
+import { expect,it } from "vitest";
+import { allocateConvertedLines,cadSettlement,rateUnits } from "@/lib/billing/fx";
+it("does not silently add a ten percent FX markup",()=>{expect(cadSettlement('10000','5.20')).toEqual({adSpendMinor:'52000',feeMinor:'0',totalMinor:'52000'});});
+it("supports only an explicitly agreed fee without changing the reference rate",()=>{expect(cadSettlement('10000','5.20',1000)).toEqual({adSpendMinor:'52000',feeMinor:'5200',totalMinor:'57200'});expect(rateUnits('5.20')).toBe(520000000n);});
+it("rounds converted costs and then agreed fees half up to cents",()=>{expect(cadSettlement('1','4.6',1000)).toEqual({adSpendMinor:'5',feeMinor:'1',totalMinor:'6'});expect(cadSettlement('1','0.50')).toEqual({adSpendMinor:'1',feeMinor:'0',totalMinor:'1'});});
+it("reconciles fractional-cent lines to the rounded statement total deterministically",()=>{expect(allocateConvertedLines(['1','1','1'],'0.5')).toEqual(['1','1','0']);for(const rate of ['0.00000001','5.12345678','100']){const result=allocateConvertedLines(['125000','80000','30000'],rate);expect(result.reduce((sum,value)=>sum+BigInt(value),0n).toString()).toBe(cadSettlement('235000',rate).adSpendMinor);}});
+it("rejects absent, malformed or zero quotes rather than substituting an old or demo rate",()=>{for(const rate of ['','0','-5.2','5.123456789','5e0',' 5.2'])expect(()=>cadSettlement('100',rate)).toThrow();for(const fee of [-1,10001,1.5])expect(()=>cadSettlement('100','5.2',fee)).toThrow();});

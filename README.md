@@ -64,3 +64,5 @@ The preview does not provide a demo login, persist edits or connect to a real ad
 项目协作迭代：`/zh/workflow-preview`（英文 `/en/workflow-preview`）提供仅在浏览器内存中运行的交互演示，可从客户演示页进入。真实项目详情现有推广需求、创意版本、双向审核与客户确认；仅公司协作成员及通过 MFA 的内部员工可执行各自操作。需迁移 007；引用素材目前使用文字与 HTTPS 外部链接。新增 `npm run test:workflow`，完整的就绪状态和真实服务阻塞见 [PHASE2_READINESS.md](docs/PHASE2_READINESS.md)。
 
 客户后台当前主线已调整为“充值与余额 + 每月广告费用与中文报告”。`/zh/client-preview` 可试用虚构充值登记，并查看 `/zh/client-preview/reports/demo-2026-10` 的中英月报与打印/保存 PDF；原项目协作位于辅助折叠区。迁移 008 提供独立财务权限、待核对充值、资金流水与月报架构，未接支付、实际入账、真实文件导入或翻译服务。详见 [资金与月报说明](docs/CLIENT_FUNDS_REPORTS.md)。
+
+人民币结算：新客户默认 CNY，月报保留 CAD 原始费用及锁定报价。默认不收固定 10% 汇兑手续费；服务费必须事先约定并单列。迁移 009 增加报价快照与结算校验，当前仅使用明确标注的演示报价。见 [结算政策](docs/CNY_SETTLEMENT_POLICY.md)。

@@ -258,3 +258,36 @@ describe("Agency funds and source-based monthly statements",()=>{
   await expect(db.query("update public.monthly_ad_reports set summary_zh='覆盖内容' where id=$1",[report])).rejects.toThrow(/immutable/);
  });
 });
+describe("CNY settlement, locked quotes and disclosed fees",()=>{
+ let wallet:string; let quote:string;let report:string;
+ const confirmTime='2026-11-04T08:00:00Z';
+ it("requires original CAD detail and records a locked non-demo quote",async()=>{
+  wallet=(await db.query<{id:string}>("insert into public.client_wallets(organization_id) values($1) returning id",[orgA])).rows[0].id;
+  expect((await db.query<{currency:string}>('select currency from public.client_wallets where id=$1',[wallet])).rows[0].currency).toBe('CNY');
+  quote=(await db.query<{id:string}>("insert into public.billing_fx_quotes(cad_cny_rate,value_date,quoted_at,source_name) values('5.20000000','2026-11-04','2026-11-04T02:00:00Z','Test-only verified quote fixture') returning id")).rows[0].id;
+  report=(await db.query<{id:string}>("insert into public.monthly_ad_reports(wallet_id,organization_id,currency,month,ad_spend_minor,service_fee_minor,source_language,translation_status,source_filename,source_timezone,source_storage_key,source_sha256,summary_zh,reviewed_by,ad_account_id,source_account_name,source_currency,source_ad_spend_minor,fx_quote_id,settlement_date) values($1,$2,'CNY','2026-10-01',1222000,0,'en','reviewed','fixture-CAD.csv','America/Toronto','private/fixture-CAD.csv',repeat('b',64),'虚构人民币结算说明',$3,$4,'Fixture account','CAD',235000,$5,'2026-11-04') returning id",[wallet,orgA,admin,accountA,quote])).rows[0].id;
+  await db.query("insert into public.monthly_ad_report_lines(report_id,campaign,market,source_cad_minor,spend_minor) values($1,'Fixture CAD cost','Canada',235000,1222000)",[report]);
+ });
+ it("does not publish with an outdated quote date or a quote captured after confirmation",async()=>{
+  await expect(db.query('update public.monthly_ad_reports set settlement_date=$2,published_at=$3 where id=$1',[report,'2026-11-03',confirmTime])).rejects.toThrow(/quote/i);
+  await expect(db.query('update public.monthly_ad_reports set published_at=$2 where id=$1',[report,'2026-11-04T01:00:00Z'])).rejects.toThrow(/precede confirmation/);
+ });
+ it("does not accept a hidden ten percent charge without a fee agreement",async()=>{
+  await expect(db.query('update public.monthly_ad_reports set service_fee_minor=122200,published_at=$2 where id=$1',[report,confirmTime])).rejects.toThrow(/fee mismatch/);
+  await expect(db.query('update public.monthly_ad_reports set fee_basis_points=1000,service_fee_minor=122200,published_at=$2 where id=$1',[report,confirmTime])).rejects.toThrow(/Agreed fee evidence/);
+ });
+ it("publishes an exact CNY conversion with zero default fee and keeps its quote immutable",async()=>{
+  await db.query('update public.monthly_ad_reports set published_at=$2 where id=$1',[report,confirmTime]);
+  const result=await asUser<{ad_spend_minor:number;service_fee_minor:number;fee_basis_points:number}>(alice,'aal1','select ad_spend_minor,service_fee_minor,fee_basis_points from public.monthly_ad_reports where id=$1',[report]);expect(result.rows).toEqual([{ad_spend_minor:1222000,service_fee_minor:0,fee_basis_points:0}]);
+  await expect(db.query("update public.billing_fx_quotes set cad_cny_rate='6.0' where id=$1",[quote])).rejects.toThrow(/immutable/);
+  expect((await asUser(bob,'aal1','select * from public.billing_fx_quotes')).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select id from public.billing_fx_quotes where id=$1',[quote])).rows).toEqual([{id:quote}]);
+ });
+ it("requires a new revision for adjustments and rejects using a demo rate in a final bill",async()=>{
+  await expect(db.query('update public.monthly_ad_reports set service_fee_minor=1 where id=$1',[report])).rejects.toThrow(/immutable/);
+  const fake=(await db.query<{id:string}>("insert into public.billing_fx_quotes(cad_cny_rate,value_date,quoted_at,source_name,is_demo) values('5.2','2026-11-04','2026-11-04T02:00:00Z','Fictional rate',true) returning id")).rows[0].id;
+  const revision=(await db.query<{id:string}>("insert into public.monthly_ad_reports(wallet_id,organization_id,currency,month,version,ad_spend_minor,service_fee_minor,source_language,translation_status,source_filename,source_timezone,source_storage_key,source_sha256,summary_zh,reviewed_by,ad_account_id,source_account_name,source_currency,source_ad_spend_minor,fx_quote_id,settlement_date) values($1,$2,'CNY','2026-10-01',2,1222000,0,'en','reviewed','fixture-CAD.csv','America/Toronto','private/fixture-CAD.csv',repeat('b',64),'示例不应发布',$3,$4,'Fixture account','CAD',235000,$5,'2026-11-04') returning id",[wallet,orgA,admin,accountA,fake])).rows[0].id;
+  await db.query("insert into public.monthly_ad_report_lines(report_id,campaign,market,source_cad_minor,spend_minor) values($1,'Fixture CAD cost','Canada',235000,1222000)",[revision]);
+  await expect(db.query('update public.monthly_ad_reports set published_at=$2 where id=$1',[revision,confirmTime])).rejects.toThrow(/demo rates/);
+ });
+});
