@@ -141,3 +141,74 @@ describe("End-to-end local business workflow and client access",()=>{
   expect((await db.query<{role:string}>("select role from public.memberships where organization_id=$1 and user_id=$2",[orgA,alice])).rows[0].role).toBe('owner');
  });
 });
+describe("Versioned project collaboration",()=>{
+ let projectId:string; let briefId:string; let creativeId:string;
+ it("grants collaborator permission without granting staff rights",async()=>{
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_contributor')",[orgA,alice]);
+  expect((await asUser<{allowed:boolean}>(alice,'aal1','select public.can_collaborate($1) as allowed',[orgA])).rows[0].allowed).toBe(true);
+  expect((await asUser<{allowed:boolean}>(alice,'aal2','select public.has_staff_access() as allowed')).rows[0].allowed).toBe(false);
+  const result=await asUser<{id:string}>(admin,'aal2',"insert into public.projects(organization_id,name,created_by) values($1,'Collaboration fixture',$2) returning id",[orgA,admin]);projectId=result.rows[0].id;
+ });
+ it("allows a verified client to submit a brief and staff to review it",async()=>{
+  const result=await asUser<{id:string}>(alice,'aal1',"select public.submit_project_content($1,'brief','Fixture brief','Product and audience requirements','https://example.com/brief',0) as id",[projectId]);briefId=result.rows[0].id;
+  await asUser(operator,'aal2',"select public.review_project_content($1,$2,'approved','Requirements understood')",[projectId,briefId]);
+  const reviews=await asUser<{decision:string}>(alice,'aal1','select decision from public.project_reviews where submission_id=$1',[briefId]);expect(reviews.rows).toEqual([{decision:'approved'}]);
+ });
+ it("rejects self-review, wrong roles, read-only clients and cross-company writes",async()=>{
+  await expect(asUser(alice,'aal1',"select public.review_project_content($1,$2,'approved','Self reviewed')",[projectId,briefId])).rejects.toThrow(/Forbidden action/);
+  await expect(asUser(bob,'aal1',"select public.submit_project_content($1,'brief','Forbidden brief','Not the same company','',0)",[projectId])).rejects.toThrow(/Not available/);
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_viewer')",[orgA,bob]);
+  await expect(asUser(bob,'aal1',"select public.submit_project_content($1,'brief','Viewer brief','Read only cannot submit','',1)",[projectId])).rejects.toThrow(/Not available/);
+  await expect(asUser(admin,'aal1',"select public.submit_project_content($1,'creative','No MFA','Insufficient staff assurance','',0)",[projectId])).rejects.toThrow(/Not available/);
+  await expect(asUser(admin,'aal2',"select public.submit_project_content($1,'brief','Staff brief','Wrong direction for staff','',1)",[projectId])).rejects.toThrow(/Forbidden action/);
+ });
+ it("keeps prior versions immutable and prevents stale confirmations",async()=>{
+  const first=await asUser<{id:string}>(operator,'aal2',"select public.submit_project_content($1,'creative','Creative first','First proposal for review','',0) as id",[projectId]);
+  const second=await asUser<{id:string}>(operator,'aal2',"select public.submit_project_content($1,'creative','Creative revised','Revised proposal for review','',1) as id",[projectId]);creativeId=second.rows[0].id;
+  await expect(asUser(alice,'aal1',"select public.review_project_content($1,$2,'approved','Old version reviewed')",[projectId,first.rows[0].id])).rejects.toThrow(/Stale revision/);
+  await expect(asUser(operator,'aal2',"select public.submit_project_content($1,'creative','Stale creative','Lost update should be blocked','',0)",[projectId])).rejects.toThrow(/Stale revision/);
+  await expect(asUser(alice,'aal1',"update public.project_submissions set body='Overwritten'")).rejects.toThrow(/permission denied/);
+  await expect(asUser(admin,'aal2',"delete from public.project_reviews")).rejects.toThrow(/permission denied/);
+ });
+ it("supports a client change request, revised creative and version-specific approval",async()=>{
+  await asUser(alice,'aal1',"select public.review_project_content($1,$2,'changes_requested','Please refine the headline')",[projectId,creativeId]);
+  await expect(asUser(alice,'aal1',"select public.review_project_content($1,$2,'approved','Duplicate review')",[projectId,creativeId])).rejects.toThrow(/Stale revision/);
+  const revised=await asUser<{id:string}>(operator,'aal2',"select public.submit_project_content($1,'creative','Final creative','Refined headline and campaign copy','',2) as id",[projectId]);
+  await asUser(alice,'aal1',"select public.review_project_content($1,$2,'approved','This version is approved')",[projectId,revised.rows[0].id]);
+  expect((await asUser(alice,'aal1',"select id from public.project_submissions where project_id=$1",[projectId])).rows).toHaveLength(4);
+ });
+ it("publishes shared updates and a project-stage history without leaking identities",async()=>{
+  await asUser(operator,'aal2',"select public.publish_project_update($1,'Creative review is complete')",[projectId]);
+  await asUser(operator,'aal2',"update public.projects set status='ready' where id=$1",[projectId]);
+  const history=await asUser<{event_type:string;detail:string}>(alice,'aal1','select event_type,detail from public.project_activity where project_id=$1',[projectId]);
+  expect(history.rows).toContainEqual({event_type:'status',detail:'briefing:ready'});
+  expect(history.rows).toContainEqual({event_type:'update',detail:'Creative review is complete'});
+  await expect(asUser(alice,'aal1','select author_id from public.project_submissions')).rejects.toThrow(/permission denied/);
+  await expect(asUser(alice,'aal1','select actor_id from public.project_activity')).rejects.toThrow(/permission denied/);
+  await expect(asUser(alice,'aal1',"select public.publish_project_update($1,'Client spoofed update')",[projectId])).rejects.toThrow(/Forbidden/);
+ });
+ it("blocks activity reads from another company after access is revoked",async()=>{
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'revoke')",[orgA,bob]);
+  for(const table of ['project_submissions','project_activity'])expect((await asUser(bob,'aal1',`select id from public.${table} where project_id=$1`,[projectId])).rows).toEqual([]);
+  expect((await asUser(bob,'aal1','select id from public.project_reviews')).rows).toEqual([]);
+ });
+ it("does not write approvals into advertising accounts or change project stage",async()=>{
+  expect((await db.query<{status:string}>('select status from public.projects where id=$1',[projectId])).rows[0].status).toBe('ready');
+  expect((await db.query<{connection_status:string}>('select connection_status from public.ad_accounts where id=$1',[accountA])).rows[0].connection_status).toBe('unverified');
+  const audits=await db.query<{changes:unknown}>("select changes from public.audit_events where entity_type='project_submission'");expect(JSON.stringify(audits.rows)).not.toContain('Product and audience');
+ });
+ it("closes collaboration on completed projects",async()=>{
+  await asUser(admin,'aal2',"update public.projects set status='completed' where id=$1",[projectId]);
+  await expect(asUser(alice,'aal1',"select public.submit_project_content($1,'brief','Closed brief','Cannot change a completed project','',1)",[projectId])).rejects.toThrow(/Project closed/);
+ });
+});
+describe("Collaboration authority changes",()=>{
+ it("upgrades a viewer to collaborator with an audit, without a staff role",async()=>{
+  expect((await db.query<{role:string}>("select role from public.memberships where organization_id=$1 and user_id=$2",[orgB,bob])).rows[0].role).toBe('viewer');
+  await asUser(admin,'aal2',"select public.set_client_access($1,$2,'grant_contributor')",[orgB,bob]);
+  expect((await db.query<{role:string}>("select role from public.memberships where organization_id=$1 and user_id=$2",[orgB,bob])).rows[0].role).toBe('admin');
+  expect((await asUser<{allowed:boolean}>(bob,'aal1','select public.can_collaborate($1) as allowed',[orgB])).rows[0].allowed).toBe(true);
+  expect((await asUser<{allowed:boolean}>(bob,'aal2','select public.has_staff_access() as allowed')).rows[0].allowed).toBe(false);
+  const audit=await db.query<{operation:string}>("select operation from public.audit_events where entity_type='client_access' and entity_id=$1 and changes->>'target_user_id'=$2 order by created_at desc",[orgB,bob]);expect(audit.rows[0].operation).toBe('UPDATE');
+ });
+});

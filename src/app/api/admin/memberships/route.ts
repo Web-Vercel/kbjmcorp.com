@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { getStaffContext, staffError } from "@/lib/admin/guard";
 import { authResponse, readAuthBody } from "@/lib/auth/http";
-const schema = z.object({ organizationId: z.uuid(), userId: z.uuid(), action: z.enum(["grant_viewer", "revoke"]), confirm: z.literal("on") });
+const schema = z.object({ organizationId: z.uuid(), userId: z.uuid(), action: z.enum(["grant_viewer", "grant_contributor", "revoke"]), confirm: z.literal("on") });
 export async function POST(request: Request) {
  const input = await readAuthBody(request); if (input.error) return input.error;
  const parsed = schema.safeParse(input.body); if (!parsed.success) return authResponse({ error: "invalid_input" }, 400);
