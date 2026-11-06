@@ -66,3 +66,5 @@ The preview does not provide a demo login, persist edits or connect to a real ad
 客户后台当前主线已调整为“充值与余额 + 每月广告费用与中文报告”。`/zh/client-preview` 可试用虚构充值登记，并查看 `/zh/client-preview/reports/demo-2026-10` 的中英月报与打印/保存 PDF；原项目协作位于辅助折叠区。迁移 008 提供独立财务权限、待核对充值、资金流水与月报架构，未接支付、实际入账、真实文件导入或翻译服务。详见 [资金与月报说明](docs/CLIENT_FUNDS_REPORTS.md)。
 
 人民币结算：新客户默认 CNY，月报保留 CAD 原始费用及锁定报价。默认不收固定 10% 汇兑手续费；服务费必须事先约定并单列。迁移 009 增加报价快照与结算校验，当前仅使用明确标注的演示报价。见 [结算政策](docs/CNY_SETTLEMENT_POLICY.md)。
+
+企业 CRM：新增人工公司建档、联系人、7 天手机号邀请、独立财务授权、空人民币钱包开立、合同草稿及人工签署记录。员工演示侧栏可进入 `/zh/crm-preview`；真实后台 `/zh/admin/crm`，客户资料 `/zh/account/company`。迁移 010 需在单独测试环境审阅后执行。标准条款仅为示范草稿，未接电子签名或私有合同文件服务；手机号邀请的真实 OTP 联调仍待服务配置。详见 [客户生命周期](docs/CRM_CLIENT_LIFECYCLE.md)。

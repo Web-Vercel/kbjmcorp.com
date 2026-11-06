@@ -14,7 +14,7 @@ let inquiryId:string;
 beforeAll(async()=>{
  db=new PGlite();
  await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
- create schema auth;create table auth.users(id uuid primary key);
+ create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);
  create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
  create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;
  grant usage on schema public,auth to anon,authenticated,service_role;
@@ -289,5 +289,86 @@ describe("CNY settlement, locked quotes and disclosed fees",()=>{
   const revision=(await db.query<{id:string}>("insert into public.monthly_ad_reports(wallet_id,organization_id,currency,month,version,ad_spend_minor,service_fee_minor,source_language,translation_status,source_filename,source_timezone,source_storage_key,source_sha256,summary_zh,reviewed_by,ad_account_id,source_account_name,source_currency,source_ad_spend_minor,fx_quote_id,settlement_date) values($1,$2,'CNY','2026-10-01',2,1222000,0,'en','reviewed','fixture-CAD.csv','America/Toronto','private/fixture-CAD.csv',repeat('b',64),'示例不应发布',$3,$4,'Fixture account','CAD',235000,$5,'2026-11-04') returning id",[wallet,orgA,admin,accountA,fake])).rows[0].id;
   await db.query("insert into public.monthly_ad_report_lines(report_id,campaign,market,source_cad_minor,spend_minor) values($1,'Fixture CAD cost','Canada',235000,1222000)",[revision]);
   await expect(db.query('update public.monthly_ad_reports set published_at=$2 where id=$1',[revision,confirmTime])).rejects.toThrow(/demo rates/);
+ });
+});
+describe("Manual CRM, explicit phone invitations and contract records",()=>{
+ let crmOrg:string;let contact:string;let invitation:string;let contract:string;
+ it("lets business staff manually create a client and contact without creating a login",async()=>{
+  crmOrg=(await asUser<{id:string}>(operator,'aal2',"select public.save_crm_client(null,'Manual fixture','Manual fixture legal','','CN','https://example.com','Manufacturing','onboarding','Private internal fixture',0) as id")).rows[0].id;
+  contact=(await asUser<{id:string}>(operator,'aal2',"select public.save_crm_contact($1,null,'Fixture representative','Finance','+8613800138000','','finance') as id",[crmOrg])).rows[0].id;
+  expect((await db.query<{count:number}>('select count(*)::integer as count from auth.users')).rows[0].count).toBe(5);
+  expect((await asUser(alice,'aal1','select id from public.organizations where id=$1',[crmOrg])).rows).toEqual([]);
+  await expect(asUser(operator,'aal2',"select public.save_crm_client($1,'Stale','Stale legal','','CN','','','active','',99)",[crmOrg])).rejects.toThrow(/Stale/);
+ });
+ it("requires administrator MFA and explicit company authorization to invite",async()=>{
+  for(const [id,aal] of [[operator,'aal2'],[admin,'aal1'],[alice,'aal2']] as const)await expect(asUser(id,aal,"select public.invite_crm_contact($1,$2,'viewer','manager','verified-business-reference')",[crmOrg,contact])).rejects.toThrow(/Forbidden/);
+  invitation=(await asUser<{id:string}>(admin,'aal2',"select public.invite_crm_contact($1,$2,'viewer','manager','verified-business-reference') as id",[crmOrg,contact])).rows[0].id;
+  expect((await asUser<{count:number}>(alice,'aal1','select public.claim_crm_invites() as count')).rows[0].count).toBe(0);
+ });
+ it("claims only a preapproved invitation after provider-verified phone login, idempotently",async()=>{
+  await db.query("update auth.users set phone='8613800138000',phone_confirmed_at=now() where id=$1",[alice]);
+  expect((await asUser<{count:number}>(bob,'aal1','select public.claim_crm_invites() as count')).rows[0].count).toBe(0);
+  expect((await asUser<{count:number}>(alice,'aal1','select public.claim_crm_invites() as count')).rows[0].count).toBe(1);
+  expect((await asUser<{count:number}>(alice,'aal1','select public.claim_crm_invites() as count')).rows[0].count).toBe(0);
+  expect((await asUser<{role:string}>(alice,'aal1','select role from public.finance_access where organization_id=$1',[crmOrg])).rows).toEqual([{role:'manager'}]);
+  const own=await asUser<{id:string;legal_name:string}>(alice,'aal1','select id,legal_name from public.get_my_company_profiles() where id=$1',[crmOrg]);expect(own.rows).toEqual([{id:crmOrg,legal_name:'Manual fixture legal'}]);
+  expect((await asUser(alice,'aal1','select * from public.client_profiles')).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select * from public.customer_invites')).rows).toEqual([]);
+ });
+ it("opens a zero-value CNY wallet and limits staff finance reads to administrators",async()=>{
+  await asUser(admin,'aal2','select public.open_crm_wallet($1)',[crmOrg]);
+  await expect(asUser(operator,'aal2','select public.get_crm_finance_summary($1)',[crmOrg])).rejects.toThrow(/Forbidden/);
+  const summary=await asUser<{data:{currency:string;balance_minor:string}[]}>(admin,'aal2','select public.get_crm_finance_summary($1) as data',[crmOrg]);expect(summary.rows[0].data[0]).toEqual(expect.objectContaining({currency:'CNY',balance_minor:'0'}));
+ });
+ it("keeps contract drafts private, snapshots party names and does not claim e-signature verification",async()=>{
+  contract=(await asUser<{id:string}>(admin,'aal2',"select public.create_crm_contract($1,'Fixture agreement','Fixture provider legal','A full fictional service scope','CNY charges only under an agreed quotation','Unused funds reconciled before any approved refund','2026-01-01','2027-12-31','Draft template snapshot for testing only') as id",[crmOrg])).rows[0].id;
+  expect((await asUser(alice,'aal1','select id from public.client_contracts where id=$1',[contract])).rows).toEqual([]);
+  expect((await asUser(operator,'aal2','select id from public.client_contracts where id=$1',[contract])).rows).toEqual([]);
+  await expect(asUser(admin,'aal2',"select public.update_crm_contract($1,'signed',true,'external-doc','2026-11-01','draft')",[contract])).rejects.toThrow(/Invalid contract transition/);
+  await asUser(admin,'aal2',"select public.update_crm_contract($1,'sent',true,'',null,'draft')",[contract]);
+  expect((await asUser(alice,'aal1','select id from public.client_contracts where id=$1',[contract])).rows).toEqual([{id:contract}]);
+  expect((await asUser(bob,'aal1','select id from public.client_contracts where id=$1',[contract])).rows).toEqual([]);
+  await expect(asUser(alice,'aal1','select created_by from public.client_contracts')).rejects.toThrow(/permission denied/);
+  await expect(db.query("update public.client_contracts set pricing_terms='Changed after issue' where id=$1",[contract])).rejects.toThrow(/immutable/);
+ });
+ it("requires signature evidence and preserves it after recording",async()=>{
+  await expect(asUser(admin,'aal2',"select public.update_crm_contract($1,'signed',true,'',null,'sent')",[contract])).rejects.toThrow(/signature evidence/);
+  await asUser(admin,'aal2',"select public.update_crm_contract($1,'signed',true,'external-signed-fixture','2026-11-01','sent')",[contract]);
+  await expect(db.query("update public.client_contracts set signature_reference='replaced' where id=$1",[contract])).rejects.toThrow(/immutable/);
+ });
+ it("downgrades finance independently and revokes pending invitations before they can restore access",async()=>{
+  await asUser(admin,'aal2',"select public.invite_crm_contact($1,$2,'viewer','manager','fresh-company-authorization')",[crmOrg,contact]);
+  await asUser(admin,'aal2',"select public.set_crm_finance_access($1,$2,'none')",[crmOrg,alice]);
+  expect((await asUser<{count:number}>(alice,'aal1','select public.claim_crm_invites() as count')).rows[0].count).toBe(0);
+  expect((await asUser(alice,'aal1','select id from public.client_contracts where id=$1',[contract])).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select id from public.organizations where id=$1',[crmOrg])).rows).toEqual([{id:crmOrg}]);
+  await asUser(admin,'aal2','select public.revoke_crm_access($1,$2,null)',[crmOrg,alice]);
+  expect((await asUser(alice,'aal1','select id from public.organizations where id=$1',[crmOrg])).rows).toEqual([]);
+ });
+ it("does not copy contact phones or internal notes into the audit trail",async()=>{
+  const result=await db.query<{changes:unknown}>("select changes from public.audit_events where entity_id in ($1,$2,$3)",[crmOrg,contact,invitation]);
+  expect(JSON.stringify(result.rows)).not.toContain('13800138000');expect(JSON.stringify(result.rows)).not.toContain('Private internal fixture');
+ });
+});
+describe("CRM invitation expiry and identity safeguards",()=>{
+ let org:string;let contact:string;
+ it("does not authorize an unconfirmed phone, an expired invitation or an invitation from an inactive administrator",async()=>{
+  org=(await asUser<{id:string}>(admin,'aal2',"select public.save_crm_client(null,'Expiry fixture','Expiry legal','','CN','','','onboarding','',0) as id")).rows[0].id;
+  contact=(await asUser<{id:string}>(admin,'aal2',"select public.save_crm_contact($1,null,'Expiry representative','','+8613900139000','','business') as id",[org])).rows[0].id;
+  await db.query("update auth.users set phone='8613900139000',phone_confirmed_at=null where id=$1",[bob]);
+  await asUser(admin,'aal2',"select public.invite_crm_contact($1,$2,'viewer','viewer','authorized-contact-fixture')",[org,contact]);
+  expect((await asUser<{n:number}>(bob,'aal1','select public.claim_crm_invites() as n')).rows[0].n).toBe(0);
+  await db.query('update auth.users set phone_confirmed_at=now() where id=$1',[bob]);
+  await db.query("update public.customer_invites set expires_at=now()-interval '1 second' where organization_id=$1",[org]);
+  expect((await asUser<{n:number}>(bob,'aal1','select public.claim_crm_invites() as n')).rows[0].n).toBe(0);
+  await asUser(admin,'aal2',"select public.invite_crm_contact($1,$2,'viewer','viewer','new-authorization-fixture')",[org,contact]);
+  await db.query('update public.staff_members set active=false where user_id=$1',[admin]);
+  expect((await asUser<{n:number}>(bob,'aal1','select public.claim_crm_invites() as n')).rows[0].n).toBe(0);
+  await db.query('update public.staff_members set active=true where user_id=$1',[admin]);
+ });
+ it("invalidates outstanding authorizations when the company is archived",async()=>{
+  await asUser(admin,'aal2',"select public.save_crm_client($1,'Expiry fixture','Expiry legal','','CN','','','closed','',1)",[org]);
+  expect((await asUser<{n:number}>(bob,'aal1','select public.claim_crm_invites() as n')).rows[0].n).toBe(0);
+  await expect(asUser(admin,'aal2',"select public.invite_crm_contact($1,$2,'viewer','viewer','should-not-create')",[org,contact])).rejects.toThrow(/open client profile/);
  });
 });

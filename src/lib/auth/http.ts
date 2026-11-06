@@ -7,7 +7,7 @@ export function authResponse(body: object, status = 200, retryAfter?: number) {
     ...(retryAfter ? { "Retry-After": String(retryAfter) } : {}),
   } });
 }
-export async function readAuthBody(request: Request): Promise<{ body: unknown; error?: never } | { error: NextResponse; body?: never }> {
+export async function readAuthBody(request: Request, maxBytes = 8192): Promise<{ body: unknown; error?: never } | { error: NextResponse; body?: never }> {
   // Browser-only endpoints require an explicit same-origin request.
   if (!hasSameOrigin(request)) return { error: authResponse({ error: "forbidden" }, 403) };
   if (!request.headers.get("content-type")?.includes("application/json")) return { error: authResponse({ error: "json_required" }, 415) };
@@ -19,7 +19,7 @@ export async function readAuthBody(request: Request): Promise<{ body: unknown; e
     const { done, value } = await reader.read();
     if (done) break;
     size += value.length;
-    if (size > 8192) { await reader.cancel(); return { error: authResponse({ error: "too_large" }, 413) }; }
+    if (size > maxBytes) { await reader.cancel(); return { error: authResponse({ error: "too_large" }, 413) }; }
     chunks.push(value);
   }
   try { return { body: JSON.parse(Buffer.concat(chunks).toString("utf8")) }; }

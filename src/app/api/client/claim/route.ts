@@ -1,0 +1,3 @@
+import { authClient } from "@/lib/auth/server";
+import { authResponse,readAuthBody } from "@/lib/auth/http";
+export async function POST(request:Request){const body=await readAuthBody(request);if(body.error)return body.error;try{const client=await authClient(true);if(!client)return authResponse({error:'unavailable'},503);const user=await client.auth.getUser();if(user.error||!user.data.user)return authResponse({error:'unauthenticated'},401);const result=await client.rpc('claim_crm_invites');if(result.error)return authResponse({error:'unavailable'},503);return authResponse({ok:true,claimed:Number.isInteger(result.data)?result.data:0});}catch{return authResponse({error:'unavailable'},503);}}

@@ -13,7 +13,8 @@
     "test:admin": "node scripts/admin-smoke.mjs",
     "test:client": "node scripts/client-smoke.mjs",
     "test:workflow": "node scripts/workflow-smoke.mjs",
-    "test:billing": "node scripts/billing-smoke.mjs"
+    "test:billing": "node scripts/billing-smoke.mjs",
+    "test:crm": "node scripts/crm-smoke.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
