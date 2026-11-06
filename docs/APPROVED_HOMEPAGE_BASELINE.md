@@ -1,0 +1,18 @@
+# Approved public website baseline
+
+The user explicitly designated https://kbjmcorp.com/zh as the approved public visual and branding baseline. Backend development extends this website; it must not replace its identity. The current development checkout matches the previously reviewed homepage source; this record is not an independent verification of which commit Vercel currently serves.
+
+Preserve the headline exactly: **让中国品牌，被世界看见。**
+
+Preserve 智点未来, its logo, subtitle and introductory paragraphs, green-and-white visual identity, typography, spacing, layout, hero section including the right-side ChatGPT visual, navigation appearance and language switcher, and existing Chinese/English marketing copy. Keep 服务能力, 合作流程, 联系我们 and other existing sections. Do not substitute “Smart Clicks. Greater Futures. / 智能触达，成就更大未来”. Any technically necessary homepage change must first be presented for explicit user approval; no redesign or branding deployment is authorized.
+
+Protected source includes:
+
+- `src/app/[locale]/page.tsx`
+- `src/lib/content.ts`, `src/lib/services.ts`, `src/lib/faq.ts`
+- `src/components/BrandLogo.tsx`, `HeroVisual.tsx`, `SiteHeader.tsx`, `SiteFooter.tsx`, `MobileNavigation.tsx`, `InquiryForm.tsx`, `Faq.tsx`
+- Existing public image assets and homepage selectors in `src/app/globals.css`
+
+New application, portal and administration routes reuse the existing components and design tokens. New styles must be limited to their own page scope; shared global selectors require careful regression review because they may affect the approved homepage.
+
+The application extension adds links on the existing **login and authenticated portal pages**, plus internal staff navigation. The public homepage/header/footer remain byte-for-byte unchanged from development commit `ab8dbe2`; the existing homepage customer-login link leads into the extended flow. No new homepage CTA or navigation styling is needed.

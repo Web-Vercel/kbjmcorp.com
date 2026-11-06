@@ -66,3 +66,7 @@ See [THREE_PARTY_SAAS.md](THREE_PARTY_SAAS.md) for the responsibility matrix, ex
 ### Bank collections (migration 012)
 
 Manual verified bank receipts can now be prepared and independently approved into immutable CNY ledger credits, with receiving-account configuration and customer-scoped payment instructions. Duplicate approval is idempotent. No hosted migration, bank integration or money transfer occurred. Stages 2/3 remain matching suggestions and provider interfaces, not active bank/payment connections. Formal report publishing, fee posting, refunds and correction approvals remain separate work. See [BANK_COLLECTIONS_ROLLOUT.md](BANK_COLLECTIONS_ROLLOUT.md).
+
+### Customer applications (migration 013)
+
+Independent application overview, phone-verified submissions/status, requests for more information, withdrawal and China staff review are implemented. Approval creates only a new prospect CRM record/contact; membership, finance permissions, contracts, wallets and ad accounts remain separate. Default `CLIENT_APPLICATIONS_ENABLED=false`; a selected isolated Auth/database project and intake privacy setup are required for real submissions. Public fictional demo: `/zh/application-preview`. Homepage files, marketing copy, assets, shared CSS and navigation are unchanged. See [CUSTOMER_APPLICATIONS.md](CUSTOMER_APPLICATIONS.md) and [APPROVED_HOMEPAGE_BASELINE.md](APPROVED_HOMEPAGE_BASELINE.md).

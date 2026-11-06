@@ -1,0 +1,5 @@
+import {reviewApplicationSchema} from '@/lib/applications/model';
+import {getStaffContext,staffError} from '@/lib/admin/guard';
+import {authResponse,readAuthBody} from '@/lib/auth/http';
+export async function POST(request:Request){const input=await readAuthBody(request);if(input.error)return input.error;const p=reviewApplicationSchema.safeParse(input.body);if(!p.success)return authResponse({error:'invalid_input'},400);if(process.env.CLIENT_APPLICATIONS_ENABLED!=='true')return authResponse({error:'unavailable'},503);const staff=await getStaffContext();if('error'in staff)return staffError(staff);
+ try{const result=await staff.client.rpc('review_customer_application',{p_id:p.data.applicationId,p_revision:p.data.revision,p_decision:p.data.decision,p_feedback:p.data.feedback});if(result.error){const c=result.error.code;return authResponse({error:c==='42501'?'forbidden':c==='40001'?'conflict':'save_failed'},c==='42501'?403:c==='40001'?409:c==='P0002'?404:c==='22023'?400:502);}return authResponse({ok:true,organizationId:result.data});}catch{return authResponse({error:'unavailable'},503);}}

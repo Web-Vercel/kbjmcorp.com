@@ -53,3 +53,9 @@ describe("Chinese phone login interaction", () => {
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("已过期")); expect(navigation.replace).not.toHaveBeenCalled();
   });
 });
+
+it('returns verified application sign-ins to the application page without changing the default sign-in path',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({ok:true}),{status:200}));
+ render(<PhoneLogin locale="zh" enabled siteKey="fixture" codeLength={6} applicationFlow/>);
+ const user=await fill();await user.click(screen.getByRole('button',{name:'Complete test CAPTCHA'}));await user.click(screen.getByRole('button',{name:/获取短信验证码/}));await user.type(await screen.findByLabelText('短信验证码'),'123456');await user.click(screen.getByRole('button',{name:/验证并登录/}));await waitFor(()=>expect(navigation.replace).toHaveBeenCalledWith('/zh/account/application'));
+});

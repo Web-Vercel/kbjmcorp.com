@@ -515,3 +515,57 @@ describe('Manual bank receipt posting',()=>{
   await asUser(admin,'aal2','select public.set_collection_account_active($1,true)',[bank]);
  });
 });
+
+describe('Verified customer application workflow',()=>{
+ let application:string;let org:string;
+ const submit=(who=alice,id:string|null=null,revision=0)=>asUser<{id:string}>(who,'aal1',"select public.save_customer_application($1,$2,'Fictional applicant enterprise','Fixture contact','contact@example.test','https://example.test','Home products','global','A fictional advertising requirement for testing only','zh') as id",[id,revision]);
+ it('requires a verified unique mainland phone and keeps application identity server-derived',async()=>{
+  await db.query('update auth.users set phone_confirmed_at=null where id=$1',[bob]);
+  await expect(submit(bob)).rejects.toThrow(/Verified mainland phone/);
+  await expect(submit(operator)).rejects.toThrow(/Customer session/);
+  application=(await submit()).rows[0].id;
+  expect((await asUser<{phone_e164:string}>(alice,'aal1','select phone_e164 from public.customer_applications where id=$1',[application])).rows[0].phone_e164).toBe('+8613800138000');
+  await expect(submit()).rejects.toThrow(/unique constraint/);
+  await db.query('update auth.users set phone_confirmed_at=now() where id=$1',[bob]);
+ });
+ it('isolates applications from other customers, Canada and financial staff',async()=>{
+  for(const who of [bob,'66666666-aaaa-4666-8666-666666666666','77777777-aaaa-4777-8777-777777777777'])expect((await asUser(who,'aal2','select id from public.customer_applications')).rows).toEqual([]);
+  expect((await asUser(operator,'aal1','select id from public.customer_applications')).rows).toEqual([]);
+  expect((await asUser(operator,'aal2','select id from public.customer_applications')).rows).toEqual([{id:application}]);
+  expect((await asUser<{data:unknown[]}>(bob,'aal1','select public.get_my_customer_applications() as data')).rows[0].data).toEqual([]);
+  expect(JSON.stringify((await asUser<{data:unknown[]}>(alice,'aal1','select public.get_my_customer_applications() as data')).rows[0].data)).not.toContain('reviewed_by');
+  await expect(asUser(alice,'aal1',"update public.customer_applications set status='approved' where id=$1",[application])).rejects.toThrow(/permission denied/);
+ });
+ it('uses optimistic revisions, requests customer-visible information and preserves private history',async()=>{
+  await expect(submit(alice,application,1)).rejects.toThrow(/changed or closed/);
+  await expect(asUser('66666666-aaaa-4666-8666-666666666666','aal2',"select public.review_customer_application($1,1,'approved','Attempted unauthorized approval')",[application])).rejects.toThrow(/Forbidden/);
+  await asUser(operator,'aal2',"select public.review_customer_application($1,1,'needs_information','Please clarify the target product range')",[application]);
+  await expect(asUser(operator,'aal2',"select public.review_customer_application($1,1,'approved','Stale review')",[application])).rejects.toThrow(/changed or closed/);
+  await expect(submit(bob,application,2)).rejects.toThrow(/Forbidden/);
+  await expect(submit(alice,application,1)).rejects.toThrow(/changed or closed/);
+  await submit(alice,application,2);
+  expect((await asUser<{status:string;revision:number;feedback:string|null}>(alice,'aal1','select status,revision,feedback from public.customer_applications where id=$1',[application])).rows[0]).toEqual({status:'submitted',revision:3,feedback:null});
+  await expect(asUser(alice,'aal1','select * from public.customer_application_history')).rejects.toThrow(/permission denied/);
+  expect((await db.query('select id from public.customer_application_history where application_id=$1',[application])).rows).toHaveLength(3);
+ });
+ it('approves into a prospect CRM record without access, wallets, contracts or platform accounts',async()=>{
+  const before=await db.query<{n:number}>("select (select count(*) from public.memberships)+(select count(*) from public.finance_access)+(select count(*) from public.client_wallets)+(select count(*) from public.client_contracts)+(select count(*) from public.ad_accounts) as n");
+  org=(await asUser<{org:string}>(operator,'aal2',"select public.review_customer_application($1,3,'approved','Scope reviewed; contracts and access authorization follow separately') as org",[application])).rows[0].org;
+  expect((await db.query('select organization_id from public.client_profiles where organization_id=$1 and status=\'prospect\'',[org])).rows).toHaveLength(1);
+  expect((await db.query('select id from public.crm_contacts where organization_id=$1',[org])).rows).toHaveLength(1);
+  const after=await db.query<{n:number}>("select (select count(*) from public.memberships)+(select count(*) from public.finance_access)+(select count(*) from public.client_wallets)+(select count(*) from public.client_contracts)+(select count(*) from public.ad_accounts) as n");expect(after.rows).toEqual(before.rows);
+  expect((await asUser(alice,'aal1','select id from public.organizations where id=$1',[org])).rows).toEqual([]);
+  await expect(asUser(operator,'aal2',"select public.review_customer_application($1,3,'approved','Repeated approval must not create another company')",[application])).rejects.toThrow(/changed or closed/);
+ });
+ it('withdraws only owned open applications and records rejection without granting permissions',async()=>{
+  const second=(await submit()).rows[0].id;
+  await expect(asUser(bob,'aal1','select public.withdraw_customer_application($1,1)',[second])).rejects.toThrow(/Forbidden/);
+  await asUser(alice,'aal1','select public.withdraw_customer_application($1,1)',[second]);
+  await expect(asUser(operator,'aal2',"select public.review_customer_application($1,2,'approved','Withdrawn application approval')",[second])).rejects.toThrow(/changed or closed/);
+  const third=(await submit()).rows[0].id;
+  await asUser(operator,'aal2',"select public.review_customer_application($1,1,'rejected','Service scope unavailable at this stage')",[third]);
+  expect((await db.query<{organization_id:string|null}>('select organization_id from public.customer_applications where id=$1',[third])).rows[0].organization_id).toBeNull();
+  await expect(submit()).rejects.toThrow(/Daily application limit/);
+  expect(JSON.stringify((await db.query("select changes from public.audit_events where entity_type='customer_application'")).rows)).not.toContain('contact@example.test');
+ });
+});

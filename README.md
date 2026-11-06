@@ -76,3 +76,7 @@ The Canada fulfilment / China service and finance / client portal model is docum
 ## Bank collections rollout
 
 Phase 1 now includes verified receiving-account instructions, bank receipt preparation, independent approval and atomic CNY ledger credits (`012_manual_bank_collections.sql`). No bank transfer or online payment is executed. Public walkthrough: `/zh/collections-preview`; protected finance workspace: `/zh/operations/collections`. Phase 2 exact-match suggestions and phase 3 provider contracts are groundwork only. See [BANK_COLLECTIONS_ROLLOUT.md](docs/BANK_COLLECTIONS_ROLLOUT.md) for setup, accounting limits and activation prerequisites. Run `npm run test:collections` against a built local server.
+
+## Customer applications without changing the homepage
+
+The approved homepage and branding are protected by [APPROVED_HOMEPAGE_BASELINE.md](docs/APPROVED_HOMEPAGE_BASELINE.md). Existing customer login now leads to an independent application overview (`/zh/apply`), phone-verified application/status page (`/zh/account/application`) and staff review queue (`/zh/admin/applications`). Public fictional demo: `/zh/application-preview`. Migration 013 and explicit `CLIENT_APPLICATIONS_ENABLED=true` test-project configuration are required for real submissions; default is disabled. Approval creates a prospect CRM record, never company or financial access. See [CUSTOMER_APPLICATIONS.md](docs/CUSTOMER_APPLICATIONS.md).

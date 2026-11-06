@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/content";
 import Captcha from "./Captcha";
 
-export default function PhoneLogin({ locale, enabled, siteKey, codeLength }: { locale: Locale; enabled: boolean; siteKey: string; codeLength: number }) {
+export default function PhoneLogin({ locale, enabled, siteKey, codeLength, applicationFlow = false }: { applicationFlow?: boolean; locale: Locale; enabled: boolean; siteKey: string; codeLength: number }) {
   const zh = locale === "zh"; const router = useRouter();
   const [phone, setPhone] = useState(""); const [code, setCode] = useState("");
   const [sent, setSent] = useState(false); const [consent, setConsent] = useState(false);
@@ -51,7 +51,7 @@ export default function PhoneLogin({ locale, enabled, siteKey, codeLength }: { l
     try {
       const response = await fetch("/api/auth/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone, code }) });
       if (!response.ok) { setStatus(response.status === 503 ? text.unavailable : response.status === 429 ? text.limited : text.invalid); return; }
-      setCode(""); router.replace(`/${locale}/account`); router.refresh();
+      setCode(""); router.replace(`/${locale}/account${applicationFlow ? "/application" : ""}`); router.refresh();
     } catch { setStatus(text.retry); }
     finally { lock.current = false; setBusy(false); }
   }
