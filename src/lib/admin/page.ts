@@ -6,5 +6,7 @@ import { getStaffContext } from "./guard";
 export const requireStaffPage = cache(async (locale: Locale) => {
   const result = await getStaffContext();
   if ("error" in result) redirect(`/${locale}/admin/${result.error === "mfa_required" ? "security" : "login"}`);
+  const legacy = await result.client.rpc("has_staff_access");
+  if (legacy.error || legacy.data !== true) redirect(`/${locale}/operations`);
   return result;
 });

@@ -32,3 +32,24 @@ export interface ReadOnlyAdAdapter {
 }
 // Real account identifiers and credentials are private runtime configuration, not fixtures.
 // There are deliberately no create-ad, change-budget, charge or pause/resume methods here.
+
+
+/** Optional source export contract; available only after provider capabilities are verified. */
+export interface MonthlySourceArtifact {
+ advertiserExternalId: string;
+ periodStart: string;
+ periodEndExclusive: string;
+ sourceTimezone: string;
+ sourceCurrency: string;
+ originalLanguage: string;
+ filename: string;
+ mimeType: string;
+ sha256: string;
+ privateArtifactReference: string;
+ collectedAt: string;
+}
+export interface MonthlySourceReader {
+ collectMonthlySource(externalAccountId: string, periodStart: string, periodEndExclusive: string): Promise<MonthlySourceArtifact>;
+}
+// No implementation is provided: native PDF export, API availability and language
+// support must be checked against the actual provider. Never invent export endpoints.

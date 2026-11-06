@@ -58,3 +58,7 @@ Vercel 部署开发分支最新提交后：
 ## 企业客户 CRM 补全
 
 新增人工公司建档、联系人、预批准手机号邀请、公司/财务权限、空 CNY 钱包开立、合同草稿、外部签署人工登记及客户自己的公司/合同页面。当前是智点未来单机构 CRM 与客户门户，并非对外多租户 SaaS。详见 [CRM_CLIENT_LIFECYCLE.md](CRM_CLIENT_LIFECYCLE.md)。未配置实际合同文件存储或电子签名，不能将人工签署记录称为系统电子验签。手机号邀请需后续真实身份服务联调，不自动发送邀请或短信。
+
+### Three-party responsibilities (migration 011)
+
+See [THREE_PARTY_SAAS.md](THREE_PARTY_SAAS.md) for the responsibility matrix, explicit employee role assignment, source revisions, independent financial review, private client service tickets and remaining production prerequisites. Public simulation is available at `/zh/operations-preview`. Source registration is metadata only; approval leaves an internal draft awaiting a future publication service. No hosted migration, client debit, platform authorization, payment or intercompany transfer occurs. Migration 011 intentionally removes legacy broad CRM access from operators until the owner assigns China customer-service responsibilities; Canada and finance employees use their scoped operations workspace.

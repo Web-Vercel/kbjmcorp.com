@@ -22,6 +22,7 @@ beforeAll(async()=>{
  const dir=new URL("../supabase/migrations/",import.meta.url);
  for(const file of (await readdir(dir)).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile(new URL(file,dir),'utf8'));
  await db.exec(`insert into public.staff_members(user_id,role,active) values('${admin}','admin',true),('${operator}','operator',true),('${disabled}','admin',false);
+ insert into public.staff_unit_roles(user_id,unit_code,role) values('${operator}','zhidian_cn','customer_service');
  insert into public.organizations(id,name) values('${orgA}','Fixture A'),('${orgB}','Fixture B');
  insert into public.memberships values('${orgA}','${alice}','owner'),('${orgB}','${bob}','viewer');
  insert into public.ad_accounts(id,organization_id,platform,external_id,label) values('${accountA}','${orgA}','openai_ads','fixture-account-A','Fixture account A');
@@ -370,5 +371,76 @@ describe("CRM invitation expiry and identity safeguards",()=>{
   await asUser(admin,'aal2',"select public.save_crm_client($1,'Expiry fixture','Expiry legal','','CN','','','closed','',1)",[org]);
   expect((await asUser<{n:number}>(bob,'aal1','select public.claim_crm_invites() as n')).rows[0].n).toBe(0);
   await expect(asUser(admin,'aal2',"select public.invite_crm_contact($1,$2,'viewer','viewer','should-not-create')",[org,contact])).rejects.toThrow(/open client profile/);
+ });
+});
+describe("Three-party operating boundaries and source handoff",()=>{
+ const canada='66666666-aaaa-4666-8666-666666666666';const preparer='77777777-aaaa-4777-8777-777777777777';const reviewer='88888888-aaaa-4888-8888-888888888888';const unassigned='99999999-aaaa-4999-8999-999999999999';
+ let packet:string;let reconciliation:string;let quote:string;let generalTicket:string;let billingTicket:string;
+ it("requires explicit operating-unit assignments rather than granting all operators access",async()=>{
+  await db.exec(`insert into auth.users(id) values('${canada}'),('${preparer}'),('${reviewer}'),('${unassigned}');insert into public.staff_members(user_id,role) values('${canada}','operator'),('${preparer}','operator'),('${reviewer}','operator'),('${unassigned}','operator');`);
+  for(const [id,unit,role] of [[canada,'kbjm_ca','ad_operations'],[preparer,'zhidian_cn','finance_preparer'],[reviewer,'zhidian_cn','finance_reviewer']] as const)await asUser(admin,'aal2','select public.assign_operating_role($1,$2,$3,true)',[id,unit,role]);
+  expect((await asUser<{allowed:boolean}>(canada,'aal2',"select public.has_staff_access() as allowed")).rows[0].allowed).toBe(false);
+  expect((await asUser(unassigned,'aal2','select id from public.organizations')).rows).toEqual([]);
+  await expect(asUser(canada,'aal2',"select public.assign_operating_role($1,'zhidian_cn','finance_preparer',true)",[canada])).rejects.toThrow(/Forbidden/);
+  expect((await asUser(canada,'aal1','select id from public.ad_accounts')).rows).toEqual([]);
+ });
+ it("lets Canada see account ownership but not China CRM, CNY funds or contract information",async()=>{
+  expect((await asUser(canada,'aal2','select id from public.ad_accounts where id=$1',[accountA])).rows).toEqual([{id:accountA}]);
+  for(const table of ['client_profiles','crm_contacts','client_wallets','wallet_entries','client_contracts'])expect((await asUser(canada,'aal2',`select ${table==='client_profiles'?'organization_id':'id'} from public.${table}`)).rows).toEqual([]);
+  await expect(asUser(canada,'aal2',"select public.save_crm_client(null,'Not allowed','Not allowed legal','','CN','','','active','',0)")).rejects.toThrow(/Forbidden/);
+ });
+ it("records immutable original report metadata without pretending a platform connection exists",async()=>{
+  packet=(await asUser<{id:string}>(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-10-01','CAD',235000,'EXTERNAL-SOURCE-FIXTURE','','America/Toronto','en') as id",[orgA,accountA])).rows[0].id;
+  expect((await asUser(operator,'aal2','select id from public.ops_source_packets')).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select id from public.ops_source_packets')).rows).toEqual([]);
+  await expect(db.query('update public.ops_source_packets set source_amount_minor=1 where id=$1',[packet])).rejects.toThrow(/immutable/);
+  expect((await db.query<{connection_status:string}>('select connection_status from public.ad_accounts where id=$1',[accountA])).rows[0].connection_status).toBe('unverified');
+ });
+ it("requires a real current quote and independent finance responsibilities",async()=>{
+  quote=(await db.query<{id:string}>("insert into public.billing_fx_quotes(cad_cny_rate,value_date,quoted_at,source_name) values('5.2',(now() at time zone 'Asia/Shanghai')::date,now(),'Test fixture rate, not live') returning id")).rows[0].id;
+  await expect(asUser(canada,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[packet,quote])).rejects.toThrow(/Forbidden/);
+  reconciliation=(await asUser<{id:string}>(preparer,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'') as id",[packet,quote])).rows[0].id;
+  expect((await asUser(canada,'aal2','select id from public.ops_reconciliations')).rows).toEqual([]);
+  expect((await asUser(alice,'aal1','select id from public.ops_reconciliations')).rows).toEqual([]);
+  await asUser(admin,'aal2',"select public.assign_operating_role($1,'zhidian_cn','finance_reviewer',true)",[preparer]);
+  await expect(asUser(preparer,'aal2',"select public.review_ops_reconciliation($1,'approved','Self review must not succeed')",[reconciliation])).rejects.toThrow(/Independent reviewer/);
+ });
+ it("reviews a CNY draft without debiting funds or publishing a client report",async()=>{
+  const before=await db.query<{count:number}>('select count(*)::integer as count from public.wallet_entries');
+  const published=await db.query<{count:number}>('select count(*)::integer as count from public.monthly_ad_reports where published_at is not null');
+  await asUser(reviewer,'aal2',"select public.review_ops_reconciliation($1,'approved','Independently checked source and quoted costs')",[reconciliation]);
+  expect((await asUser<{status:string;ad_spend_cny_minor:number;fee_minor:number}>(reviewer,'aal2','select status,ad_spend_cny_minor,fee_minor from public.ops_reconciliations where id=$1',[reconciliation])).rows).toEqual([{status:'approved',ad_spend_cny_minor:1222000,fee_minor:0}]);
+  expect((await db.query<{count:number}>('select count(*)::integer as count from public.wallet_entries')).rows).toEqual(before.rows);
+  expect((await db.query<{count:number}>('select count(*)::integer as count from public.monthly_ad_reports where published_at is not null')).rows).toEqual(published.rows);
+ });
+ it("invalidates stale draft revisions when Canada submits corrected source metadata",async()=>{
+  const first=(await asUser<{id:string}>(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-09-01','CAD',10000,'OLDER-SOURCE-FIXTURE','','UTC','en') as id",[orgA,accountA])).rows[0].id;
+  const draft=(await asUser<{id:string}>(preparer,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'') as id",[first,quote])).rows[0].id;
+  await asUser(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-09-01','CAD',11000,'CORRECTED-SOURCE-FIXTURE','','UTC','en')",[orgA,accountA]);
+  expect((await db.query<{status:string}>('select status from public.ops_reconciliations where id=$1',[draft])).rows[0].status).toBe('superseded');
+  await expect(asUser(reviewer,'aal2',"select public.review_ops_reconciliation($1,'approved','Stale approval')",[draft])).rejects.toThrow(/Stale review/);
+ });
+ it("does not treat USD source costs as CAD or let revoked employees keep unit access",async()=>{
+  const usd=(await asUser<{id:string}>(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-08-01','USD',10000,'USD-SOURCE-FIXTURE','','UTC','en') as id",[orgA,accountA])).rows[0].id;
+  await expect(asUser(preparer,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[usd,quote])).rejects.toThrow(/CAD to CNY adapter/);
+  await asUser(admin,'aal2',"select public.assign_operating_role($1,'kbjm_ca','ad_operations',false)",[canada]);
+  expect((await asUser(canada,'aal2','select id from public.ops_source_packets')).rows).toEqual([]);
+  await asUser(admin,'aal2',"select public.assign_operating_role($1,'kbjm_ca','ad_operations',true)",[canada]);
+ });
+ it("routes general service to China support and financial questions only to finance",async()=>{
+  generalTicket=(await asUser<{id:string}>(alice,'aal1',"select public.create_service_request($1,'account','Account support fixture','Please check the fictional account status') as id",[orgA])).rows[0].id;
+  billingTicket=(await asUser<{id:string}>(alice,'aal1',"select public.create_service_request($1,'billing','Billing support fixture','Please check the fictional deposit reference') as id",[orgA])).rows[0].id;
+  expect((await asUser(operator,'aal2','select id from public.service_requests')).rows).toEqual([{id:generalTicket}]);
+  expect((await asUser(preparer,'aal2','select id from public.service_requests')).rows).toEqual([{id:billingTicket}]);
+  expect((await asUser(canada,'aal2','select id from public.service_requests')).rows).toEqual([]);
+  expect((await asUser(bob,'aal1','select id from public.service_requests')).rows).toEqual([]);
+  await expect(asUser(operator,'aal2',"select public.reply_service_request($1,'Not authorized for billing','resolved')",[billingTicket])).rejects.toThrow(/Forbidden/);
+ });
+ it("keeps messages in company scope, rejects forged customer status and preserves audit privacy",async()=>{
+  await asUser(operator,'aal2',"select public.reply_service_request($1,'Support checked the account record','resolved')",[generalTicket]);
+  await asUser(alice,'aal1',"select public.reply_service_request($1,'A further client question remains','resolved')",[generalTicket]);
+  expect((await db.query<{status:string}>('select status from public.service_requests where id=$1',[generalTicket])).rows[0].status).toBe('open');
+  expect((await asUser(bob,'aal1','select id from public.service_request_messages')).rows).toEqual([]);
+  const audits=await db.query<{changes:unknown}>("select changes from public.audit_events where entity_type='service_request'");expect(JSON.stringify(audits.rows)).not.toContain('fictional deposit reference');
  });
 });
