@@ -72,3 +72,7 @@ The preview does not provide a demo login, persist edits or connect to a real ad
 ## Three-party operations
 
 The Canada fulfilment / China service and finance / client portal model is documented in [THREE_PARTY_SAAS.md](docs/THREE_PARTY_SAAS.md). Migration 011 introduces explicit operating responsibilities, versioned monthly-source handoff, independent financial review and company-scoped service requests. Existing operators receive no automatic assignment. Public fictional walkthrough: `/zh/operations-preview` (also English); protected workspace: `/zh/operations`. Review does not publish reports or debit money. No hosted migration, platform API or payment connection was made. Run `npm run test:operations` against the built local server.
+
+## Bank collections rollout
+
+Phase 1 now includes verified receiving-account instructions, bank receipt preparation, independent approval and atomic CNY ledger credits (`012_manual_bank_collections.sql`). No bank transfer or online payment is executed. Public walkthrough: `/zh/collections-preview`; protected finance workspace: `/zh/operations/collections`. Phase 2 exact-match suggestions and phase 3 provider contracts are groundwork only. See [BANK_COLLECTIONS_ROLLOUT.md](docs/BANK_COLLECTIONS_ROLLOUT.md) for setup, accounting limits and activation prerequisites. Run `npm run test:collections` against a built local server.

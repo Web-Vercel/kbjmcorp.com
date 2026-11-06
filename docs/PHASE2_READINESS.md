@@ -62,3 +62,7 @@ Vercel 部署开发分支最新提交后：
 ### Three-party responsibilities (migration 011)
 
 See [THREE_PARTY_SAAS.md](THREE_PARTY_SAAS.md) for the responsibility matrix, explicit employee role assignment, source revisions, independent financial review, private client service tickets and remaining production prerequisites. Public simulation is available at `/zh/operations-preview`. Source registration is metadata only; approval leaves an internal draft awaiting a future publication service. No hosted migration, client debit, platform authorization, payment or intercompany transfer occurs. Migration 011 intentionally removes legacy broad CRM access from operators until the owner assigns China customer-service responsibilities; Canada and finance employees use their scoped operations workspace.
+
+### Bank collections (migration 012)
+
+Manual verified bank receipts can now be prepared and independently approved into immutable CNY ledger credits, with receiving-account configuration and customer-scoped payment instructions. Duplicate approval is idempotent. No hosted migration, bank integration or money transfer occurred. Stages 2/3 remain matching suggestions and provider interfaces, not active bank/payment connections. Formal report publishing, fee posting, refunds and correction approvals remain separate work. See [BANK_COLLECTIONS_ROLLOUT.md](BANK_COLLECTIONS_ROLLOUT.md).

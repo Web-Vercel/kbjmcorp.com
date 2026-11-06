@@ -15,7 +15,8 @@
     "test:workflow": "node scripts/workflow-smoke.mjs",
     "test:billing": "node scripts/billing-smoke.mjs",
     "test:crm": "node scripts/crm-smoke.mjs",
-    "test:operations": "node scripts/operations-smoke.mjs"
+    "test:operations": "node scripts/operations-smoke.mjs",
+    "test:collections": "node scripts/collections-smoke.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

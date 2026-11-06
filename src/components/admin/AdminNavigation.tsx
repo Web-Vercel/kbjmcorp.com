@@ -10,5 +10,5 @@ export default function AdminNavigation({locale,demo}:{locale:Locale;demo:boolea
  const href=demo?`/${locale}/admin-preview${suffix?`#${suffix.slice(1)}`:""}`:`/${locale}/admin${suffix}`;
  const active=demo?!suffix:suffix?path.includes(`/admin${suffix}`):path===`/${locale}/admin`;
  return <Link href={href} key={suffix} aria-current={active?"page":undefined}><span aria-hidden="true">{icon}</span>{label}</Link>;
- })}<Link href={`/${locale}/${demo?"operations-preview":"operations"}`}>{locale==="zh"?"三方运营中心":"Three-party operations"} ↗</Link>{demo&&<Link href={`/${locale}/crm-preview`}>{locale==="zh"?"企业客户 CRM 演示":"Client CRM demo"} ↗</Link>}</nav>;
+ })}<Link href={`/${locale}/${demo?"operations-preview":"operations"}`}>{locale==="zh"?"三方运营中心":"Three-party operations"} ↗</Link><Link href={`/${locale}/${demo?"collections-preview":"operations/collections"}`}>{locale==="zh"?"对公收款与入账":"Bank collections & posting"} ↗</Link>{demo&&<Link href={`/${locale}/crm-preview`}>{locale==="zh"?"企业客户 CRM 演示":"Client CRM demo"} ↗</Link>}</nav>;
 }

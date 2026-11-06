@@ -444,3 +444,74 @@ describe("Three-party operating boundaries and source handoff",()=>{
   const audits=await db.query<{changes:unknown}>("select changes from public.audit_events where entity_type='service_request'");expect(JSON.stringify(audits.rows)).not.toContain('fictional deposit reference');
  });
 });
+
+describe('Manual bank receipt posting',()=>{
+ const preparer='77777777-aaaa-4777-8777-777777777777';const reviewer='88888888-aaaa-4888-8888-888888888888';const canada='66666666-aaaa-4666-8666-666666666666';
+ let bank:string,wallet:string,notice:string,receipt:string;
+ const prep=(reference:string,topup:string|null=notice,amount=1000000)=>asUser<{id:string}>(preparer,'aal2',"select public.prepare_bank_receipt($1,$2,$3,'Fictional payer enterprise',$4,(now() at time zone 'Asia/Shanghai')::date,'BANK-STATEMENT-FIXTURE') as id",[wallet,topup,amount,reference]);
+ it('requires owner authority to register verified receiving accounts and client-specific instructions',async()=>{
+  wallet=(await db.query<{id:string}>("select id from public.client_wallets where organization_id=$1 and currency='CNY'",[orgA])).rows[0].id;
+  await expect(asUser(preparer,'aal2',"select public.create_collection_account('Fictional receiving company','Fictional bank','DEMO-NOT-PAYABLE','VERIFY-FIXTURE')")).rejects.toThrow(/Forbidden/);
+  bank=(await asUser<{id:string}>(admin,'aal2',"select public.create_collection_account('Fictional receiving company','Fictional bank','DEMO-NOT-PAYABLE','VERIFY-FIXTURE') as id")).rows[0].id;
+  await asUser(admin,'aal2',"select public.assign_collection_account($1,$2,'SIGNED-AGREEMENT-FIXTURE')",[wallet,bank]);
+  expect((await asUser(alice,'aal1','select * from public.get_collection_instructions($1)',[wallet])).rows).toHaveLength(1);
+  expect((await asUser(bob,'aal1','select * from public.get_collection_instructions($1)',[wallet])).rows).toEqual([]);
+  for(const who of [canada,operator,alice,bob])expect((await asUser(who,'aal2','select id from public.collection_accounts')).rows).toEqual([]);
+ });
+ it('rejects unsupported wallets, future dates, unverified collectors and mismatched notices',async()=>{
+  notice=(await asUser<{id:string}>(alice,'aal1',"select public.request_client_topup($1,1000000,'CLIENT-BANK-REQUEST-FIXTURE') as id",[wallet])).rows[0].id;
+  await expect(prep('WRONG-AMOUNT',notice,999)).rejects.toThrow(/Topup does not match/);
+  await expect(asUser(preparer,'aal2',"select public.prepare_bank_receipt($1,null,100,'Fictional payer','FUTURE-FIXTURE',(now() at time zone 'Asia/Shanghai')::date+1,'STATEMENT-FIXTURE')",[wallet])).rejects.toThrow(/Actual booked date/);
+  await asUser(admin,'aal2','select public.set_collection_account_active($1,false)',[bank]);
+  expect((await asUser(alice,'aal1','select * from public.get_collection_instructions($1)',[wallet])).rows).toEqual([]);
+  await expect(prep('PAUSED-FIXTURE')).rejects.toThrow(/Verified collection instructions/);
+  await asUser(admin,'aal2','select public.set_collection_account_active($1,true)',[bank]);
+ });
+ it('prepares a receipt without crediting money and denies self-review even with dual roles',async()=>{
+  const before=(await db.query('select id from public.wallet_entries')).rows;
+  receipt=(await prep('BANK-REFERENCE-001')).rows[0].id;
+  expect((await db.query('select id from public.wallet_entries')).rows).toEqual(before);
+  await expect(asUser(preparer,'aal2',"select public.review_bank_receipt($1,'credited','Attempted self approval')",[receipt])).rejects.toThrow(/Independent reviewer/);
+  await expect(asUser(reviewer,'aal1',"select public.review_bank_receipt($1,'credited','Missing MFA approval')",[receipt])).rejects.toThrow(/Forbidden/);
+  await expect(asUser(operator,'aal2',"select public.review_bank_receipt($1,'credited','Support cannot credit')",[receipt])).rejects.toThrow(/Forbidden/);
+  for(const who of [canada,operator,alice,bob])expect((await asUser(who,'aal2','select id from public.bank_receipts')).rows).toEqual([]);
+ });
+ it('blocks normalized duplicate references and independent caller-supplied money writes',async()=>{
+  await expect(prep(' bank-reference-001 ',null)).rejects.toThrow(/unique constraint/);
+  await expect(asUser(alice,'aal1',"select public.prepare_bank_receipt($1,null,100,'Forged payer','FORGED-REF',current_date,'FORGED-EVIDENCE')",[wallet])).rejects.toThrow(/Forbidden/);
+  await expect(asUser(preparer,'aal2',"update public.bank_receipts set status='credited' where id=$1",[receipt])).rejects.toThrow(/permission denied/);
+  await expect(db.query('update public.bank_receipts set amount_minor=1 where id=$1',[receipt])).rejects.toThrow(/immutable/);
+  await expect(db.query("update public.collection_accounts set account_number='CHANGED-NUMBER' where id=$1",[bank])).rejects.toThrow(/immutable/);
+ });
+ it('rolls back the ledger and notice if final receipt recording fails',async()=>{
+  await db.exec(`create function public.fixture_fail_receipt_update() returns trigger language plpgsql as $$begin raise exception 'Injected final recording failure'; end;$$; create trigger fixture_receipt_failure before update on public.bank_receipts for each row execute function public.fixture_fail_receipt_update();`);
+  try {
+   await expect(asUser(reviewer,'aal2',"select public.review_bank_receipt($1,'credited','Independent approval with injected failure')",[receipt])).rejects.toThrow(/Injected final recording failure/);
+   expect((await db.query('select id from public.wallet_entries where source_reference=$1',['bank-receipt:'+receipt])).rows).toEqual([]);
+   expect((await db.query<{status:string}>('select status from public.client_topups where id=$1',[notice])).rows[0].status).toBe('pending');
+   expect((await db.query<{status:string}>('select status from public.bank_receipts where id=$1',[receipt])).rows[0].status).toBe('pending');
+  } finally {await db.exec('drop trigger fixture_receipt_failure on public.bank_receipts; drop function public.fixture_fail_receipt_update();');}
+ });
+ it('atomically credits once, marks the notice and makes retries idempotent',async()=>{
+  const before=(await db.query<{balance:string}>('select coalesce(sum(amount_minor),0)::text as balance from public.wallet_entries where wallet_id=$1',[wallet])).rows[0].balance;
+  await asUser(reviewer,'aal2',"select public.review_bank_receipt($1,'credited','Independently checked bank and client allocation')",[receipt]);
+  await asUser(reviewer,'aal2',"select public.review_bank_receipt($1,'credited','Retry after uncertain connection')",[receipt]);
+  const after=(await db.query<{balance:string}>('select coalesce(sum(amount_minor),0)::text as balance from public.wallet_entries where wallet_id=$1',[wallet])).rows[0].balance;
+  expect(BigInt(after)-BigInt(before)).toBe(1000000n);
+  expect((await asUser<{status:string}>(alice,'aal1','select status from public.client_topups where id=$1',[notice])).rows[0].status).toBe('credited');
+  expect((await db.query('select id from public.wallet_entries where source_reference=$1',['bank-receipt:'+receipt])).rows).toHaveLength(1);
+  await expect(asUser(reviewer,'aal2',"select public.review_bank_receipt($1,'rejected','Conflicting retry')",[receipt])).rejects.toThrow(/already reviewed/);
+  await expect(prep('BANK-REFERENCE-001',null)).rejects.toThrow(/unique constraint/);
+ });
+ it('leaves rejected evidence immutable but allows a new corrected preparation',async()=>{
+  const first=(await prep('BANK-CORRECTABLE-002',null,20000)).rows[0].id;
+  await asUser(reviewer,'aal2',"select public.review_bank_receipt($1,'rejected','Incorrect client allocation; reprepare')",[first]);
+  const corrected=(await prep('BANK-CORRECTABLE-002',null,20000)).rows[0].id;
+  expect(corrected).not.toBe(first);
+  expect((await db.query('select id from public.wallet_entries where source_reference=$1',['bank-receipt:'+first])).rows).toEqual([]);
+  await asUser(admin,'aal2','select public.set_collection_account_active($1,false)',[bank]);
+  await expect(asUser(reviewer,'aal2',"select public.review_bank_receipt($1,'credited','Cannot approve paused collector')",[corrected])).rejects.toThrow(/paused/);
+  expect((await db.query<{status:string}>('select status from public.bank_receipts where id=$1',[corrected])).rows[0].status).toBe('pending');
+  await asUser(admin,'aal2','select public.set_collection_account_active($1,true)',[bank]);
+ });
+});
