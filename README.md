@@ -80,3 +80,7 @@ Phase 1 now includes verified receiving-account instructions, bank receipt prepa
 ## Customer applications without changing the homepage
 
 The approved homepage and branding are protected by [APPROVED_HOMEPAGE_BASELINE.md](docs/APPROVED_HOMEPAGE_BASELINE.md). Existing customer login now leads to an independent application overview (`/zh/apply`), phone-verified application/status page (`/zh/account/application`) and staff review queue (`/zh/admin/applications`). Public fictional demo: `/zh/application-preview`. Migration 013 and explicit `CLIENT_APPLICATIONS_ENABLED=true` test-project configuration are required for real submissions; default is disabled. Approval creates a prospect CRM record, never company or financial access. See [CUSTOMER_APPLICATIONS.md](docs/CUSTOMER_APPLICATIONS.md).
+
+## Selected Supabase test project
+
+Connection diagnostics now reach the user-selected Tokyo project, with valid public-key Auth responses; phone Auth is disabled and the application table is not yet exposed in the API schema cache. The inherited configuration still contains assignment prefixes and needs correction. See [SUPABASE_TEST_PROJECT_SETUP.md](docs/SUPABASE_TEST_PROJECT_SETUP.md) for the exact state and SQL Editor instructions. `npm run db:bundle` prepares an atomic new-project-only 001–013 bootstrap with existing-object protection; `db:bundle:check` verifies its source hashes, and `db:check` performs only read-only metadata checks. No hosted schema migration or business write was performed.

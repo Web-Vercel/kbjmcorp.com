@@ -17,7 +17,10 @@
     "test:crm": "node scripts/crm-smoke.mjs",
     "test:operations": "node scripts/operations-smoke.mjs",
     "test:collections": "node scripts/collections-smoke.mjs",
-    "test:applications": "node scripts/application-smoke.mjs"
+    "test:applications": "node scripts/application-smoke.mjs",
+    "db:bundle": "node scripts/prepare-supabase-bootstrap.mjs",
+    "db:bundle:check": "node scripts/prepare-supabase-bootstrap.mjs --check",
+    "db:check": "node scripts/check-supabase-connection.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
