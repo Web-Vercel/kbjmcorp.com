@@ -84,3 +84,7 @@ The approved homepage and branding are protected by [APPROVED_HOMEPAGE_BASELINE.
 ## Selected Supabase test project
 
 Connection diagnostics now reach the user-selected Tokyo project, with valid public-key Auth responses; phone Auth is disabled and the application table is not yet exposed in the API schema cache. The inherited configuration still contains assignment prefixes and needs correction. See [SUPABASE_TEST_PROJECT_SETUP.md](docs/SUPABASE_TEST_PROJECT_SETUP.md) for the exact state and SQL Editor instructions. `npm run db:bundle` prepares an atomic new-project-only 001–013 bootstrap with existing-object protection; `db:bundle:check` verifies its source hashes, and `db:check` performs only read-only metadata checks. No hosted schema migration or business write was performed.
+
+## Staff login activation
+
+New Supabase server credentials use `SUPABASE_SECRET_KEY` (`sb_secret_...`); existing `SUPABASE_SERVICE_ROLE_KEY` deployments remain compatible. User sessions continue to use only the publishable key. `npm run staff:check` reports configuration metadata without values, network calls or Auth attempts. See [STAFF_LOGIN_ACTIVATION.md](docs/STAFF_LOGIN_ACTIVATION.md) for first-admin, Preview-only configuration, persistent rate limits, Turnstile and required TOTP. The reported first administrator assignment does not by itself enable website login. No configuration was published or hosted login performed in this iteration.

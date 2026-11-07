@@ -25,7 +25,8 @@ These steps have NOT been performed against a hosted project. Development author
    | --- | --- |
    | `SUPABASE_URL` | Separate project HTTPS URL |
    | `SUPABASE_PUBLISHABLE_KEY` | Publishable/legacy anon key; used for user-scoped authentication |
-   | `SUPABASE_SERVICE_ROLE_KEY` | Server-only limiter RPC and inquiry writes; never sent to the browser |
+   | `SUPABASE_SECRET_KEY` | Preferred new server secret for limiter RPC and inquiry writes; never sent to the browser |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Legacy deployment compatibility only; not required when the new secret is configured |
    | `AUTH_RATE_LIMIT_SECRET` | Random server-only HMAC secret, at least 32 characters; use a proper injected value, not a network-proxy placeholder |
    | `AUTH_OTP_LENGTH` | 6–10 digits, matching actual Supabase OTP length; default 6 |
    | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Public widget key matching CAPTCHA settings; rebuild after changing it |

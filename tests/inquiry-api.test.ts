@@ -4,7 +4,7 @@ vi.mock("@supabase/supabase-js", () => ({ createClient: () => ({ from: () => ({ 
 import { POST } from "@/app/api/inquiries/route";
 import { inquirySchema } from "@/lib/inquiry";
 const valid = { company: "示例企业", phone: "13800138000", email: "", message: "希望了解海外广告投放方案与服务内容。", locale: "zh", consent: true, market: "europe" };
-beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("SUPABASE_URL", "https://fixture.example"); vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "fixture-only"); fixture.insert.mockResolvedValue({ error: null }); });
+beforeEach(() => { vi.resetAllMocks(); vi.stubEnv("SUPABASE_SECRET_KEY", ""); vi.stubEnv("SUPABASE_URL", "https://fixture.example"); vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "fixture-only"); fixture.insert.mockResolvedValue({ error: null }); });
 afterEach(() => vi.unstubAllEnvs());
 function request(data: unknown) { return new Request("https://site.example/api/inquiries", { method: "POST", headers: { Origin: "https://site.example", "Content-Type": "application/json" }, body: JSON.stringify(data) }); }
 it("saves phone-only inquiries in international format without creating accounts", async () => {
@@ -28,4 +28,10 @@ it("does not claim success if the database rejects the record", async () => {
 it("accepts and saves the Global market choice", async () => {
   expect((await POST(request({ ...valid, market: "global" }))).status).toBe(201);
   expect(fixture.insert).toHaveBeenCalledWith(expect.objectContaining({ target_market: "global" }));
+});
+it('supports the new server secret while keeping inquiry payloads and public branding unchanged',async()=>{
+ vi.stubEnv('SUPABASE_SECRET_KEY','sb_secret_TEST_SERVER_ONLY');vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY','');expect((await POST(request(valid))).status).toBe(201);expect(fixture.insert).toHaveBeenCalledTimes(1);
+});
+it('fails closed on a malformed new server key instead of using the legacy fallback',async()=>{
+ vi.stubEnv('SUPABASE_SECRET_KEY','SUPABASE_SECRET_KEY=sb_secret_TEST');expect((await POST(request(valid))).status).toBe(503);expect(fixture.insert).not.toHaveBeenCalled();
 });

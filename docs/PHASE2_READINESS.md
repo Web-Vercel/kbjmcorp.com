@@ -70,3 +70,7 @@ Manual verified bank receipts can now be prepared and independently approved int
 ### Customer applications (migration 013)
 
 Independent application overview, phone-verified submissions/status, requests for more information, withdrawal and China staff review are implemented. Approval creates only a new prospect CRM record/contact; membership, finance permissions, contracts, wallets and ad accounts remain separate. Default `CLIENT_APPLICATIONS_ENABLED=false`; a selected isolated Auth/database project and intake privacy setup are required for real submissions. Public fictional demo: `/zh/application-preview`. Homepage files, marketing copy, assets, shared CSS and navigation are unchanged. See [CUSTOMER_APPLICATIONS.md](CUSTOMER_APPLICATIONS.md) and [APPROVED_HOMEPAGE_BASELINE.md](APPROVED_HOMEPAGE_BASELINE.md).
+
+### First staff login activation
+
+User reports the test-project schema and initial administrator assignment were completed in Supabase. New server-key compatibility and a local metadata-only readiness check are implemented. Saved URL/public-key assignment formats still need correction; server secret, HMAC limiter secret and Turnstile are not configured. A successful hosted password login, CAPTCHA and AAL2 session have not been verified. Follow [STAFF_LOGIN_ACTIVATION.md](STAFF_LOGIN_ACTIVATION.md); keep SMS and real customer applications disabled until separate acceptance.
