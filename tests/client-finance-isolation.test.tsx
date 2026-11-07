@@ -41,6 +41,7 @@ it('shows a retry state rather than treating a failed scope lookup as granted ac
 });
 
 it('allows a personally authorized published report to render',async()=>{
+ mocks.rpc.mockResolvedValue({data:true,error:null});
  mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});mocks.query.mockResolvedValueOnce({data:{...demoReport,organization_id:'company-A'},error:null}).mockResolvedValueOnce({data:demoLines,error:null}).mockResolvedValueOnce({data:{name:'Company A'},error:null});render(await Report({params:Promise.resolve({locale:'zh',id})}));expect(screen.getByText('Authorized report content')).toBeTruthy();
 });
 it('allows a personally authorized released contract to render',async()=>{

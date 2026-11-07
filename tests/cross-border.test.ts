@@ -1,0 +1,6 @@
+import {expect,it} from 'vitest';
+import {crossBorderCost,type TransferCost} from '@/lib/billing/cross-border';
+const base:TransferCost={mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false};
+it('distinguishes adding 20% from grossing up a 20% deduction',()=>{expect(crossBorderCost('3016000',{...base,mode:'markup',basisPoints:2000,bearer:'customer'})).toMatchObject({costMinor:'603200',customerCostMinor:'603200'});expect(crossBorderCost('3016000',{...base,mode:'gross_up',basisPoints:2000})).toMatchObject({costMinor:'754000',agencyCostMinor:'754000',customerCostMinor:'0'});});
+it('requires costs embedded in a rate to be excluded from separate fees',()=>{expect(()=>crossBorderCost('100',{...base,includedInRate:true,mode:'markup',basisPoints:2000})).toThrow(/again/);expect(crossBorderCost('100',{...base,includedInRate:true}).costMinor).toBe('0');});
+it('rejects impossible gross-ups and preserves cents',()=>{expect(()=>crossBorderCost('100',{...base,mode:'gross_up',basisPoints:10000})).toThrow();expect(crossBorderCost('1',{...base,mode:'gross_up',basisPoints:2000}).costMinor).toBe('1');expect(crossBorderCost('10',{...base,mode:'fixed',fixedMinor:'123'}).agencyCostMinor).toBe('123');});
