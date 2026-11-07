@@ -74,3 +74,7 @@ Independent application overview, phone-verified submissions/status, requests fo
 ### First staff login activation
 
 User reports the test-project schema and initial administrator assignment were completed in Supabase. New server-key compatibility and a local metadata-only readiness check are implemented. Saved URL/public-key assignment formats still need correction; server secret, HMAC limiter secret and Turnstile are not configured. A successful hosted password login, CAPTCHA and AAL2 session have not been verified. Follow [STAFF_LOGIN_ACTIVATION.md](STAFF_LOGIN_ACTIVATION.md); keep SMS and real customer applications disabled until separate acceptance.
+
+### Two-client browser acceptance while SMS is unconfigured
+
+The user's hosted Phone provider UI exposes no test-number option. A separate email/password client acceptance entry is now implemented, disabled by default and hard-disabled outside Vercel Preview. It requires two allowlisted verified non-staff Auth IDs, CAPTCHA, shared persistent limits and exactly one pre-approved company per user; it creates no identities, memberships or finance permissions. Hosted client login remains pending. See [PREVIEW_CLIENT_EMAIL_ACCEPTANCE.md](PREVIEW_CLIENT_EMAIL_ACCEPTANCE.md). Official mainland SMS integration can use Send SMS Hook with a separately qualified regional sender; no SMS vendor was connected or purchased.

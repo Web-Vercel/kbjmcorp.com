@@ -1,0 +1,12 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({security:vi.fn()}));
+vi.mock('@/lib/auth/config',()=>({getStaffLoginConfig:mocks.security}));
+import {getClientTestLoginConfig} from '@/lib/auth/client-test-config';
+const a='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',b='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+beforeEach(()=>{vi.stubEnv('VERCEL_ENV','preview');vi.stubEnv('CLIENT_EMAIL_TEST_LOGIN_ENABLED','true');vi.stubEnv('CLIENT_EMAIL_TEST_USER_IDS',`${a},${b}`);mocks.security.mockReturnValue({siteKey:'public-site',serviceKey:'private-never-returned'});});
+afterEach(()=>vi.unstubAllEnvs());
+it('returns only widget and allowlisted identities, not server keys',()=>{expect(getClientTestLoginConfig()).toEqual({siteKey:'public-site',allowedUserIds:[a,b]});});
+it.each(['production','development',''])('cannot enable the test entry outside Preview (%s)',value=>{vi.stubEnv('VERCEL_ENV',value);expect(getClientTestLoginConfig()).toBeNull();});
+it.each(['false',''])('requires explicit activation (%s)',value=>{vi.stubEnv('CLIENT_EMAIL_TEST_LOGIN_ENABLED',value);expect(getClientTestLoginConfig()).toBeNull();});
+it.each(['',a,`${a},${a}`,`${a},not-a-uuid`,`${a},${b},${a}`])('requires exactly two distinct explicit identities',value=>{vi.stubEnv('CLIENT_EMAIL_TEST_USER_IDS',value);expect(getClientTestLoginConfig()).toBeNull();});
+it('requires the existing server, limiter and CAPTCHA prerequisites',()=>{mocks.security.mockReturnValue(null);expect(getClientTestLoginConfig()).toBeNull();});
