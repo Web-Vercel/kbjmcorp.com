@@ -32,7 +32,7 @@ it('limits contract detail to personal companies, released documents and non-dra
  mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});await expect(Contract({params:Promise.resolve({locale:'zh',id})})).rejects.toThrow('not-found');
  expect(filters).toContainEqual({table:'client_contracts',method:'in',args:['organization_id',['company-A']]});expect(filters).toContainEqual({table:'client_contracts',method:'eq',args:['client_visible',true]});expect(filters).toContainEqual({table:'client_contracts',method:'neq',args:['status','draft']});
 });
-it('does not query the contract list without a personal finance grant',async()=>{render(await Company({params:Promise.resolve({locale:'zh'})}));expect(screen.getByText(/暂无已开放合同/)).toBeTruthy();expect(mocks.from).not.toHaveBeenCalledWith('client_contracts');});
+it('does not query the contract list without a personal finance grant',async()=>{render(await Company({params:Promise.resolve({locale:'zh'})}));expect(screen.getByText(/暂无已开放的合作登记/)).toBeTruthy();expect(mocks.from).not.toHaveBeenCalledWith('client_contracts');});
 it('filters contract lists by personal finance scope instead of employee-wide access',async()=>{
  mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});mocks.query.mockResolvedValue({data:[],error:null});render(await Company({params:Promise.resolve({locale:'zh'})}));expect(filters).toContainEqual({table:'client_contracts',method:'in',args:['organization_id',['company-A']]});
 });
@@ -45,4 +45,12 @@ it('allows a personally authorized published report to render',async()=>{
 });
 it('allows a personally authorized released contract to render',async()=>{
  mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});mocks.query.mockResolvedValue({data:{id,organization_id:'company-A'},error:null});render(await Contract({params:Promise.resolve({locale:'zh',id})}));expect(screen.getByText('Authorized contract content')).toBeTruthy();
+});
+it('shows only service registration metadata without a full-contract link',async()=>{
+ mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});
+ mocks.query.mockResolvedValue({data:[{id,organization_id:'company-A',title:'Service register A',status:'sent',starts_on:'2026-01-01',ends_on:'2026-12-31'}],error:null});
+ render(await Company({params:Promise.resolve({locale:'zh'})}));
+ expect(screen.getByText('Service register A')).toBeTruthy();
+ expect(document.querySelector(`a[href*="/account/contracts/"]`)).toBeNull();
+ expect(filters).toContainEqual({table:'client_contracts',method:'select',args:['id,organization_id,title,status,starts_on,ends_on']});
 });
