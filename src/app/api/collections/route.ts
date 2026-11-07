@@ -1,3 +1,4 @@
+import {collectionTestOrganization,validTestAccount,validTestWallet,testAccountNumber,testEvidence} from '@/lib/collections/test-mode';
 import {collectionSchema} from '@/lib/collections/model';
 import {toMinor} from '@/lib/billing/model';
 import {getStaffContext,staffError} from '@/lib/admin/guard';
@@ -7,6 +8,32 @@ export async function POST(request:Request){
  const parsed=collectionSchema.safeParse(input.body);if(!parsed.success)return authResponse({error:'invalid_input'},400);
  const staff=await getStaffContext();if('error'in staff)return staffError(staff);
  const p=parsed.data;if(['account','assign','active'].includes(p.action)&&staff.role!=='admin')return authResponse({error:'forbidden'},403);
+ const testOrg=collectionTestOrganization();
+ if(testOrg){
+  try{
+   if(p.action==='account'){
+    const company=await staff.client.from('organizations').select('name').eq('id',testOrg).maybeSingle();
+    if(company.error||company.data?.name!=='财务流程验收企业（虚构）')return authResponse({error:'forbidden'},403);
+    p.legalName='虚构测试收款公司—不可付款';p.bankName='虚构测试银行—不可付款';p.accountNumber=testAccountNumber;p.evidence=testEvidence;
+   }else if(p.action==='active'){
+    if(!await validTestAccount(staff.client,p.accountId))return authResponse({error:'forbidden'},403);
+   }else if(p.action==='review'){
+    const r=await staff.client.from('bank_receipts').select('wallet_id,collection_account_id,evidence_reference').eq('id',p.receiptId).maybeSingle();
+    if(r.error||!r.data||!r.data.evidence_reference.startsWith('FICTIONAL-')||!await validTestWallet(staff.client,r.data.wallet_id,testOrg)||!await validTestAccount(staff.client,r.data.collection_account_id))return authResponse({error:'forbidden'},403);
+    p.note='FICTIONAL TEST ONLY: '+p.note.slice(0,970);
+   }else{
+    if(!await validTestWallet(staff.client,p.walletId,testOrg))return authResponse({error:'forbidden'},403);
+    if(p.action==='assign'){
+     if(!await validTestAccount(staff.client,p.accountId))return authResponse({error:'forbidden'},403);
+     p.agreement='FICTIONAL-TEST-AGREEMENT';
+    }else{
+     const link=await staff.client.from('wallet_collection_accounts').select('collection_account_id').eq('wallet_id',p.walletId).maybeSingle();
+     if(link.error||!link.data||!await validTestAccount(staff.client,link.data.collection_account_id))return authResponse({error:'forbidden'},403);
+     p.evidence='FICTIONAL-TEST-ONLY';p.payerName='虚构付款企业—无真实付款';p.bankReference='FICTIONAL-'+p.bankReference.slice(0,100);
+    }
+   }
+  }catch{return authResponse({error:'unavailable'},503);}
+ }
  let name:string,args:Record<string,unknown>;
  switch(p.action){
  case 'account':name='create_collection_account';args={p_legal:p.legalName,p_bank:p.bankName,p_number:p.accountNumber,p_evidence:p.evidence};break;
