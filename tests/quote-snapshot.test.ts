@@ -1,0 +1,6 @@
+import {expect,it} from 'vitest';
+import {quoteDraftSchema,buildQuoteSnapshot,type QuoteDraftInput} from '@/lib/billing/quote-snapshot';
+const rule={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:1000,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};
+export const input:QuoteDraftInput={requestId:'a0000000-0000-4000-8000-000000000001',organizationId:'b0000000-0000-4000-8000-000000000001',period:'2026-11-01',sourceCadMinor:'100000',rateMode:'manual',rate:'5.2',canada:rule,china:{...rule,mode:'fixed',fixedMinor:'58000'},transfer:{mode:'markup',basisPoints:2000,fixedMinor:'0',bearer:'customer',includedInRate:false},costUnit:'zhidian_cn',note:'FICTIONAL quote'};
+it('freezes both rules and separate transfer costs with server-calculated totals',()=>{const q=buildQuoteSnapshot(input);expect(q).toMatchObject({status:'draft',rate:'5.2',costMinor:'114400',totalCnyMinor:'630000',finalMinor:'744400',calculationVersion:'two-agency-v1'});});
+it('rejects ambiguous automatic provenance and invalid periods',()=>{expect(quoteDraftSchema.safeParse({...input,rateMode:'automatic'}).success).toBe(false);expect(quoteDraftSchema.safeParse({...input,period:'2026-11-02'}).success).toBe(false);expect(()=>buildQuoteSnapshot({...input,transfer:{...input.transfer,includedInRate:true}})).toThrow();});
