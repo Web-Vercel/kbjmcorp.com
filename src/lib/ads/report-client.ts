@@ -1,6 +1,6 @@
 import 'server-only';
 import {createHash} from 'node:crypto';
-import {accountSchema,completedWeek,insightPageSchema,parseAdsJson,summarize,type InsightRow,type AdsReport} from './report-model';
+import {accountSchema,completedWeek,accountRangeSeconds,insightPageSchema,parseAdsJson,summarize,type InsightRow,type AdsReport} from './report-model';
 const base='https://api.ads.openai.com/v1';
 export {AdsReadError} from './read-errors';
 import {AdsReadError,safeNetworkCode,type AdsFailure} from './read-errors';
@@ -26,12 +26,12 @@ export async function fetchAdsReport(now=new Date()):Promise<AdsReport>{
  const config=reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];let phase:AdsFailure['phase']='account';
  try{
  const body=await read('/ad_account',config.key,signal,'account');rawResponses.push({path:'/ad_account',body});const account=accountSchema.parse(parseAdsJson(body));if(account.id!==config.accountId||(config.currency!==null&&account.currency_code!==config.currency))throw new AdsReadError('account_mismatch');
- const range=completedWeek(now,account.timezone);
+ const range=completedWeek(now,account.timezone);const timeRange=accountRangeSeconds(range,account.timezone);
  async function insights(granularity:'daily'|'none'){
   phase=granularity==='daily'?'daily':'period';
   const rows:InsightRow[]=[];const cursors=new Set<string>();const ids=new Set<string>();let cursor:string|undefined;
   for(let page=0;page<5;page++){
-   const q=new URLSearchParams({aggregation_level:'ad_account',time_granularity:granularity,limit:'100'});q.append('time_ranges[]',JSON.stringify({type:'date_range',...range,timezone:account.timezone}));
+   const q=new URLSearchParams({aggregation_level:'ad_account',time_granularity:granularity,limit:'100'});q.append('time_ranges[]',JSON.stringify(timeRange));
    // Period totals have no daily bucket: do not project bucket-only metadata.
    const fields=['ad_account.id','ad_account.impressions','ad_account.clicks','ad_account.spend'];
    if(granularity==='daily')fields.push('metadata.readable_time','metadata.timezone');

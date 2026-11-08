@@ -23,6 +23,20 @@ export function localDate(now:Date,timezone:string):string{
 }
 export function addDays(date:string,n:number):string{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
 export function completedWeek(now:Date,timezone:string){const today=localDate(now,timezone);return {since:addDays(today,-7),until:addDays(today,-1)};}
+// Resolve each calendar boundary separately: a week can span 167/169 hours at DST.
+export function accountRangeSeconds(range:{since:string;until:string},timezone:string){
+ function midnight(date:string):string{
+  z.iso.date().parse(date);const target=Date.parse(date+'T00:00:00Z');let candidate=target;
+  const format=new Intl.DateTimeFormat('en-US',{timeZone:timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+  for(let attempt=0;attempt<6;attempt++){
+   const parts=format.formatToParts(new Date(candidate));const get=(type:string)=>Number(parts.find(p=>p.type===type)!.value);
+   const wall=Date.UTC(get('year'),get('month')-1,get('day'),get('hour'),get('minute'),get('second'));const delta=target-wall;
+   if(delta===0)return String(candidate/1000);candidate+=delta;
+  }
+  invalid('timestamp',{expectedSince:date});
+ }
+ return {type:'unix_range' as const,start:midnight(range.since),end:midnight(addDays(range.until,1))};
+}
 const integer=z.union([z.string().regex(/^\d{1,16}$/),z.number().int().nonnegative().safe().transform(String)]);
 const decimal=z.string().max(80);
 export const insightPageSchema=z.object({object:z.literal('list'),data:z.array(z.object({id:z.string().min(1).max(2000),start_time:integer,end_time:integer,readable_time:z.string().optional(),timezone:z.string().optional(),ad_account_id:z.string().nullable().optional(),impressions:integer,clicks:integer,spend:decimal})).max(2000),count:z.coerce.number().int().min(0).max(2000),first_id:z.string().nullable(),last_id:z.string().nullable(),has_more:z.boolean(),timezone:z.string().optional()}).refine(p=>p.count===p.data.length);

@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));
 import {AdsReadError,fetchAdsReport,reportingConfig,reportingDiagnostics} from '@/lib/ads/report-client';
-import {completedWeek,parseAdsJson,spendMicros,summarize,formatMicros} from '@/lib/ads/report-model';
+import {accountRangeSeconds,completedWeek,parseAdsJson,spendMicros,summarize,formatMicros} from '@/lib/ads/report-model';
 const account={id:'adacct_fictional',name:'FICTIONAL ACCOUNT',currency_code:'CAD',timezone:'UTC'};
 const row={id:'row-1',start_time:'1792886400',end_time:'1792972800',readable_time:'2026-10-25',ad_account_id:account.id,impressions:'1000',clicks:'30',spend:'18.420001'};
 const page=(data:object[],more=false,last:string|null='row-1')=>({object:'list',data,count:data.length,first_id:data.length?'row-1':null,last_id:last,has_more:more});
@@ -56,3 +56,13 @@ it('reports precise validation reasons while preserving strict amount and date c
  try{summarize(account,range,[{...row,start_time:'1792886401'}],[total]);throw new Error('unexpected pass');}catch(e){expect(e).toMatchObject({diagnostic:{validation:'partial_day',source:'daily',localTime:'00:00:01'}});}
 });
 it('uses timestamps rather than display-only labels and accepts canonical timezone aliases',()=>{const total={...row,start_time:'1792886400',end_time:'1793491200',timezone:'Etc/UTC'};const result=summarize(account,{since:'2026-10-25',until:'2026-10-31'},[{...row,readable_time:'Oct 25, 2026',timezone:'Etc/UTC'}],[total]);expect(result.check).toBe('matched');expect(result.daily[0].date).toBe('2026-10-25');expect(()=>summarize(account,{since:'2026-10-25',until:'2026-10-31'},[{...row,readable_time:'2026-10-26'}],[total])).toThrow();});
+
+it('uses explicit exclusive timestamp boundaries for the observed seven-day window across DST',()=>{
+ const range=accountRangeSeconds({since:'2026-10-31',until:'2026-11-06'},'America/Toronto');expect(range.type).toBe('unix_range');expect(new Date(Number(range.start)*1000).toISOString()).toBe('2026-10-31T04:00:00.000Z');expect(new Date(Number(range.end)*1000).toISOString()).toBe('2026-11-07T05:00:00.000Z');expect(Number(range.end)-Number(range.start)).toBe(169*3600);
+ const spring=accountRangeSeconds({since:'2026-03-07',until:'2026-03-13'},'America/Toronto');expect(Number(spring.end)-Number(spring.start)).toBe(167*3600);
+ const half=accountRangeSeconds({since:'2026-10-31',until:'2026-11-06'},'Asia/Kolkata');expect(new Date(Number(half.start)*1000).toISOString()).toBe('2026-10-30T18:30:00.000Z');
+});
+it('sends exactly the same explicit inclusive-start/exclusive-end timestamps to daily and total requests',async()=>{
+ fetcher.mockImplementation(async(url:string)=>{const u=new URL(url);if(u.pathname.endsWith('/ad_account'))return Response.json(account);const q=u.searchParams;const range=JSON.parse(q.get('time_ranges[]')!);if(range.type!=='unix_range')return new Response('ambiguous date range',{status:400});return Response.json(page([{...row,id:q.get('time_granularity')==='none'?'period':'daily',start_time:range.start,end_time:q.get('time_granularity')==='none'?range.end:String(Number(range.start)+86400)}]));});
+ const report=await fetchAdsReport(new Date('2026-11-01T12:00:00Z'));expect(report.check).toBe('matched');const queries=fetcher.mock.calls.slice(1).map(c=>JSON.parse(new URL(c[0]).searchParams.get('time_ranges[]')!));expect(queries).toEqual([{type:'unix_range',start:'1792886400',end:'1793491200'},{type:'unix_range',start:'1792886400',end:'1793491200'}]);
+});
