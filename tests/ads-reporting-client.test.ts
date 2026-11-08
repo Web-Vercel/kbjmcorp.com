@@ -66,3 +66,20 @@ it('sends exactly the same explicit inclusive-start/exclusive-end timestamps to 
  fetcher.mockImplementation(async(url:string)=>{const u=new URL(url);if(u.pathname.endsWith('/ad_account'))return Response.json(account);const q=u.searchParams;const range=JSON.parse(q.get('time_ranges[]')!);if(range.type!=='unix_range')return new Response('ambiguous date range',{status:400});return Response.json(page([{...row,id:q.get('time_granularity')==='none'?'period':'daily',start_time:range.start,end_time:q.get('time_granularity')==='none'?range.end:String(Number(range.start)+86400)}]));});
  const report=await fetchAdsReport(new Date('2026-11-01T12:00:00Z'));expect(report.check).toBe('matched');const queries=fetcher.mock.calls.slice(1).map(c=>JSON.parse(new URL(c[0]).searchParams.get('time_ranges[]')!));expect(queries).toEqual([{type:'unix_range',start:'1792886400',end:'1793491200'},{type:'unix_range',start:'1792886400',end:'1793491200'}]);
 });
+it('does not assume an inclusive end label proves coverage; verifies it using a separate positive last-day report',()=>{
+ const range={since:'2026-10-25',until:'2026-10-31'};
+ const last={...row,id:'last-day',start_time:'1793404800',end_time:'1793491200',readable_time:'2026-10-31',spend:'2'};
+ const total={...row,id:'period',start_time:'1792886400',end_time:'1793404800',spend:'20.420001'};
+ const probe={...last,id:'probe',end_time:last.start_time};
+ const unverified=summarize(account,range,[row,last],[total]);expect(unverified.endBoundary).toBe('last_day_label_unverified');expect(unverified.check).toBe('no_data');
+ const verified=summarize(account,range,[row,last],[total],[probe]);expect(verified.endBoundary).toBe('last_day_label_verified');expect(verified.check).toBe('matched');expect(total.end_time).toBe('1793404800');
+ const truncated=summarize(account,range,[row,last],[{...total,spend:row.spend}],[probe]);expect(truncated.check).toBe('difference');
+ expect(summarize(account,range,[row,last],[total],[{...probe,spend:'0',clicks:'0',impressions:'0'}]).check).toBe('no_data');
+ expect(summarize(account,range,[row],[{...total,spend:row.spend}],[probe]).check).toBe('no_data');
+ expect(()=>summarize(account,range,[row,last],[total],[{...probe,ad_account_id:'adacct_wrong'}])).toThrow();
+});
+it('fetches and retains the last-day verification separately when aggregate end metadata uses an inclusive label',async()=>{
+ const last={...row,id:'last-day',start_time:'1793404800',end_time:'1793491200',readable_time:'2026-10-31',spend:'2'};
+ fetcher.mockImplementation(async(url:string)=>{const u=new URL(url);if(u.pathname.endsWith('/ad_account'))return Response.json(account);const q=u.searchParams;const r=JSON.parse(q.get('time_ranges[]')!);if(q.get('time_granularity')==='daily')return Response.json(page([row,last]));if(r.start==='1793404800')return Response.json(page([{...last,id:'probe',end_time:r.start}]));return Response.json(page([{...row,id:'period',start_time:r.start,end_time:'1793404800',spend:'20.420001'}]));});
+ const report=await fetchAdsReport(new Date('2026-11-01T12:00:00Z'));expect(report.endBoundary).toBe('last_day_label_verified');expect(report.check).toBe('matched');expect(report.rawResponses).toHaveLength(4);expect(JSON.parse(new URL(fetcher.mock.calls[3][0]).searchParams.get('time_ranges[]')!)).toEqual({type:'unix_range',start:'1793404800',end:'1793491200'});expect(report.rawResponses[2].body).toContain('1793404800');
+});
