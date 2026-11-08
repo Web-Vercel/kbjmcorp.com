@@ -1,0 +1,10 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn()}));
+vi.mock('@/lib/admin/guard',async()=>{const {authResponse}=await import('@/lib/auth/http');return{getStaffContext:m.guard,staffError:(r:{error:string;status:number})=>authResponse({error:r.error},r.status)};});
+import {POST} from '@/app/api/admin/quote-archive/route';
+const id='a0000000-0000-4000-8000-000000000001';
+const req=(patch:object={})=>new Request('https://site.example/api/admin/quote-archive',{method:'POST',headers:{Origin:'https://site.example','Content-Type':'application/json'},body:JSON.stringify({id,archived:'yes',revision:0,note:'FICTIONAL archive',confirm:'on',...patch})});
+beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc}});m.rpc.mockResolvedValue({data:1,error:null});});
+it('archives only through the protected lifecycle function with explicit confirmation',async()=>{expect((await POST(req())).status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('set_agency_quote_archived',{p_id:id,p_archived:true,p_revision:0,p_note:'FICTIONAL archive'});expect((await POST(req({confirm:''}))).status).toBe(400);});
+it('denies finance operators before mutation',async()=>{m.guard.mockResolvedValue({role:'operator'});expect((await POST(req())).status).toBe(403);expect(m.rpc).not.toHaveBeenCalled();});
+it('reports stale state without exposing internal data',async()=>{m.rpc.mockResolvedValue({error:{code:'40001',message:'private'}});const response=await POST(req());expect(response.status).toBe(409);expect(await response.text()).not.toContain('private');});

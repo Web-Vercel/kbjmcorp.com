@@ -16,7 +16,7 @@ export async function POST(request:Request){
   }
   let snapshot;try{snapshot={...buildQuoteSnapshot(p),referenceProof};}catch{return authResponse({error:'invalid_input'},400);}
   const fingerprint=createHash('sha256').update(JSON.stringify(p)).digest('hex');
-  const r=await staff.client.rpc('save_agency_quote_snapshot',{p_org:p.organizationId,p_period:p.period,p_request:p.requestId,p_fingerprint:fingerprint,p_snapshot:snapshot});
+  const r=await staff.client.rpc('save_agency_quote_revision',{p_org:p.organizationId,p_period:p.period,p_request:p.requestId,p_fingerprint:fingerprint,p_snapshot:snapshot,p_parent:p.parentQuoteId||null});
   if(r.error)return authResponse({error:r.error.code==='42501'?'forbidden':r.error.code==='40001'?'conflict':'save_failed'},r.error.code==='42501'?403:r.error.code==='40001'?409:502);
   return authResponse({ok:true,id:r.data});
  }catch{return authResponse({error:'unavailable'},503);}
