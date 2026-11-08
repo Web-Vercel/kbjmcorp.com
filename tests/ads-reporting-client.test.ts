@@ -42,3 +42,9 @@ it('identifies the failed read phase and HTTP status without reflecting provider
  fetcher.mockReset().mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(new Response('SECRET error body',{status:500}));await expect(fetchAdsReport()).rejects.toMatchObject({code:'upstream_unavailable',diagnostic:{phase:'daily',httpStatus:500}});
  fetcher.mockReset().mockRejectedValueOnce(Object.assign(new Error('SECRET error text'),{cause:{code:'ENOTFOUND'}}));await expect(fetchAdsReport()).rejects.toMatchObject({code:'upstream_unavailable',diagnostic:{phase:'account',networkCode:'dns'}});
 });
+
+it('requests totals without daily-bucket fields and keeps the same account, dates and metrics',async()=>{
+ const total={...row,id:'total',start_time:'1792886400',end_time:'1793491200',readable_time:undefined};
+ fetcher.mockImplementation(async(url:string)=>{const parsed=new URL(url);if(parsed.pathname.endsWith('/ad_account'))return Response.json(account);const q=parsed.searchParams;if(q.get('time_granularity')==='none'){if(q.getAll('fields[]').some(f=>f==='metadata.readable_time'||f==='metadata.timezone'))return new Response('Unsupported bucket field',{status:400});return Response.json(page([total]));}return Response.json(page([row]));});
+ const report=await fetchAdsReport(new Date('2026-11-01T12:00:00Z'));expect(report.check).toBe('matched');const daily=new URL(fetcher.mock.calls[1][0]).searchParams;const period=new URL(fetcher.mock.calls[2][0]).searchParams;expect(period.get('time_ranges[]')).toBe(daily.get('time_ranges[]'));expect(period.get('aggregation_level')).toBe('ad_account');expect(period.getAll('fields[]')).toEqual(['ad_account.id','ad_account.impressions','ad_account.clicks','ad_account.spend']);expect(daily.getAll('fields[]')).toContain('metadata.readable_time');
+});

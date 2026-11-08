@@ -32,7 +32,10 @@ export async function fetchAdsReport(now=new Date()):Promise<AdsReport>{
   const rows:InsightRow[]=[];const cursors=new Set<string>();const ids=new Set<string>();let cursor:string|undefined;
   for(let page=0;page<5;page++){
    const q=new URLSearchParams({aggregation_level:'ad_account',time_granularity:granularity,limit:'100'});q.append('time_ranges[]',JSON.stringify({type:'date_range',...range,timezone:account.timezone}));
-   for(const field of ['ad_account.id','ad_account.impressions','ad_account.clicks','ad_account.spend','metadata.readable_time','metadata.timezone'])q.append('fields[]',field);if(cursor)q.set('after',cursor);
+   // Period totals have no daily bucket: do not project bucket-only metadata.
+   const fields=['ad_account.id','ad_account.impressions','ad_account.clicks','ad_account.spend'];
+   if(granularity==='daily')fields.push('metadata.readable_time','metadata.timezone');
+   for(const field of fields)q.append('fields[]',field);if(cursor)q.set('after',cursor);
    const path='/ad_account/insights?'+q.toString();const body=await read(path,key,signal,phase);rawResponses.push({path,body});if(rawResponses.reduce((n,r)=>n+Buffer.byteLength(r.body),0)>524288)throw new AdsReadError('invalid_response');
    const parsed=insightPageSchema.parse(parseAdsJson(body));if(parsed.timezone&&parsed.timezone!==account.timezone)throw new AdsReadError('invalid_response');for(const row of parsed.data){if(ids.has(row.id))throw new AdsReadError('invalid_response');ids.add(row.id);rows.push(row);}if(!parsed.has_more)return rows;if(!parsed.last_id||cursors.has(parsed.last_id))throw new AdsReadError('invalid_response');cursors.add(parsed.last_id);cursor=parsed.last_id;
   }throw new AdsReadError('invalid_response');

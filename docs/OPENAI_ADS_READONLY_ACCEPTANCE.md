@@ -61,3 +61,7 @@ Currency configuration is optional. A missing expected currency no longer disabl
 ## Safe read diagnostics
 
 Failed reads return an administrator-only diagnostic phase (account metadata, daily Insights, period total, validation, storage lookup/save), HTTP status when received, or a bounded network classification (timeout, DNS, connection, TLS, generic network). These fields are schema-whitelisted before returning to the UI. Provider response bodies, arbitrary error messages, request headers and key values are not returned or logged. Diagnostic phases identify where a failure occurred; they do not prove the underlying cause or establish that authentication succeeded.
+
+## Period-total request fields
+
+A hosted acceptance attempt reached the period-total phase and received HTTP 400 after account metadata and daily reporting completed. The period query now projects only account identity and delivery metrics, omitting daily-bucket metadata (`metadata.readable_time`, `metadata.timezone`). Both daily and total requests retain the identical account scope and explicit date range/timezone. A provider-mocked regression checks this request distinction. A successful hosted retry is still required to verify resolution; an HTTP 400 alone does not identify the provider's precise rejected field. No failed total is substituted with the daily sum or treated as a passed reconciliation.
