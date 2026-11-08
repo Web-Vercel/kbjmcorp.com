@@ -9,12 +9,12 @@ export function reportingDiagnostics(){
  {name:'ADS_REPORTING_ENABLED',status:!enabled?'missing':enabled==='true'?'ready':enabled==='false'?'disabled':'invalid'},
  {name:'ADS_REPORTING_API_KEY',status:!key?'missing':/^[\x21-\x7e]+$/.test(key)?'ready':'invalid'},
  {name:'ADS_REPORTING_ACCOUNT_ID',status:!accountId?'missing':/^adacct_[A-Za-z0-9_-]+$/.test(accountId)?'ready':'invalid'},
- {name:'ADS_REPORTING_CURRENCY',status:!currency?'missing':/^[A-Z]{3}$/.test(currency)?'ready':'invalid'},
- ] as {name:string;status:'missing'|'ready'|'disabled'|'invalid'}[];
+ {name:'ADS_REPORTING_CURRENCY',status:!currency?'optional':/^[A-Z]{3}$/.test(currency)?'ready':'invalid'},
+ ] as {name:string;status:'missing'|'ready'|'disabled'|'invalid'|'optional'}[];
 }
 export function reportingConfig(){
- if(reportingDiagnostics().some(d=>d.status!=='ready'))return null;
- return {key:process.env.ADS_REPORTING_API_KEY!.trim(),accountId:process.env.ADS_REPORTING_ACCOUNT_ID!.trim(),currency:process.env.ADS_REPORTING_CURRENCY!.trim().toUpperCase()};
+ if(reportingDiagnostics().some(d=>d.status!=='ready'&&d.status!=='optional'))return null;
+ return {key:process.env.ADS_REPORTING_API_KEY!.trim(),accountId:process.env.ADS_REPORTING_ACCOUNT_ID!.trim(),currency:process.env.ADS_REPORTING_CURRENCY?.trim().toUpperCase()||null};
 }
 async function read(path:string,key:string,signal:AbortSignal){
  let r:Response;try{r=await fetch(base+path,{method:'GET',headers:{Authorization:`Bearer ${key}`,Accept:'application/json'},redirect:'error',cache:'no-store',signal});}catch{throw new AdsReadError('upstream_unavailable');}
@@ -24,7 +24,7 @@ async function read(path:string,key:string,signal:AbortSignal){
 export async function fetchAdsReport(now=new Date()):Promise<AdsReport>{
  const config=reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];
  try{
- const body=await read('/ad_account',config.key,signal);rawResponses.push({path:'/ad_account',body});const account=accountSchema.parse(parseAdsJson(body));if(account.id!==config.accountId||account.currency_code!==config.currency)throw new AdsReadError('account_mismatch');
+ const body=await read('/ad_account',config.key,signal);rawResponses.push({path:'/ad_account',body});const account=accountSchema.parse(parseAdsJson(body));if(account.id!==config.accountId||(config.currency!==null&&account.currency_code!==config.currency))throw new AdsReadError('account_mismatch');
  const range=completedWeek(now,account.timezone);
  async function insights(granularity:'daily'|'none'){
   const rows:InsightRow[]=[];const cursors=new Set<string>();const ids=new Set<string>();let cursor:string|undefined;

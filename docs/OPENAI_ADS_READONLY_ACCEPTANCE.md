@@ -22,9 +22,9 @@ Non-hourly non-product reporting retains the most recent 365 days; hourly and pr
    - `ADS_REPORTING_ENABLED=true`
    - `ADS_REPORTING_API_KEY`: that account's Advertiser API key
    - `ADS_REPORTING_ACCOUNT_ID`: exact `adacct_…` ID of the authorized account
-   - `ADS_REPORTING_CURRENCY`: actual account billing currency, e.g. `CAD` only if confirmed
+   - `ADS_REPORTING_CURRENCY`: optional expected account currency; leave unset to use the official account response, or set `CAD` only if confirmed
    Never use `NEXT_PUBLIC_` for these values. Leave Production unchanged. Redeploy Preview for environment changes to take effect.
-4. Administrator with MFA opens `/zh/operations/ads-reporting`, confirms the read and selects “读取并保存最近七日广告数据”. Identity and currency are compared to the server's pinned values before any Insights request. The actual returned account timezone determines the seven completed calendar days; today is excluded.
+4. Administrator with MFA opens `/zh/operations/ads-reporting`, confirms the read and selects “读取并保存最近七日广告数据”. Identity is compared to the server's pinned account ID before any Insights request. Currency comes from the official account response; an explicitly configured expected currency must also match. The actual returned account timezone determines the seven completed calendar days; today is excluded.
 5. Verify returned name/ID, currency, timezone and date range against Ads Manager. Compare the same account-local dates and scope, not lifetime spend or a differently bounded invoice. The user's approximate spend is not a fixture or expected result. A month-boundary request is valid and does not force monthly settlement.
 6. Check daily spend against a separately fetched period total. Missing daily rows remain explicitly missing, not zero-filled. Differences can arise while upstream data changes between reads and require another read/investigation. A match is a numerical check, not document authentication, financial approval or a finalized invoice.
 
@@ -52,6 +52,8 @@ Provider-mocked adapter/API/UI tests and embedded PostgreSQL RLS/idempotency/aud
 
 ## Configuration and timeout troubleshooting
 
-When configuration is incomplete, the checkbox and action are intentionally disabled; this does not mean an upstream API read is running. The administrator-only page reports each required variable as missing, disabled, invalid or supplied, without showing key values. It also identifies the current Vercel environment, branch and short commit where available, so an old deployment can be distinguished from a redeployed one. Check Preview scope and any branch-specific override. Changes require a fresh deployment.
+When configuration is incomplete, the checkbox and action are intentionally disabled; this does not mean an upstream API read is running. The administrator-only page reports each variable as missing, disabled, invalid, optional or supplied, without showing key values. It also identifies the current Vercel environment, branch and short commit where available, so an old deployment can be distinguished from a redeployed one. Check Preview scope and any branch-specific override. Changes require a fresh deployment.
 
 Surrounding whitespace is trimmed, the enable flag is compared case-insensitively, and currency codes are normalized to uppercase. Account ID syntax and identity pinning remain enforced. A supplied key is not proof of successful authentication. The browser stops waiting after 45 seconds and keeps the request UUID for retries; the server separately bounds API reads and database operations. A browser timeout can occur after a server write, so it reports an unknown save state rather than declaring failure or zero spend.
+
+Currency configuration is optional. A missing expected currency no longer disables read-only acceptance; it is obtained from the pinned account response, not guessed as CAD or substituted from an agency wallet. An explicitly supplied invalid currency still blocks configuration; a supplied valid currency that differs from the API stops the read. This is only source-data retrieval, with no FX conversion, customer mapping or posting.
