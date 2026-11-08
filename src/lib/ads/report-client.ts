@@ -3,7 +3,19 @@ import {createHash} from 'node:crypto';
 import {accountSchema,completedWeek,insightPageSchema,parseAdsJson,summarize,type InsightRow,type AdsReport} from './report-model';
 const base='https://api.ads.openai.com/v1';
 export class AdsReadError extends Error{constructor(public code:'not_configured'|'upstream_auth'|'upstream_rate_limit'|'upstream_unavailable'|'invalid_response'|'account_mismatch'){super(code);}}
-export function reportingConfig(){const enabled=process.env.ADS_REPORTING_ENABLED==='true';const key=process.env.ADS_REPORTING_API_KEY;const accountId=process.env.ADS_REPORTING_ACCOUNT_ID;const currency=process.env.ADS_REPORTING_CURRENCY;return enabled&&key&&/^adacct_[A-Za-z0-9_-]+$/.test(accountId||'')&&/^[A-Z]{3}$/.test(currency||'')?{key,accountId:accountId!,currency:currency!}:null;}
+export function reportingDiagnostics(){
+ const enabled=process.env.ADS_REPORTING_ENABLED?.trim().toLowerCase();const key=process.env.ADS_REPORTING_API_KEY?.trim();const accountId=process.env.ADS_REPORTING_ACCOUNT_ID?.trim();const currency=process.env.ADS_REPORTING_CURRENCY?.trim().toUpperCase();
+ return [
+ {name:'ADS_REPORTING_ENABLED',status:!enabled?'missing':enabled==='true'?'ready':enabled==='false'?'disabled':'invalid'},
+ {name:'ADS_REPORTING_API_KEY',status:!key?'missing':/^[\x21-\x7e]+$/.test(key)?'ready':'invalid'},
+ {name:'ADS_REPORTING_ACCOUNT_ID',status:!accountId?'missing':/^adacct_[A-Za-z0-9_-]+$/.test(accountId)?'ready':'invalid'},
+ {name:'ADS_REPORTING_CURRENCY',status:!currency?'missing':/^[A-Z]{3}$/.test(currency)?'ready':'invalid'},
+ ] as {name:string;status:'missing'|'ready'|'disabled'|'invalid'}[];
+}
+export function reportingConfig(){
+ if(reportingDiagnostics().some(d=>d.status!=='ready'))return null;
+ return {key:process.env.ADS_REPORTING_API_KEY!.trim(),accountId:process.env.ADS_REPORTING_ACCOUNT_ID!.trim(),currency:process.env.ADS_REPORTING_CURRENCY!.trim().toUpperCase()};
+}
 async function read(path:string,key:string,signal:AbortSignal){
  let r:Response;try{r=await fetch(base+path,{method:'GET',headers:{Authorization:`Bearer ${key}`,Accept:'application/json'},redirect:'error',cache:'no-store',signal});}catch{throw new AdsReadError('upstream_unavailable');}
  if(r.status===401||r.status===403)throw new AdsReadError('upstream_auth');if(r.status===429)throw new AdsReadError('upstream_rate_limit');if(!r.ok||!r.body)throw new AdsReadError('upstream_unavailable');

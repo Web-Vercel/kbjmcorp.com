@@ -49,3 +49,9 @@ After live account and CSV comparisons pass, add administrator-approved per-acco
 ## Validation limits
 
 Provider-mocked adapter/API/UI tests and embedded PostgreSQL RLS/idempotency/audit tests cover failure handling, exact amounts, pagination, pinned identity, MFA, immutable snapshots and no ledger changes. They do not prove the user's account permissions, real endpoint availability, real totals, production readiness or scheduled synchronization.
+
+## Configuration and timeout troubleshooting
+
+When configuration is incomplete, the checkbox and action are intentionally disabled; this does not mean an upstream API read is running. The administrator-only page reports each required variable as missing, disabled, invalid or supplied, without showing key values. It also identifies the current Vercel environment, branch and short commit where available, so an old deployment can be distinguished from a redeployed one. Check Preview scope and any branch-specific override. Changes require a fresh deployment.
+
+Surrounding whitespace is trimmed, the enable flag is compared case-insensitively, and currency codes are normalized to uppercase. Account ID syntax and identity pinning remain enforced. A supplied key is not proof of successful authentication. The browser stops waiting after 45 seconds and keeps the request UUID for retries; the server separately bounds API reads and database operations. A browser timeout can occur after a server write, so it reports an unknown save state rather than declaring failure or zero spend.

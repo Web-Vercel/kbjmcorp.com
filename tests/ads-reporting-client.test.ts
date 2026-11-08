@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));
-import {AdsReadError,fetchAdsReport} from '@/lib/ads/report-client';
+import {AdsReadError,fetchAdsReport,reportingConfig,reportingDiagnostics} from '@/lib/ads/report-client';
 import {completedWeek,parseAdsJson,spendMicros,summarize,formatMicros} from '@/lib/ads/report-model';
 const account={id:'adacct_fictional',name:'FICTIONAL ACCOUNT',currency_code:'CAD',timezone:'UTC'};
 const row={id:'row-1',start_time:'1792886400',end_time:'1792972800',readable_time:'2026-10-25',ad_account_id:account.id,impressions:'1000',clicks:'30',spend:'18.420001'};
@@ -27,3 +27,7 @@ it('does not infer zero or approval from missing rows or inconsistent totals',()
  const range={since:'2026-10-25',until:'2026-10-31'};expect(summarize(account,range,[],[]).check).toBe('no_data');const total={...row,start_time:'1792886400',end_time:'1793491200',spend:'20'};expect(summarize(account,range,[row],[total]).check).toBe('difference');expect(()=>summarize(account,range,[row,row],[total])).toThrow();expect(()=>summarize(account,range,[{...row,start_time:'1792886401'}],[total])).toThrow();expect(()=>summarize(account,range,[row],[{...total,end_time:row.end_time}])).toThrow();
 });
 it('redacts upstream errors and never reads an error body',async()=>{const response=new Response('private upstream content',{status:403});const read=vi.spyOn(response,'text');fetcher.mockResolvedValue(response);await expect(fetchAdsReport()).rejects.toEqual(new AdsReadError('upstream_auth'));expect(read).not.toHaveBeenCalled();vi.stubEnv('ADS_REPORTING_ENABLED','false');fetcher.mockClear();await expect(fetchAdsReport()).rejects.toMatchObject({code:'not_configured'});expect(fetcher).not.toHaveBeenCalled();});
+
+it('diagnoses each missing or malformed configuration without revealing values, and normalizes surrounding whitespace',()=>{
+ vi.stubEnv('ADS_REPORTING_ENABLED',' true ');vi.stubEnv('ADS_REPORTING_CURRENCY',' cad ');vi.stubEnv('ADS_REPORTING_ACCOUNT_ID',' adacct_fictional ');vi.stubEnv('ADS_REPORTING_API_KEY',' TEST-NOT-A-REAL-KEY ');expect(reportingConfig()).toEqual({key:'TEST-NOT-A-REAL-KEY',accountId:'adacct_fictional',currency:'CAD'});expect(reportingDiagnostics().every(d=>d.status==='ready')).toBe(true);expect(JSON.stringify(reportingDiagnostics())).not.toContain('TEST-NOT-A-REAL-KEY');vi.stubEnv('ADS_REPORTING_API_KEY','');vi.stubEnv('ADS_REPORTING_ACCOUNT_ID','WRONG PRIVATE ACCOUNT');expect(reportingConfig()).toBeNull();expect(reportingDiagnostics()).toContainEqual({name:'ADS_REPORTING_API_KEY',status:'missing'});expect(reportingDiagnostics()).toContainEqual({name:'ADS_REPORTING_ACCOUNT_ID',status:'invalid'});expect(JSON.stringify(reportingDiagnostics())).not.toContain('WRONG PRIVATE ACCOUNT');
+});

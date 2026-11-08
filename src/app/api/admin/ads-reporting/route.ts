@@ -10,10 +10,10 @@ export async function POST(request:Request){
  const config=reportingConfig();if(!config)return authResponse({error:'not_configured'},503);
  // A retry of an already stored request returns its receipt, without another upstream read.
  try{
- const prior=await staff.client.from('ads_reporting_snapshots').select('id,account_id').eq('created_by',staff.user.id).eq('request_id',parsed.data.requestId).maybeSingle();
+ const prior=await staff.client.from('ads_reporting_snapshots').select('id,account_id').eq('created_by',staff.user.id).eq('request_id',parsed.data.requestId).abortSignal(AbortSignal.timeout(8000)).maybeSingle();
  if(prior.error)return authResponse({error:'storage_unavailable'},503);
  if(prior.data){if(prior.data.account_id!==config.accountId)return authResponse({error:'conflict'},409);return authResponse({ok:true,id:prior.data.id,reused:true});}
- const report=await fetchAdsReport();const saved=await staff.client.rpc('save_ads_reporting_snapshot',{p_request:parsed.data.requestId,p_report:report});
+ const report=await fetchAdsReport();const saved=await staff.client.rpc('save_ads_reporting_snapshot',{p_request:parsed.data.requestId,p_report:report}).abortSignal(AbortSignal.timeout(8000));
  if(!saved.error&&typeof saved.data!=='string')return authResponse({error:'save_failed'},502);
  if(saved.error)return authResponse({error:saved.error.code==='40001'?'conflict':'save_failed'},saved.error.code==='40001'?409:502);
  return authResponse({ok:true,id:saved.data});
