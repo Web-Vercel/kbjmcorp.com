@@ -1,6 +1,6 @@
 import 'server-only';
 import {createHash} from 'node:crypto';
-import {accountSchema,completedWeek,accountRangeSeconds,insightPageSchema,parseAdsJson,summarize,type InsightRow,type AdsReport} from './report-model';
+import {accountSchema,completedWeek,completedMonthRange,accountRangeSeconds,insightPageSchema,parseAdsJson,summarize,type InsightRow,type AdsReport} from './report-model';
 const base='https://api.ads.openai.com/v1';
 export {AdsReadError} from './read-errors';
 import {AdsReadError,safeNetworkCode,type AdsFailure} from './read-errors';
@@ -22,11 +22,11 @@ async function read(path:string,key:string,signal:AbortSignal,phase:AdsFailure['
  if(r.status===401||r.status===403)throw new AdsReadError('upstream_auth',{phase,httpStatus:r.status});if(r.status===429)throw new AdsReadError('upstream_rate_limit',{phase,httpStatus:r.status});if(!r.ok||!r.body)throw new AdsReadError('upstream_unavailable',{phase,httpStatus:r.status});
  const reader=r.body.getReader();const chunks:Uint8Array[]=[];let bytes=0;try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.length;if(bytes>131072)throw new AdsReadError('invalid_response');chunks.push(value);}}catch(e){if(e instanceof AdsReadError)throw new AdsReadError(e.code,{phase,httpStatus:r.status});throw new AdsReadError('upstream_unavailable',{phase,networkCode:safeNetworkCode(e,signal.aborted)});}finally{await reader.cancel().catch(()=>{});}return Buffer.concat(chunks).toString('utf8');
 }
-export async function fetchAdsReport(now=new Date()):Promise<AdsReport>{
+export async function fetchAdsReport(now=new Date(),month?:string):Promise<AdsReport>{
  const config=reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];let phase:AdsFailure['phase']='account';
  try{
  const body=await read('/ad_account',config.key,signal,'account');rawResponses.push({path:'/ad_account',body});const account=accountSchema.parse(parseAdsJson(body));if(account.id!==config.accountId||(config.currency!==null&&account.currency_code!==config.currency))throw new AdsReadError('account_mismatch');
- const range=completedWeek(now,account.timezone);
+ let range:{since:string;until:string};try{range=month?completedMonthRange(month,now,account.timezone):completedWeek(now,account.timezone);}catch{throw new AdsReadError('invalid_period');}
  async function insights(granularity:'daily'|'none',window=range){
   const timeRange=accountRangeSeconds(window,account.timezone);
   phase=granularity==='daily'?'daily':'period';
@@ -43,6 +43,7 @@ export async function fetchAdsReport(now=new Date()):Promise<AdsReport>{
  }
  const daily=await insights('daily');const totals=await insights('none');phase='check';let summary=summarize(account,range,daily,totals);
  if(summary.endBoundary==='last_day_label_unverified'){const probe=await insights('none',{since:range.until,until:range.until});phase='check';summary=summarize(account,range,daily,totals,probe);}
+ if(month&&summary.missingDates.length&&summary.check==='matched')summary={...summary,check:'no_data'};
  return {version:'ads-readonly-v1',...summary,rawSha256:createHash('sha256').update(JSON.stringify(rawResponses)).digest('hex'),rawResponses};
  }catch(e){if(e instanceof AdsReadError)throw new AdsReadError(e.code,e.diagnostic||{phase});throw new AdsReadError('invalid_response',{phase});}
 }

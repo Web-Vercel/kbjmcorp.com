@@ -1,7 +1,7 @@
 import {z} from 'zod';
 export const adsFailureSchema=z.object({phase:z.enum(['account','daily','period','check','storage_lookup','storage_save','read']),httpStatus:z.number().int().min(100).max(599).optional(),networkCode:z.enum(['timeout','dns','connection','tls','network']).optional(),validation:z.enum(['invalid_amount','amount_precision','amount_range','timestamp','partial_day','daily_label','timezone','account','daily_bucket','total_range','multiple_totals']).optional(),source:z.enum(['daily','period']).optional(),actualSince:z.iso.date().optional(),actualUntil:z.iso.date().optional(),expectedSince:z.iso.date().optional(),expectedUntil:z.iso.date().optional(),localTime:z.string().regex(/^\d{2}:\d{2}:\d{2}$/).optional(),precision:z.number().int().min(0).max(200).optional()});
 export type AdsFailure=z.infer<typeof adsFailureSchema>;
-export type AdsErrorCode='not_configured'|'upstream_auth'|'upstream_rate_limit'|'upstream_unavailable'|'invalid_response'|'account_mismatch';
+export type AdsErrorCode='invalid_period'|'not_configured'|'upstream_auth'|'upstream_rate_limit'|'upstream_unavailable'|'invalid_response'|'account_mismatch';
 export class AdsReadError extends Error{constructor(public code:AdsErrorCode,public diagnostic?:AdsFailure){super(code);}}
 export function safeNetworkCode(error:unknown,aborted:boolean):NonNullable<AdsFailure['networkCode']>{
  if(aborted)return 'timeout';

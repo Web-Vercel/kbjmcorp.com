@@ -23,6 +23,17 @@ export function localDate(now:Date,timezone:string):string{
 }
 export function addDays(date:string,n:number):string{const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
 export function completedWeek(now:Date,timezone:string){const today=localDate(now,timezone);return {since:addDays(today,-7),until:addDays(today,-1)};}
+// Closed natural months only; date boundaries are evaluated in the advertiser timezone.
+export function calendarMonthRange(month:string){
+ z.iso.date().refine(v=>v.endsWith('-01')).parse(month);
+ const next=new Date(month+'T12:00:00Z');next.setUTCMonth(next.getUTCMonth()+1);
+ return {since:month,until:addDays(next.toISOString().slice(0,10),-1)};
+}
+export function completedMonthRange(month:string,now:Date,timezone:string){
+ const range=calendarMonthRange(month),today=localDate(now,timezone);
+ if(range.until>=today||range.since<addDays(today,-365))throw new Error('Month must be closed and within reporting retention');
+ return range;
+}
 // Resolve each calendar boundary separately: a week can span 167/169 hours at DST.
 export function accountRangeSeconds(range:{since:string;until:string},timezone:string){
  function midnight(date:string):string{

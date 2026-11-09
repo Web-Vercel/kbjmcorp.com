@@ -1,7 +1,7 @@
 import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 vi.mock('server-only',()=>({}));
 import {AdsReadError,fetchAdsReport,reportingConfig,reportingDiagnostics} from '@/lib/ads/report-client';
-import {accountRangeSeconds,completedWeek,parseAdsJson,spendMicros,summarize,formatMicros} from '@/lib/ads/report-model';
+import {accountRangeSeconds,completedMonthRange,calendarMonthRange,addDays,completedWeek,parseAdsJson,spendMicros,summarize,formatMicros} from '@/lib/ads/report-model';
 const account={id:'adacct_fictional',name:'FICTIONAL ACCOUNT',currency_code:'CAD',timezone:'UTC'};
 const row={id:'row-1',start_time:'1792886400',end_time:'1792972800',readable_time:'2026-10-25',ad_account_id:account.id,impressions:'1000',clicks:'30',spend:'18.420001'};
 const page=(data:object[],more=false,last:string|null='row-1')=>({object:'list',data,count:data.length,first_id:data.length?'row-1':null,last_id:last,has_more:more});
@@ -82,4 +82,24 @@ it('fetches and retains the last-day verification separately when aggregate end 
  const last={...row,id:'last-day',start_time:'1793404800',end_time:'1793491200',readable_time:'2026-10-31',spend:'2'};
  fetcher.mockImplementation(async(url:string)=>{const u=new URL(url);if(u.pathname.endsWith('/ad_account'))return Response.json(account);const q=u.searchParams;const r=JSON.parse(q.get('time_ranges[]')!);if(q.get('time_granularity')==='daily')return Response.json(page([row,last]));if(r.start==='1793404800')return Response.json(page([{...last,id:'probe',end_time:r.start}]));return Response.json(page([{...row,id:'period',start_time:r.start,end_time:'1793404800',spend:'20.420001'}]));});
  const report=await fetchAdsReport(new Date('2026-11-01T12:00:00Z'));expect(report.endBoundary).toBe('last_day_label_verified');expect(report.check).toBe('matched');expect(report.rawResponses).toHaveLength(4);expect(JSON.parse(new URL(fetcher.mock.calls[3][0]).searchParams.get('time_ranges[]')!)).toEqual({type:'unix_range',start:'1793404800',end:'1793491200'});expect(report.rawResponses[2].body).toContain('1793404800');
+});
+
+it('uses a closed complete month in account-local time, including leap years and retention limits',()=>{
+ expect(calendarMonthRange('2024-02-01')).toEqual({since:'2024-02-01',until:'2024-02-29'});
+ expect(calendarMonthRange('2026-12-01')).toEqual({since:'2026-12-01',until:'2026-12-31'});
+ expect(()=>completedMonthRange('2026-11-01',new Date('2026-12-01T03:00:00Z'),'America/Vancouver')).toThrow();
+ expect(completedMonthRange('2026-11-01',new Date('2026-12-01T12:00:00Z'),'America/Vancouver').until).toBe('2026-11-30');
+ expect(()=>completedMonthRange('2025-10-01',new Date('2026-11-09T12:00:00Z'),'UTC')).toThrow();
+ expect(()=>calendarMonthRange('2026-10-06')).toThrow();
+});
+it('requests full-month daily rows and totals, and does not mark missing monthly coverage as matched',async()=>{
+ const since='2026-10-01',until='2026-10-31';const daily=[];
+ for(let date=since;date<=until;date=addDays(date,1)){daily.push({...row,id:date,start_time:String(Date.parse(date+'T00:00:00Z')/1000),end_time:String(Date.parse(addDays(date,1)+'T00:00:00Z')/1000),readable_time:date,spend:'1.000001'});}
+ const total={...row,id:'total',start_time:daily[0].start_time,end_time:daily[30].end_time,readable_time:undefined,spend:'31.000031'};
+ fetcher.mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json(page(daily))).mockResolvedValueOnce(Response.json(page([total])));
+ const complete=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),since);expect(complete.since).toBe(since);expect(complete.until).toBe(until);expect(complete.check).toBe('matched');expect(complete.dailySpendMicros).toBe('31000031');
+ const q=new URL(fetcher.mock.calls[1][0]).searchParams;expect(JSON.parse(q.get('time_ranges[]')!)).toEqual(accountRangeSeconds({since,until},'UTC'));
+ fetcher.mockReset().mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json(page(daily.slice(0,30)))).mockResolvedValueOnce(Response.json(page([{...total,spend:'30.000030'}])));
+ const missing=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),since);expect(missing.check).toBe('no_data');expect(missing.missingDates).toEqual(['2026-10-31']);
+ fetcher.mockReset().mockResolvedValueOnce(Response.json(account));await expect(fetchAdsReport(new Date('2026-11-09T12:00:00Z'),'2026-11-01')).rejects.toMatchObject({code:'invalid_period'});expect(fetcher).toHaveBeenCalledTimes(1);
 });
