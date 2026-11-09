@@ -1,12 +1,13 @@
 import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
+import {buildQuoteSnapshot} from '../src/lib/billing/quote-snapshot';
 import {randomUUID} from 'node:crypto';
 import {beforeAll,afterAll,it,expect} from 'vitest';
 let db:PGlite;const org='b0000000-0000-4000-8000-000000000001',other='b0000000-0000-4000-8000-000000000002';
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await db.exec(await readFile(new URL('../supabase/bootstrap/new-test-project.sql',import.meta.url),'utf8'));
- for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
+ for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;
  insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');
  insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');
@@ -55,4 +56,37 @@ it('scopes finance access, blocks non-MFA/client preparation, supports rejection
  await asUser('3',"select public.review_monthly_settlement($1,'rejected','Fee agreement needs correction')",[id]);
  await expect(asUser('4','select public.list_monthly_settlements($1)',[org])).rejects.toThrow(/Forbidden/);
  expect((await asUser('2','select public.list_monthly_settlements($1) data',[other])).rows[0].data).toEqual([]);
+});
+
+it('publishes and debits atomically, returns the same receipt on retry and exposes only scoped customer fields',async()=>{
+ const rule={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:1000,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};
+ const snapshot=buildQuoteSnapshot({requestId:randomUUID(),organizationId:org,period:'2024-01-01',sourceCadMinor:'10001',rateMode:'manual',rate:'5',canada:rule,china:{...rule,basis:'upstream_total'},transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'Verified fee terms'});
+ const f=await fixture({},snapshot);const draft=String((await prepare(f)).rows[0].id);
+ await db.exec(`insert into public.client_wallets(organization_id,currency) values('${org}','CNY');`);
+ const wallet=String((await db.query<{id:string}>(`select id from public.client_wallets where organization_id='${org}' and currency='CNY'`)).rows[0].id);
+ const publish=(id=draft,summary='已核实当月广告及约定服务费用')=>asUser('1','select public.publish_monthly_statement($1,$2,$3) id',[id,summary,JSON.stringify(snapshot)]);
+ await expect(publish()).rejects.toThrow(/approval required/);
+ await asUser('3',"select public.review_monthly_settlement($1,'approved','Independent review complete')",[draft]);
+ await expect(publish()).rejects.toThrow(/Insufficient posted balance/);
+ expect((await db.query('select count(*)::int n from public.monthly_client_statements')).rows).toEqual([{n:0}]);
+ await db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','topup',100000,'FICTIONAL TEST CREDIT','fictional-test-credit')",[wallet,org]);
+ // Failure on the second debit must roll back the statement and the first debit.
+ await db.exec(`create function public.test_fail_fee() returns trigger language plpgsql as $$begin if NEW.kind='service_fee' then raise exception 'forced fee failure';end if;return NEW;end$$;create trigger test_fail_fee before insert on public.wallet_entries for each row execute function public.test_fail_fee();`);
+ await expect(publish()).rejects.toThrow(/forced fee failure/);
+ expect((await db.query('select count(*)::int n from public.monthly_client_statements')).rows).toEqual([{n:0}]);expect((await db.query("select count(*)::int n from public.wallet_entries where kind<>'topup'")).rows).toEqual([{n:0}]);
+ await db.exec('drop trigger test_fail_fee on public.wallet_entries;drop function public.test_fail_fee();');
+ const posted=await publish();expect((await publish()).rows).toEqual(posted.rows);await expect(publish(draft,'Changed statement summary')).rejects.toThrow(/immutable/);
+ expect((await db.query('select count(*)::int n from public.monthly_client_statements')).rows).toEqual([{n:1}]);
+ expect((await db.query('select sum(amount_minor)::text balance from public.wallet_entries where wallet_id=$1',[wallet])).rows).toEqual([{balance:(100000n-BigInt(snapshot.finalMinor)).toString()}]);
+ await expect(asUser('2','select public.publish_monthly_statement($1,$2,$3)',[draft,'Forbidden publish',JSON.stringify(snapshot)])).rejects.toThrow(/Forbidden/);
+ await db.exec(`insert into public.memberships(organization_id,user_id,role) values('${org}','a0000000-0000-4000-8000-000000000004','viewer');insert into public.finance_access(organization_id,user_id,role) values('${org}','a0000000-0000-4000-8000-000000000004','viewer');`);
+ const visible=(await asUser('4','select public.get_client_monthly_statements() data')).rows[0].data as Array<Record<string,unknown>>;
+ expect(visible).toHaveLength(1);expect(visible[0].total_minor).toBe(snapshot.finalMinor);expect(JSON.stringify(visible)).not.toMatch(/private_snapshot|sourceCadMinor|PRIVATE|quote_id|binding_id|rate|costMinor/);
+ expect((await asUser('2','select public.get_client_monthly_statements() data')).rows[0].data).toEqual([]);
+ await db.exec(`delete from public.finance_access where user_id='a0000000-0000-4000-8000-000000000004';`);expect((await asUser('4','select public.get_client_monthly_statements() data')).rows[0].data).toEqual([]);
+ // A different quote version for this same account/month cannot charge again.
+ const q2=String((await asUser('1','select public.save_agency_quote_snapshot($1,$2,$3,$4,$5) id',[org,'2024-01-01',randomUUID(),'c'.repeat(64),JSON.stringify(snapshot)])).rows[0].id);
+ const d2=String((await prepare({...f,quote:q2})).rows[0].id);await asUser('3',"select public.review_monthly_settlement($1,'approved','Reviewed alternative quote')",[d2]);
+ await expect(publish(d2)).rejects.toThrow(/already published/);
+ await expect(db.exec('delete from public.monthly_client_statements')).rejects.toThrow(/immutable/);
 });
