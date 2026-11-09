@@ -9,7 +9,7 @@ let db:PGlite;const org='b0000000-0000-4000-8000-000000000001',other='b0000000-0
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await applyMigrationsThrough(db,17);
- for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
+ for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench','028_upstream_reconciliation'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;
  insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');
  insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');
@@ -77,7 +77,17 @@ it('publishes and debits atomically, returns the same receipt on retry and expos
  await expect(publish()).rejects.toThrow(/forced fee failure/);
  expect((await db.query('select count(*)::int n from public.monthly_client_statements')).rows).toEqual([{n:0}]);expect((await db.query("select count(*)::int n from public.wallet_entries where kind<>'topup'")).rows).toEqual([{n:0}]);
  await db.exec('drop trigger test_fail_fee on public.wallet_entries;drop function public.test_fail_fee();');
- const posted=await publish();expect((await publish()).rows).toEqual(posted.rows);await expect(publish(draft,'Changed statement summary')).rejects.toThrow(/immutable/);
+ const posted=await publish();expect((await publish()).rows).toEqual(posted.rows);
+ const beforeRead=await db.query('select count(*)::int n from public.wallet_entries');
+ const procurement=(await asUser('1',"select public.get_upstream_reconciliation('2024-01-01',$1) data",[org])).rows[0].data as {row_count:number;payment_status:string;rows:Array<Record<string,unknown>>;totals:Record<string,string>};
+ expect(procurement.row_count).toBe(1);expect(procurement.payment_status).toBe('not_tracked');expect(procurement.rows[0].statement_id).toBe(posted.rows[0].id);expect(procurement.rows[0].quote_id).toBe(f.quote);
+ expect(procurement.totals.procurement_cad_minor).toBe(snapshot.upstreamCadMinor);expect(procurement.totals.source_cad_minor).toBe(snapshot.sourceCadMinor);expect(procurement.totals.canada_fee_cad_minor).toBe(snapshot.canadaFeeCadMinor);expect(procurement.totals.customer_charged_cny_minor).toBe(snapshot.finalMinor);
+ expect(JSON.stringify(procurement)).not.toMatch(/rawResponses|private_snapshot|referenceDate|rateMode|PRIVATE/);expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(beforeRead.rows);
+ for(const who of ['2','3','4'])await expect(asUser(who,"select public.get_upstream_reconciliation('2024-01-01',$1)",[org])).rejects.toThrow(/Forbidden/);
+ await expect(asUser('1',"select public.get_upstream_reconciliation('2024-01-01',$1)",[org],'aal1')).rejects.toThrow(/Forbidden/);
+ await expect(asUser('1',"select public.get_upstream_reconciliation('2024-01-02',$1)",[org])).rejects.toThrow(/Month must start/);
+ const empty=(await asUser('1',"select public.get_upstream_reconciliation('2024-02-01',$1) data",[org])).rows[0].data as {row_count:number;rows:unknown[];totals:Record<string,string>};expect(empty.row_count).toBe(0);expect(empty.rows).toEqual([]);expect(empty.totals.procurement_cad_minor).toBe('0');
+await expect(publish(draft,'Changed statement summary')).rejects.toThrow(/immutable/);
  expect((await db.query('select count(*)::int n from public.monthly_client_statements')).rows).toEqual([{n:1}]);
  expect((await db.query('select sum(amount_minor)::text balance from public.wallet_entries where wallet_id=$1',[wallet])).rows).toEqual([{balance:(100000n-BigInt(snapshot.finalMinor)).toString()}]);
  await expect(asUser('2','select public.publish_monthly_statement($1,$2,$3)',[draft,'Forbidden publish',JSON.stringify(snapshot)])).rejects.toThrow(/Forbidden/);
@@ -167,4 +177,23 @@ it('tracks every close step by account/month, scopes old records before limits, 
  expect(JSON.stringify(await overview())).not.toMatch(/private_snapshot|rawResponses|evidence_sha256|ownership_reference/);
  await expect(overview('4')).rejects.toThrow(/Forbidden/);await expect(asUser('1','select public.get_month_close_overview($1,$2)',[other,month],'aal1')).rejects.toThrow(/Forbidden/);
  await expect(asUser('1',"select public.get_month_close_overview($1,'2024-01-02')",[other])).rejects.toThrow(/Month must start/);
+});
+
+it('aggregates posted procurement across accounts while excluding unpublished drafts and retaining archived history',async()=>{
+ const period='2023-09-01';const rule={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:1000,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};
+ const quote=buildQuoteSnapshot({requestId:randomUUID(),organizationId:org,period,sourceCadMinor:'10001',rateMode:'manual',rate:'5',canada:rule,china:{...rule,basis:'upstream_total'},transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'FICTIONAL PROCUREMENT TEST'});
+ const days=Array.from({length:30},(_,i)=>({date:`2023-09-${String(i+1).padStart(2,'0')}`,spendMicros:i===0?'100005000':'0',impressions:'1',clicks:'0'}));
+ const wallet=String((await db.query<{id:string}>("select id from public.client_wallets where organization_id=$1 and currency='CNY'",[org])).rows[0].id);
+ await db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','topup',1000000,'FICTIONAL PROCUREMENT CREDIT',$3)",[wallet,org,randomUUID()]);
+ const records=[];for(let i=0;i<3;i++){
+  const f=await fixture({since:period,until:'2023-09-30',daily:days},quote);const draft=String((await prepare(f)).rows[0].id);records.push(f);
+  if(i<2){await asUser('3',"select public.review_monthly_settlement($1,'approved','Independent procurement fixture review')",[draft]);await asUser('1',"select public.publish_monthly_statement($1,'FICTIONAL POSTED PROCUREMENT',$2)",[draft,JSON.stringify(quote)]);}
+ }
+ await asUser('1',"select public.set_agency_quote_archived($1,true,0,'Archive quote after historical posting')",[records[0].quote]);
+ await asUser('1',"select public.set_ads_binding_active($1,false,1,'Pause source access after historical posting')",[records[0].binding]);
+ const entries=await db.query('select count(*)::int n from public.wallet_entries');
+ const value=(await asUser('1','select public.get_upstream_reconciliation($1,$2) data',[period,org])).rows[0].data as {row_count:number;rows:unknown[];totals:Record<string,string>};
+ expect(value.row_count).toBe(2);expect(value.rows).toHaveLength(2);expect(value.totals.procurement_cad_minor).toBe((BigInt(quote.upstreamCadMinor)*2n).toString());expect(value.totals.customer_charged_cny_minor).toBe((BigInt(quote.finalMinor)*2n).toString());
+ expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(entries.rows);
+ const otherScope=(await asUser('1','select public.get_upstream_reconciliation($1,$2) data',[period,other])).rows[0].data as {row_count:number};expect(otherScope.row_count).toBe(0);
 });
