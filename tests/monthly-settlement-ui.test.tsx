@@ -13,3 +13,8 @@ it('offers only the selected source month quotes and leaves agreement confirmati
  render(<Prepare locale="zh" sources={[source]} quotes={[{id:'quote-jan',period:'2024-01-01',revision:1,total_cny_minor:'12345'},{id:'quote-feb',period:'2024-02-01',revision:2,total_cny_minor:'67890'}]}/>);
  fireEvent.change(screen.getByLabelText('完整自然月来源'),{target:{value:source.snapshot_id}});expect(screen.getByRole('option',{name:/2024-01 · V1/})).toBeDefined();expect(screen.queryByRole('option',{name:/2024-02 · V2/})).toBeNull();expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
 });
+
+it('accepts independently verified zero-usage coverage while retaining unknown empty sources as blocked',()=>{
+ const zero={...source,source_check:'no_data',daily:[],missing_dates:source.daily.map(d=>d.date),period_spend_micros:null};
+ expect(sourceReady(zero)).toBe(false);expect(sourceReady({...zero,settlement_ready:true,effective_amount_micros:'0',coverage_kind:'reviewed_zero'})).toBe(true);expect(sourceReady({...source,settlement_ready:false})).toBe(false);
+});

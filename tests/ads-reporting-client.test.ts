@@ -116,3 +116,12 @@ it('preserves clipped in-range period starts for review without certifying month
  const fullButClipped=summarize(account,range,fullDaily,[total]);expect(fullButClipped.missingDates).toEqual([]);expect(fullButClipped.differenceMicros).toBe('0');expect(fullButClipped.check).toBe('no_data');
  for(const bad of [{...total,start_time:epoch('2026-09-30')},{...total,start_time:epoch('2026-11-01')},{...total,end_time:epoch('2026-11-02')}])expect(()=>summarize(account,range,[day],[bad])).toThrow();
 });
+
+it('requests official zero-row expansion and recognizes an explicit full-month zero total without fabricating daily API rows',async()=>{
+ const total={...row,id:'zero-total',start_time:String(Date.parse('2026-10-01T00:00:00Z')/1000),end_time:String(Date.parse('2026-11-01T00:00:00Z')/1000),readable_time:undefined,spend:'0',impressions:'0',clicks:'0'};
+ fetcher.mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json(page([]))).mockResolvedValueOnce(Response.json(page([total])));
+ const report=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),'2026-10-01');expect(report.check).toBe('matched');expect(report.coverageKind).toBe('aggregate_verified');expect(report.daily).toHaveLength(0);expect(report.missingDates).toHaveLength(31);expect(report.periodSpendMicros).toBe('0');
+ for(const [url] of fetcher.mock.calls.slice(1))expect(new URL(url).searchParams.get('includes[]')).toBe('zero_impression_items');
+ fetcher.mockReset().mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json(page([]))).mockResolvedValueOnce(Response.json(page([])));
+ const unknown=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),'2026-10-01');expect(unknown.check).toBe('no_data');expect(unknown.periodSpendMicros).toBeNull();expect(unknown.coverageKind).toBe('pending');
+});

@@ -34,7 +34,7 @@ export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelect
   phase=granularity==='daily'?'daily':'period';
   const rows:InsightRow[]=[];const cursors=new Set<string>();const ids=new Set<string>();let cursor:string|undefined;
   for(let page=0;page<5;page++){
-   const q=new URLSearchParams({aggregation_level:'ad_account',time_granularity:granularity,limit:'100'});q.append('time_ranges[]',JSON.stringify(timeRange));
+   const q=new URLSearchParams({aggregation_level:'ad_account',time_granularity:granularity,limit:'100'});q.append('time_ranges[]',JSON.stringify(timeRange));q.append('includes[]','zero_impression_items');
    // Period totals have no daily bucket: do not project bucket-only metadata.
    const fields=['ad_account.id','ad_account.impressions','ad_account.clicks','ad_account.spend'];
    if(granularity==='daily')fields.push('metadata.readable_time','metadata.timezone');
@@ -45,7 +45,7 @@ export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelect
  }
  const daily=await insights('daily');const totals=await insights('none');phase='check';let summary=summarize(account,range,daily,totals);
  if(summary.endBoundary==='last_day_label_unverified'){const probe=await insights('none',{since:range.until,until:range.until});phase='check';summary=summarize(account,range,daily,totals,probe);}
- if(requested.mode!=='week'&&summary.missingDates.length&&summary.check==='matched')summary={...summary,check:'no_data'};
+ if(requested.mode!=='week'&&summary.missingDates.length&&summary.coverageKind!=='aggregate_verified'&&summary.check==='matched')summary={...summary,check:'no_data'};
  return {version:'ads-readonly-v1',...summary,rawSha256:createHash('sha256').update(JSON.stringify(rawResponses)).digest('hex'),rawResponses};
  }catch(e){if(e instanceof AdsReadError)throw new AdsReadError(e.code,e.diagnostic||{phase});throw new AdsReadError('invalid_response',{phase});}
 }
