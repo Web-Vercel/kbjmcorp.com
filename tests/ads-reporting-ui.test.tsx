@@ -29,3 +29,8 @@ it('groups operational periods separately and submits exact custom dates',async(
  await user.selectOptions(screen.getByRole('combobox'),'custom');fireEvent.change(screen.getByLabelText('开始日期'),{target:{value:'2026-11-02'}});fireEvent.change(screen.getByLabelText('结束日期'),{target:{value:'2026-11-04'}});await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));
  expect(JSON.parse(fetch.mock.calls[0][1].body).selection).toEqual({mode:'custom',since:'2026-11-02',until:'2026-11-04'});
 });
+
+it('clearly distinguishes saving clipped data from successful settlement reconciliation',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({ok:true,id:'pending-snapshot',check:'no_data',coveragePending:true,actualSince:'2026-10-30'})));
+ render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('已保留为待核对来源');expect(screen.getByRole('status').textContent).toContain('暂不能用于结算');expect(refresh).toHaveBeenCalledTimes(1);
+});

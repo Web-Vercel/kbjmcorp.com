@@ -103,3 +103,16 @@ it('requests full-month daily rows and totals, and does not mark missing monthly
  const missing=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),since);expect(missing.check).toBe('no_data');expect(missing.missingDates).toEqual(['2026-10-31']);
  fetcher.mockReset().mockResolvedValueOnce(Response.json(account));await expect(fetchAdsReport(new Date('2026-11-09T12:00:00Z'),'2026-11-01')).rejects.toMatchObject({code:'invalid_period'});expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it('preserves clipped in-range period starts for review without certifying monthly coverage or zero-filling dates',async()=>{
+ const epoch=(date:string)=>String(Date.parse(date+'T00:00:00Z')/1000);
+ const day={...row,id:'late-activity',start_time:epoch('2026-10-30'),end_time:epoch('2026-10-31'),readable_time:'2026-10-30'};
+ const total={...row,id:'clipped-total',start_time:epoch('2026-10-30'),end_time:epoch('2026-11-01'),readable_time:undefined};
+ fetcher.mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json(page([day]))).mockResolvedValueOnce(Response.json(page([total])));
+ const report=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),'2026-10-01');
+ expect(report.since).toBe('2026-10-01');expect(report.until).toBe('2026-10-31');expect(report.periodRange).toEqual({since:'2026-10-30',until:'2026-11-01'});expect(report.startBoundary).toBe('later_start_unverified');expect(report.check).toBe('no_data');expect(report.differenceMicros).toBe('0');expect(report.daily).toHaveLength(1);expect(report.missingDates).toContain('2026-10-01');expect(report.missingDates).toContain('2026-10-31');expect(report.rawResponses).toHaveLength(3);
+ const range={since:'2026-10-01',until:'2026-10-31'};
+ const fullDaily=Array.from({length:31},(_,i)=>{const date=`2026-10-${String(i+1).padStart(2,'0')}`;return {...day,id:date,start_time:epoch(date),end_time:epoch(addDays(date,1)),readable_time:date,spend:i===29?day.spend:'0'};});
+ const fullButClipped=summarize(account,range,fullDaily,[total]);expect(fullButClipped.missingDates).toEqual([]);expect(fullButClipped.differenceMicros).toBe('0');expect(fullButClipped.check).toBe('no_data');
+ for(const bad of [{...total,start_time:epoch('2026-09-30')},{...total,start_time:epoch('2026-11-01')},{...total,end_time:epoch('2026-11-02')}])expect(()=>summarize(account,range,[day],[bad])).toThrow();
+});

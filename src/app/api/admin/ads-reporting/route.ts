@@ -20,6 +20,6 @@ export async function POST(request:Request){
  phase='read';const report=await (parsed.data.month?fetchAdsReport(new Date(),parsed.data.month):parsed.data.selection?fetchAdsReport(new Date(),selection):fetchAdsReport());phase='storage_save';const saved=await staff.client.rpc('save_ads_reporting_snapshot',{p_request:parsed.data.requestId,p_report:{...report,readSelection:selection}}).abortSignal(AbortSignal.timeout(8000));
  if(!saved.error&&typeof saved.data!=='string')return authResponse({error:'save_failed',diagnostic:{phase}},502);
  if(saved.error)return authResponse({error:saved.error.code==='40001'?'conflict':'save_failed',diagnostic:{phase}},saved.error.code==='40001'?409:502);
- return authResponse({ok:true,id:saved.data});
+ return authResponse({ok:true,id:saved.data,check:report.check,coveragePending:report.startBoundary==='later_start_unverified',actualSince:report.periodRange?.since});
  }catch(e){const code=e instanceof AdsReadError?e.code:'upstream_unavailable';const details=adsFailureSchema.safeParse(e instanceof AdsReadError?e.diagnostic:{phase});return authResponse({error:code,diagnostic:details.success?details.data:{phase}},code==='invalid_period'?400:code==='upstream_rate_limit'?429:code==='account_mismatch'||code==='invalid_response'?502:503,code==='upstream_rate_limit'?60:undefined);}
 }
