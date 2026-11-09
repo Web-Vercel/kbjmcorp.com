@@ -22,3 +22,10 @@ it('requires renewed confirmation when switching to a calendar month and submits
  const fetch=vi.fn().mockResolvedValue(Response.json({ok:true,id:'monthly'}));vi.stubGlobal('fetch',fetch);render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.selectOptions(screen.getByRole('combobox'),'month');expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
  fireEvent.change(screen.getByLabelText(/报告月份/),{target:{value:'2026-10'}});await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(JSON.parse(fetch.mock.calls[0][1].body).month).toBe('2026-10-01');
 });
+
+it('groups operational periods separately and submits exact custom dates',async()=>{
+ const fetch=vi.fn().mockResolvedValue(Response.json({ok:true,id:'custom'}));vi.stubGlobal('fetch',fetch);render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();
+ expect(screen.getByRole('group',{name:'日常运营查询（不用于正式月结）'})).toBeDefined();expect(screen.getByRole('group',{name:'月度结算来源（须核对与复核）'})).toBeDefined();
+ await user.selectOptions(screen.getByRole('combobox'),'custom');fireEvent.change(screen.getByLabelText('开始日期'),{target:{value:'2026-11-02'}});fireEvent.change(screen.getByLabelText('结束日期'),{target:{value:'2026-11-04'}});await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));
+ expect(JSON.parse(fetch.mock.calls[0][1].body).selection).toEqual({mode:'custom',since:'2026-11-02',until:'2026-11-04'});
+});

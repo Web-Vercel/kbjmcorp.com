@@ -24,3 +24,14 @@ it('accepts full calendar months while rejecting partial-month windows',async()=
  await expect(savePeriod('c0000000-0000-4000-8000-000000000003','2026-10-01','2026-10-31')).resolves.toBeDefined();
  await expect(savePeriod('c0000000-0000-4000-8000-000000000004','2026-10-01','2026-10-15')).rejects.toThrow(/constraint/);
 });
+
+it('migration 023 permits bounded operational windows without relaxing immutability or exposing sources',async()=>{
+ await db.exec(await readFile(new URL('../supabase/migrations/023_ads_operational_periods.sql',import.meta.url),'utf8'));
+ const saveRange=(request:string,since:string,until:string)=>asUser('1','select public.save_ads_reporting_snapshot($1,$2) id',[request,JSON.stringify({...report,since,until})]);
+ await expect(saveRange('c0000000-0000-4000-8000-000000000005','2026-10-01','2026-10-15')).resolves.toBeDefined();
+ await expect(saveRange('c0000000-0000-4000-8000-000000000006','2026-10-01','2026-11-01')).rejects.toThrow(/constraint/);
+ await expect(saveRange('c0000000-0000-4000-8000-000000000007','2026-10-03','2026-10-01')).rejects.toThrow(/constraint/);
+ expect((await asUser('2','select * from public.ads_reporting_snapshots')).rows).toEqual([]);
+ await expect(db.exec('delete from public.ads_reporting_snapshots')).rejects.toThrow(/immutable/);
+ expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual([{n:0}]);
+});
