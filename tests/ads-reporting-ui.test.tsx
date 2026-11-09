@@ -34,3 +34,12 @@ it('clearly distinguishes saving clipped data from successful settlement reconci
  vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({ok:true,id:'pending-snapshot',check:'no_data',coveragePending:true,actualSince:'2026-10-30'})));
  render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('已保留为待核对来源');expect(screen.getByRole('status').textContent).toContain('暂不能用于结算');expect(refresh).toHaveBeenCalledTimes(1);
 });
+
+it('seeds a monthly workbench request without bypassing confirmation and includes its advertiser pin',async()=>{
+ const fetch=vi.fn().mockResolvedValue(Response.json({ok:true,id:'monthly'}));vi.stubGlobal('fetch',fetch);
+ render(<AdsReadSync locale="zh" configured initialMonth="2026-10" expectedAccountId="adacct_test"/>);
+ expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);expect((screen.getByRole('checkbox') as HTMLInputElement).required).toBe(true);
+ expect((screen.getByLabelText(/报告月份/) as HTMLInputElement).value).toBe('2026-10');
+ const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));
+ expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({month:'2026-10-01',expectedAccountId:'adacct_test',confirm:'on'});
+});

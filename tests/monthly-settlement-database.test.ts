@@ -7,7 +7,7 @@ let db:PGlite;const org='b0000000-0000-4000-8000-000000000001',other='b0000000-0
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await db.exec(await readFile(new URL('../supabase/bootstrap/new-test-project.sql',import.meta.url),'utf8'));
- for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
+ for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;
  insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');
  insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');
@@ -19,12 +19,12 @@ async function asUser(who:string,sql:string,args:unknown[]=[],aal='aal2'){
  try{const r=await db.query<Record<string,unknown>>(sql,args);await db.exec('commit');return r;}catch(e){await db.exec('rollback');throw e;}
 }
 const daily=Array.from({length:31},(_,i)=>({date:`2024-01-${String(i+1).padStart(2,'0')}`,spendMicros:i===0?'100005000':'0',impressions:'1',clicks:'0'}));
-async function fixture(patch:Record<string,unknown>={},quotePatch:Record<string,unknown>={},quoteOrg=org,share=true){
+async function fixture(patch:Record<string,unknown>={},quotePatch:Record<string,unknown>={},quoteOrg=org,share=true,sourceOrg=org){
  const report={version:'ads-readonly-v1',account:{id:'adacct_fictional_'+randomUUID(),name:'FICTIONAL ACCOUNT',currency_code:'CAD',timezone:'UTC'},since:'2024-01-01',until:'2024-01-31',check:'matched',missingDates:[],endBoundary:'exclusive',dailySpendMicros:'100005000',periodSpendMicros:'100005000',rawSha256:'a'.repeat(64),daily,rawResponses:[{path:'/ad_account',body:'PRIVATE RAW SOURCE'}],...patch};
  const snapshot=String((await asUser('1','select public.save_ads_reporting_snapshot($1,$2) id',[randomUUID(),JSON.stringify(report)])).rows[0].id);
- const binding=String((await asUser('1',"select public.bind_ads_reporting_account($1,$2,'PRIVATE OWNERSHIP EVIDENCE') id",[snapshot,org])).rows[0].id);
+ const binding=String((await asUser('1',"select public.bind_ads_reporting_account($1,$2,'PRIVATE OWNERSHIP EVIDENCE') id",[snapshot,sourceOrg])).rows[0].id);
  if(share)await asUser('1',"select public.share_ads_source_snapshot($1,$2,'Internal source for review')",[snapshot,binding]);
- const quote=String((await asUser('1','select public.save_agency_quote_snapshot($1,$2,$3,$4,$5) id',[quoteOrg,'2024-01-01',randomUUID(),'b'.repeat(64),JSON.stringify({status:'draft',calculationVersion:'two-agency-v1',sourceCadMinor:'10001',finalMinor:'12345',rate:'PRIVATE_FX',...quotePatch})])).rows[0].id);
+ const quote=String((await asUser('1','select public.save_agency_quote_snapshot($1,$2,$3,$4,$5) id',[quoteOrg,report.since.slice(0,7)+'-01',randomUUID(),'b'.repeat(64),JSON.stringify({status:'draft',calculationVersion:'two-agency-v1',sourceCadMinor:'10001',finalMinor:'12345',rate:'PRIVATE_FX',...quotePatch})])).rows[0].id);
  return {snapshot,binding,quote};
 }
 const prepare=(f:{snapshot:string;quote:string},who='2',note='Verified monthly preparation')=>asUser(who,"select public.prepare_monthly_settlement($1,$2,'FEE-AGREEMENT-EXAMPLE',$3) id",[f.snapshot,f.quote,note]);
@@ -128,4 +128,41 @@ it('supports activity on two days with reviewed gaps, but never accepts an amoun
  const wrong=await fixture(bad);expect((await sourceProjection(wrong.snapshot)).settlement_ready).toBe(false);await expect(coverageSubmit(wrong,'activity','1',null,'100005000','2')).rejects.toThrow(/totals must agree/);
  }
  const auto=await fixture({...patch,startBoundary:'requested',periodRange:{since:'2024-01-01',until:'2024-02-01'}});expect((await sourceProjection(auto.snapshot)).coverage_kind).toBe('aggregate_verified');await expect(prepare(auto)).resolves.toBeDefined();
+});
+
+it('tracks every close step by account/month, scopes old records before limits, and never writes while querying',async()=>{
+ const dates=(await db.query<{period_start:string;period_end:string}>("select (date_trunc('month',now())-interval '1 month')::date::text period_start,(date_trunc('month',now())-interval '1 day')::date::text period_end")).rows[0];
+ const month=dates.period_start,until=dates.period_end;const rows=Array.from({length:Number(until.slice(8,10))},(_,i)=>({date:month.slice(0,8)+String(i+1).padStart(2,'0'),spendMicros:i===0?'100005000':'0',impressions:'1',clicks:'0'}));
+ const weekly=rows.slice(-7).map((d,i)=>({...d,spendMicros:i===0?'100005000':'0'}));
+ const week=await fixture({since:weekly[0].date,until,daily:weekly},{sourceCadMinor:'777'},other,true,other);
+ const overview=async(who='2')=>(await asUser(who,'select public.get_month_close_overview($1,$2) data',[other,month])).rows[0].data as {accounts:Array<Record<string,unknown>>};
+ const account=async(binding:string)=>(await overview()).accounts.find(a=>a.binding_id===binding)!;
+ expect((await account(week.binding)).stage).toBe('source_needed');expect((await account(week.binding)).operational_source_count).toBe(1);
+ const rule={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:1000,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};
+ const snapshot=buildQuoteSnapshot({requestId:randomUUID(),organizationId:other,period:month,sourceCadMinor:'10001',rateMode:'manual',rate:'5',canada:rule,china:{...rule,basis:'upstream_total'},transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'Verified fee terms'});
+ const f=await fixture({since:month,until,daily:rows},snapshot,other,false,other);
+ expect((await account(f.binding)).stage).toBe('handoff_needed');expect((await account(f.binding)).source_id).toBeNull();
+ await asUser('1',"select public.share_ads_source_snapshot($1,$2,'Hand off complete month')",[f.snapshot,f.binding]);
+ expect((await account(f.binding)).stage).toBe('preparation_needed');
+ await asUser('1',"select public.set_agency_quote_archived($1,true,0,'Check missing quote step')",[f.quote]);expect((await account(f.binding)).stage).toBe('quote_needed');
+ await asUser('1',"select public.set_agency_quote_archived($1,false,1,'Restore verified quote')",[f.quote]);
+ const draft=String((await prepare(f)).rows[0].id);expect((await account(f.binding)).stage).toBe('settlement_review_needed');expect((await account(f.binding)).draft_prepared_by_me).toBe(true);
+ await asUser('3',"select public.review_monthly_settlement($1,'approved','Independent monthly review')",[draft]);expect((await account(f.binding)).stage).toBe('wallet_needed');
+ await db.query("insert into public.client_wallets(organization_id,currency) values($1,'CNY')",[other]);expect((await account(f.binding)).stage).toBe('funding_needed');
+ const wallet=String((await db.query<{id:string}>("select id from public.client_wallets where organization_id=$1 and currency='CNY'",[other])).rows[0].id);
+ await db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','topup',200000,'FICTIONAL WORKBENCH CREDIT','fictional-workbench-credit')",[wallet,other]);expect((await account(f.binding)).stage).toBe('publication_ready');
+ const countBefore=(await db.query('select count(*)::int n from public.wallet_entries')).rows;await overview();expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(countBefore);
+ const posted=String((await asUser('1',"select public.publish_monthly_statement($1,'核实整月广告及约定服务费用',$2) id",[draft,JSON.stringify(snapshot)])).rows[0].id);expect((await account(f.binding)).stage).toBe('published');expect((await account(f.binding)).statement_id).toBe(posted);
+ await asUser('1',"select public.set_ads_binding_active($1,false,1,'Pause after statement publication')",[f.binding]);expect((await account(f.binding)).stage).toBe('published');expect((await account(f.binding)).source_id).toBeNull();
+ await asUser('1',"select public.set_ads_binding_active($1,true,2,'Restore source access')",[f.binding]);
+ const original=(await db.query<{report:Record<string,unknown>}>('select report from public.ads_reporting_snapshots where id=$1',[f.snapshot])).rows[0].report;
+ for(let i=0;i<21;i++){
+ const report={...original,since:'2024-01-01',until:'2024-01-31',daily:[],missingDates:inactiveDates,dailySpendMicros:'0',periodSpendMicros:'0',periodImpressions:'0',periodClicks:'0',startBoundary:'requested',endBoundary:'exclusive',periodRange:{since:'2024-01-01',until:'2024-02-01'}};
+ const id=String((await asUser('1','select public.save_ads_reporting_snapshot($1,$2) id',[randomUUID(),JSON.stringify(report)])).rows[0].id);await asUser('1',"select public.share_ads_source_snapshot($1,$2,'Later retrieval of a different historical month')",[id,f.binding]);
+ }
+ const broad=(await asUser('2','select public.list_ads_source_handoffs($1) data',[other])).rows[0].data as Array<Record<string,unknown>>;expect(broad.some(s=>s.snapshot_id===f.snapshot)).toBe(false);
+ const scoped=(await asUser('2','select public.list_ads_source_handoffs($1,$2) data',[other,month])).rows[0].data as Array<Record<string,unknown>>;expect(scoped.some(s=>s.snapshot_id===f.snapshot)).toBe(true);expect((await account(f.binding)).stage).toBe('published');
+ expect(JSON.stringify(await overview())).not.toMatch(/private_snapshot|rawResponses|evidence_sha256|ownership_reference/);
+ await expect(overview('4')).rejects.toThrow(/Forbidden/);await expect(asUser('1','select public.get_month_close_overview($1,$2)',[other,month],'aal1')).rejects.toThrow(/Forbidden/);
+ await expect(asUser('1',"select public.get_month_close_overview($1,'2024-01-02')",[other])).rejects.toThrow(/Month must start/);
 });

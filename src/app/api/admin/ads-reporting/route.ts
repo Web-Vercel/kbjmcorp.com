@@ -5,11 +5,11 @@ import {authResponse,readAuthBody} from '@/lib/auth/http';
 import {AdsReadError,fetchAdsReport,reportingConfig} from '@/lib/ads/report-client';
 import {adsFailureSchema,type AdsFailure} from '@/lib/ads/read-errors';
 export const maxDuration=60;
-const schema=z.object({requestId:z.uuid(),confirm:z.literal('on'),month:z.iso.date().refine(v=>v.endsWith('-01')).optional(),selection:readSelectionSchema.optional()}).refine(p=>!(p.month&&p.selection));
+const schema=z.object({requestId:z.uuid(),confirm:z.literal('on'),month:z.iso.date().refine(v=>v.endsWith('-01')).optional(),selection:readSelectionSchema.optional(),expectedAccountId:z.string().regex(/^adacct_[A-Za-z0-9_-]+$/).optional()}).refine(p=>!(p.month&&p.selection));
 export async function POST(request:Request){
  const input=await readAuthBody(request);if(input.error)return input.error;const parsed=schema.safeParse(input.body);if(!parsed.success)return authResponse({error:'invalid_input'},400);
  const staff=await getStaffContext();if('error'in staff)return staffError(staff);if(staff.role!=='admin')return authResponse({error:'forbidden'},403);
- const config=reportingConfig();if(!config)return authResponse({error:'not_configured'},503);
+ const config=reportingConfig();if(!config)return authResponse({error:'not_configured'},503);if(parsed.data.expectedAccountId&&parsed.data.expectedAccountId!==config.accountId)return authResponse({error:'conflict'},409);
  const selection:ReadSelection=parsed.data.selection||(parsed.data.month?{mode:'month',month:parsed.data.month}:{mode:'week'});
  let phase:AdsFailure['phase']='storage_lookup';
  // A retry of an already stored request returns its receipt, without another upstream read.
