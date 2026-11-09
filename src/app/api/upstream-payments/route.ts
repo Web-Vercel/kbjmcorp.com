@@ -1,0 +1,8 @@
+import {upstreamPaymentInput} from '@/lib/billing/upstream-payments';
+import {decimalMinor} from '@/lib/billing/agency-fees';
+import {getStaffContext,staffError} from '@/lib/admin/guard';
+import {readAuthBody,authResponse} from '@/lib/auth/http';
+export async function POST(request:Request){const input=await readAuthBody(request);if(input.error)return input.error;const parsed=upstreamPaymentInput.safeParse(input.body);if(!parsed.success)return authResponse({error:'upstream_invalid'},400);const staff=await getStaffContext();if('error'in staff)return staffError(staff);const p=parsed.data;
+ try{const result=p.action==='submit'?await staff.client.rpc('submit_upstream_payment',{p_request:p.requestId,p_org:p.organizationId,p_reference:p.bankReference,p_received_on:p.receivedOn,p_received:decimalMinor(p.received),p_evidence:p.evidence,p_hash:p.hash,p_note:p.note,p_allocations:p.allocations.map(a=>({statementId:a.statementId,amountMinor:decimalMinor(a.amount)}))}):await staff.client.rpc('review_upstream_payment',{p_payment:p.paymentId,p_decision:p.decision,p_note:p.note});
+ if(result.error){const code=result.error.code;return authResponse({error:code==='42501'?'forbidden':code==='23505'?'upstream_duplicate':code==='40001'?'conflict':code==='23514'?'upstream_excess':code==='22023'?'upstream_invalid':'save_failed'},code==='42501'?403:code==='23505'||code==='40001'?409:code==='23514'||code==='22023'?400:502);}if(p.action==='submit'&&typeof result.data!=='string')return authResponse({error:'save_failed'},502);return authResponse({ok:true,...(p.action==='submit'?{id:result.data}:{})});
+ }catch{return authResponse({error:'unavailable'},503);}}

@@ -9,7 +9,7 @@ let db:PGlite;const org='b0000000-0000-4000-8000-000000000001',other='b0000000-0
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await applyMigrationsThrough(db,17);
- for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench','028_upstream_reconciliation'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
+ for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench','028_upstream_reconciliation','029_upstream_payment_verification'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;
  insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');
  insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');
@@ -196,4 +196,43 @@ it('aggregates posted procurement across accounts while excluding unpublished dr
  expect(value.row_count).toBe(2);expect(value.rows).toHaveLength(2);expect(value.totals.procurement_cad_minor).toBe((BigInt(quote.upstreamCadMinor)*2n).toString());expect(value.totals.customer_charged_cny_minor).toBe((BigInt(quote.finalMinor)*2n).toString());
  expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(entries.rows);
  const otherScope=(await asUser('1','select public.get_upstream_reconciliation($1,$2) data',[period,other])).rows[0].data as {row_count:number};expect(otherScope.row_count).toBe(0);
+});
+
+it('independently verifies partial/batch CAD receipts, rejects overlaps, preserves corrections and never debits clients',async()=>{
+ const statements=(await db.query<{id:string}>("select id from public.monthly_client_statements where organization_id=$1 and month='2023-09-01' order by id",[org])).rows;
+ expect(statements).toHaveLength(2);const [first,second]=statements.map(s=>s.id);
+ const alloc=(id:string,amount:string)=>({statementId:id,amountMinor:amount});const ref='FICTIONAL-BANK-'+randomUUID();
+ async function submit(reference:string,received:string,allocations:unknown[],request=randomUUID(),organization=org,date='2024-01-01',who='2'){
+ return asUser(who,"select public.submit_upstream_payment($1,$2,$3,$4,$5,'FICTIONAL EVIDENCE',$6,'Verified payer and CAD net receipt',$7) id",[request,organization,reference,date,received,'a'.repeat(64),JSON.stringify(allocations)]);}
+ const before=(await db.query('select count(*)::int n from public.wallet_entries')).rows;
+ const request=randomUUID(),a=[alloc(first,'600'),alloc(second,'400')];const p=String((await submit(ref,'1000',a,request)).rows[0].id);
+ expect((await submit(ref,'1000',a,request)).rows[0].id).toBe(p);await expect(submit(ref,'1001',a,request)).rejects.toThrow(/request changed/);await expect(submit(ref.toLowerCase(),'1000',a)).rejects.toThrow(/already registered/);
+ const get=async()=>((await asUser('3',"select public.get_upstream_payment_workbench($1,'2023-09-01') data",[org])).rows[0].data as {statements:Array<{id:string;verified_cad_minor:string;pending_cad_minor:string}>;payments:Array<{id:string;status:string;revision:number}>});
+ let work=await get();expect(work.statements.find(s=>s.id===first)).toMatchObject({verified_cad_minor:'0',pending_cad_minor:'600'});expect(work.payments.find(r=>r.id===p)?.status).toBe('pending');expect(JSON.stringify(work)).not.toMatch(/PRIVATE|private_snapshot|rateMode|upstream_cny|chinaFee/);
+ await expect(asUser('2',"select public.review_upstream_payment($1,'approved','Self review forbidden')",[p])).rejects.toThrow(/Forbidden|Independent/);
+ await asUser('3',"select public.review_upstream_payment($1,'approved','Independent receipt and allocation check')",[p]);await asUser('3',"select public.review_upstream_payment($1,'approved','Independent receipt and allocation check')",[p]);
+ work=await get();expect(work.statements.find(s=>s.id===first)?.verified_cad_minor).toBe('600');
+ const ref2='FICTIONAL-BANK-'+randomUUID();const competing=String((await submit(ref2,'11001',[alloc(first,'11001')])).rows[0].id);
+ await expect(asUser('3',"select public.review_upstream_payment($1,'approved','Check remaining procurement')",[competing])).rejects.toThrow(/exceeds unreconciled/);
+ expect((await get()).payments.find(r=>r.id===competing)?.status).toBe('pending');
+ await asUser('3',"select public.review_upstream_payment($1,'rejected','Incorrect allocation; correct receipt matching')",[competing]);
+ const correction=String((await submit(ref2,'10000',[alloc(first,'10000')])).rows[0].id);expect(correction).not.toBe(competing);expect((await get()).payments.find(r=>r.id===correction)?.revision).toBe(2);
+ await asUser('3',"select public.review_upstream_payment($1,'approved','Independent corrected allocation check')",[correction]);
+ const badBatch=String((await submit('FICTIONAL-BANK-'+randomUUID(),'11002',[alloc(first,'1'),alloc(second,'11001')])).rows[0].id);
+ await expect(asUser('3',"select public.review_upstream_payment($1,'approved','Atomic batch check')",[badBatch])).rejects.toThrow(/exceeds unreconciled/);expect((await get()).statements.find(s=>s.id===first)?.verified_cad_minor).toBe('10600');
+ await asUser('3',"select public.review_upstream_payment($1,'rejected','Whole batch requires corrected allocation')",[badBatch]);
+ const final=String((await submit('FICTIONAL-BANK-'+randomUUID(),'11002',[alloc(first,'401'),alloc(second,'10601')])).rows[0].id);
+ await asUser('3',"select public.review_upstream_payment($1,'approved','Remaining procurement independently checked')",[final]);work=await get();expect(work.statements.map(s=>s.verified_cad_minor)).toEqual(['11001','11001']);
+ const adminOwn=String((await submit('FICTIONAL-BANK-'+randomUUID(),'1',[alloc(first,'1')],randomUUID(),org,'2024-01-01','1')).rows[0].id);
+ await expect(asUser('1',"select public.review_upstream_payment($1,'approved','Admin self review blocked')",[adminOwn])).rejects.toThrow(/Independent reviewer/);
+ await asUser('3',"select public.review_upstream_payment($1,'rejected','Procurement already reconciled')",[adminOwn]);
+ await expect(submit('FICTIONAL-BANK-'+randomUUID(),'1000',[alloc(first,'900')])).rejects.toThrow(/total or duplicate/);
+ await expect(submit('FICTIONAL-BANK-'+randomUUID(),'1000',[alloc(first,'500'),alloc(first,'500')])).rejects.toThrow(/total or duplicate/);
+ await expect(submit('FICTIONAL-BANK-'+randomUUID(),'1',[alloc(first,'1')],randomUUID(),other)).rejects.toThrow(/organization mismatch|Forbidden/);
+ await expect(submit('FICTIONAL-BANK-'+randomUUID(),'1',[alloc(first,'1')],randomUUID(),org,'2999-01-01')).rejects.toThrow(/input invalid/);
+ for(const who of ['3','4'])await expect(submit('FICTIONAL-BANK-'+randomUUID(),'1',[alloc(first,'1')],randomUUID(),org,'2024-01-01',who)).rejects.toThrow(/Forbidden/);
+ await expect(asUser('4',"select public.get_upstream_payment_workbench($1,'2023-09-01')",[org])).rejects.toThrow(/Forbidden/);await expect(asUser('3',"select public.get_upstream_payment_workbench($1,'2023-09-01')",[org],'aal1')).rejects.toThrow(/Forbidden/);
+ await expect(db.query('delete from public.upstream_payment_reviews where payment_id=$1',[p])).rejects.toThrow(/immutable/);await expect(db.query('update public.upstream_payment_records set received_cad_minor=1 where id=$1',[p])).rejects.toThrow(/immutable/);
+ await expect(asUser('3',"select public.review_upstream_payment($1,'rejected','Changed historical result')",[p])).rejects.toThrow(/already recorded/);
+ expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(before);
 });

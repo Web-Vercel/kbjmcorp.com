@@ -1,0 +1,12 @@
+// @vitest-environment jsdom
+import {render,screen,cleanup,fireEvent} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {afterEach,it,expect,vi} from 'vitest';
+vi.mock('next/navigation',()=>({useRouter:()=>({refresh:vi.fn(),push:vi.fn()})}));
+vi.mock('@/components/operations/SourceFingerprintField',()=>({default:()=> <input type="hidden" name="hash" value={'a'.repeat(64)}/>}));
+import Form from '@/components/operations/UpstreamPaymentForm';
+const id='b0000000-0000-4000-8000-000000000001';
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+function setup(){render(<Form locale="zh" organizationId={id} statements={[{id,account_name:'FICTIONAL',month:'2026-10-01',procurement_cad_minor:'10000',verified_cad_minor:'0',pending_cad_minor:'0'}]}/>);fireEvent.change(screen.getByLabelText('银行交易流水号（逐笔唯一）'),{target:{value:'FICTIONAL-001'}});fireEvent.change(screen.getByLabelText('加拿大实际到账日期'),{target:{value:'2026-10-31'}});fireEvent.change(screen.getByLabelText('本笔加拿大净到账 CAD'),{target:{value:'20.00'}});fireEvent.change(screen.getByLabelText('原件保管位置／核实参考号'),{target:{value:'FICTIONAL ARCHIVE'}});fireEvent.change(screen.getByLabelText('核对说明'),{target:{value:'FICTIONAL CHECK'}});fireEvent.change(screen.getByLabelText('第 1 项账单'),{target:{value:id}});fireEvent.change(screen.getByLabelText('第 1 项核销金额 CAD'),{target:{value:'20.00'}});fireEvent.click(screen.getByRole('checkbox'));}
+it('rejects unbalanced allocations before sending',async()=>{const fetch=vi.fn();vi.stubGlobal('fetch',fetch);setup();fireEvent.change(screen.getByLabelText('第 1 项核销金额 CAD'),{target:{value:'19'}});await userEvent.setup().click(screen.getByRole('button',{name:'提交独立复核'}));expect(screen.getByRole('status').textContent).toContain('合计必须等于');expect(fetch).not.toHaveBeenCalled();});
+it('retains the same request ID after an unknown network outcome',async()=>{const fetch=vi.fn().mockRejectedValueOnce(Error('network')).mockResolvedValueOnce(Response.json({ok:true,id}));vi.stubGlobal('fetch',fetch);setup();const user=userEvent.setup();await user.click(screen.getByRole('button',{name:'提交独立复核'}));expect(screen.getByRole('status').textContent).toContain('保存结果未知');await user.click(screen.getByRole('button',{name:'提交独立复核'}));expect(JSON.parse(fetch.mock.calls[0][1].body).requestId).toBe(JSON.parse(fetch.mock.calls[1][1].body).requestId);expect(screen.getByRole('status').textContent).toContain('等待另一账号独立复核');});
