@@ -1,10 +1,11 @@
+import {applyMigrationsThrough} from './fixtures/migrations';
 import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
 import {afterAll,beforeAll,expect,it} from 'vitest';
 let db:PGlite;let probe:string;
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
- await db.exec(await readFile(new URL('../supabase/bootstrap/new-test-project.sql',import.meta.url),'utf8'));
+ await applyMigrationsThrough(db,16);
  await db.exec(await readFile(new URL('../supabase/migrations/017_private_fx.sql',import.meta.url),'utf8'));
  probe=await readFile(new URL('../supabase/tests/two-company-isolation.sql',import.meta.url),'utf8');
 },30000);

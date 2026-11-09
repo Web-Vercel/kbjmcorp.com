@@ -1,3 +1,5 @@
+import {clientStatementSchema} from '@/lib/billing/client-statement';
+import {applyMigrationsThrough} from './fixtures/migrations';
 import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
 import {buildQuoteSnapshot} from '../src/lib/billing/quote-snapshot';
@@ -6,7 +8,7 @@ import {beforeAll,afterAll,it,expect} from 'vitest';
 let db:PGlite;const org='b0000000-0000-4000-8000-000000000001',other='b0000000-0000-4000-8000-000000000002';
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
- await db.exec(await readFile(new URL('../supabase/bootstrap/new-test-project.sql',import.meta.url),'utf8'));
+ await applyMigrationsThrough(db,17);
  for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;
  insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');
@@ -81,7 +83,7 @@ it('publishes and debits atomically, returns the same receipt on retry and expos
  await expect(asUser('2','select public.publish_monthly_statement($1,$2,$3)',[draft,'Forbidden publish',JSON.stringify(snapshot)])).rejects.toThrow(/Forbidden/);
  await db.exec(`insert into public.memberships(organization_id,user_id,role) values('${org}','a0000000-0000-4000-8000-000000000004','viewer');insert into public.finance_access(organization_id,user_id,role) values('${org}','a0000000-0000-4000-8000-000000000004','viewer');`);
  const visible=(await asUser('4','select public.get_client_monthly_statements() data')).rows[0].data as Array<Record<string,unknown>>;
- expect(visible).toHaveLength(1);expect(visible[0].total_minor).toBe(snapshot.finalMinor);expect(JSON.stringify(visible)).not.toMatch(/private_snapshot|sourceCadMinor|PRIVATE|quote_id|binding_id|rate|costMinor/);
+ expect(visible).toHaveLength(1);expect(clientStatementSchema.array().safeParse(visible).success).toBe(true);expect(visible[0].total_minor).toBe(snapshot.finalMinor);expect(JSON.stringify(visible)).not.toMatch(/private_snapshot|sourceCadMinor|PRIVATE|quote_id|binding_id|rate|costMinor/);
  expect((await asUser('2','select public.get_client_monthly_statements() data')).rows[0].data).toEqual([]);
  await db.exec(`delete from public.finance_access where user_id='a0000000-0000-4000-8000-000000000004';`);expect((await asUser('4','select public.get_client_monthly_statements() data')).rows[0].data).toEqual([]);
  // A different quote version for this same account/month cannot charge again.
