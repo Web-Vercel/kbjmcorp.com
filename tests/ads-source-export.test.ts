@@ -7,3 +7,9 @@ it('exports exact spend, pending status and blank missing-day values instead of 
 it('escapes CSV quotes and neutralizes formula-bearing names and multiline notes',()=>{
  const csv=sourceCsv(source,false);expect(csv).toContain('"\'=HYPERLINK(""bad"")"');expect(csv).toContain('"\' \t+formula\n""note"""');expect(csv).toContain('not a customer bill');expect(csv).not.toContain('API_KEY');
 });
+
+it('renders a standalone print report with escaped text and preserved missing-data status',async()=>{
+ const {sourceHtml}=await import('../src/lib/ads/source-export');
+ const output=sourceHtml({...source,account_name:'<script>alert(1)</script>',note:'<img src=x onerror=alert(1)>'},true);
+ expect(output).toContain('&lt;script&gt;');expect(output).not.toContain('<script>');expect(output).not.toContain('<img');expect(output).toContain('default-src');expect(output).toContain('@media print');expect(output).toContain('缺少明细，不按零花费计算');expect(output).toContain('暂无期间汇总');expect(output).toContain('CAD 1.234567');expect(output).toContain('不是 OpenAI 官方发票');
+});
