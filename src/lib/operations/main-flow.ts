@@ -1,3 +1,4 @@
+import {statementAcknowledgement} from './client-statement-handoff';
 import {monthFunding,fundingDescription} from './month-funding';
 import type {StatementReadStatus} from '@/lib/billing/statement-read';
 import type {CloseOverview} from './month-close';
@@ -13,8 +14,8 @@ export function mainFlow(data:CloseOverview,extras:{financeAccess:boolean|null;p
  {id:'settlements',title:t('3. 客户账单制单、复核与发布','3. Client statement review and publication'),state:all?'ready':'pending',text:t(`已发布 ${posted.length}/${data.accounts.length} 个账户的月结账单；下方按账户显示当前操作。`,`Published statements for ${posted.length}/${data.accounts.length} accounts. See the current action for each account below.`),target:'settlements'},
  {id:'access',title:t('4. 客户查看与查阅确认','4. Client viewing and acknowledgement'),state:'pending',text:'',target:'access'},
  ];
- const read=extras.clientRead;const idsRead=new Set(posted.map(a=>a.statement_id));const matching=read?.statements.filter(s=>idsRead.has(s.statement_id));const completeRead=!!read&&read.statement_count<=read.statements.length&&matching?.length===posted.length;
- const acknowledged=all&&completeRead&&matching!.every(s=>s.confirmation_count>0&&s.last_confirmed_at!==null);
+ const reading=posted.map(a=>statementAcknowledgement(extras.clientRead,a.statement_id!));const completeRead=!!extras.clientRead&&posted.length>0&&new Set(posted.map(a=>a.statement_id)).size===posted.length&&(!all||posted.length===data.accounts.length)&&reading.every(s=>s.state!=='unknown');
+ const acknowledged=all&&completeRead&&reading.every(s=>s.state==='acknowledged');
  steps[3].state=!all?'pending':acknowledged?'ready':!completeRead?'unknown':'pending';
  steps[3].text=!all?t('正式发布后，客户可登录查看账单并提交查阅确认。','After publication, clients can view the statement and acknowledge reading.'):acknowledged?t('已收到本页账单的客户查阅确认；这是客户本人提交的查阅记录。','Client reading acknowledgements received for these statements, submitted by the clients themselves.'):!completeRead?t('客户查阅确认信息尚未完整取得，不能据此认定客户已经确认查阅。','Reading acknowledgement information is incomplete; client acknowledgement cannot be inferred.'):extras.financeAccess===false?t('尚无查阅确认，且未找到当前财务查看授权；请管理员核查客户权限。','No reading acknowledgement and no current finance read authorization; ask an administrator to check access.'):t('尚未收到这些账单的查阅确认，不代表客户从未看过。请客户登录后确认已阅；授权存在不等于已阅。','No reading acknowledgement yet; this does not mean the client has never viewed it. Ask the client to sign in and acknowledge; authorization is not acknowledgement.');
  let state:MainFlowStep['state']='pending',text=t('客户账单发布后，再核对线下 CAD 到账及账单分配。','After client publication, verify offline CAD receipts and allocations.');

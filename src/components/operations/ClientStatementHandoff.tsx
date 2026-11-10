@@ -1,0 +1,7 @@
+import StatementAccessLink from './StatementAccessLink';
+import {statementAcknowledgement} from '@/lib/operations/client-statement-handoff';
+import {statementPublishedAt} from '@/lib/billing/client-statement';
+export default function ClientStatementHandoff({statementId,readStatus,locale}:{statementId:string;readStatus:unknown;locale:'zh'|'en'}){
+ const zh=locale==='zh',status=statementAcknowledgement(readStatus,statementId);
+ return <section aria-label={zh?'客户账单交接':'Client statement handoff'} style={{marginBlock:24}}><h3>{zh?'客户账单交接':'Client statement handoff'}</h3>{status.state==='acknowledged'?<><p>{zh?'已有客户提交此账单的查阅确认。':'A client has acknowledged reading this statement.'} · {zh?'确认人数：':'Acknowledging clients: '}{status.count}</p><p>{zh?'最近确认时间（温哥华）：':'Latest acknowledgement (Vancouver): '}{statementPublishedAt(status.at!,zh)}</p></>:status.state==='pending'?<p>{zh?'尚未收到此账单的客户查阅确认；不代表客户从未看过。':'No client reading acknowledgement for this statement yet; this does not mean it has never been viewed.'}</p>:<p className="admin-notice">{zh?'此账单查阅确认信息尚未完整取得，不能据此认定已阅或未阅。':'Reading acknowledgement information is incomplete; neither acknowledged nor unacknowledged status can be inferred.'}</p>}<StatementAccessLink key={statementId} statementId={statementId} locale={locale}/><p>{zh?'查阅确认不代表同意收费，也不代表所有客户成员都已查阅或整个业务已结清。账单问题仍在原工单中跟进。':'Reading acknowledgement does not mean fee acceptance, that every client member has read it, or complete settlement. Continue billing questions in the original request.'}</p></section>;
+}

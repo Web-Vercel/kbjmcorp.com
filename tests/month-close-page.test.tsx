@@ -28,3 +28,12 @@ it('connects role-specific tasks to the exact account card without adding RPC ca
  const html=await render();expect(html).toContain('本账号月结待办');expect(html).toContain('本人已制单，须由另一账号独立复核');expect(html).toContain(`href="#month-close-account-${id}"`);expect(html).toContain(`id="month-close-account-${id}"`);
  expect(m.rpc.mock.calls.map(c=>c[0]).sort()).toEqual(['get_month_close_overview','get_statement_question_workbench']);
 });
+
+
+it('shows statement-specific client handoff with no extra queries or contact/private data',async()=>{
+ const html=await render();expect(html).toContain('客户账单交接');expect(html).toContain(`/zh/account/statements?statement=${id}#statement-${id}`);expect(html).toContain('尚未收到此账单的客户查阅确认');expect(html).not.toContain('PRIVATE PHONE');expect(m.rpc.mock.calls.map(c=>c[0]).sort()).toEqual(['get_crm_members','get_month_close_overview','get_statement_question_workbench','get_statement_read_status','get_upstream_payment_workbench']);
+});
+it('keeps handoff unknown when reading lookup fails and offers no link for an unpublished draft',async()=>{
+ const original=m.rpc.getMockImplementation()!;m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_statement_read_status'?{data:null,error:{message:'PRIVATE READ ERROR'}}:original(name,...args));let html=await render();expect(html).toContain('此账单查阅确认信息尚未完整取得');expect(html).not.toContain('PRIVATE READ ERROR');
+ m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{data:{...overview,accounts:[{...overview.accounts[0],stage:'settlement_review_needed',statement_id:null}]},error:null}:original(name,...args));html=await render();expect(html).not.toContain('客户账单访问链接');expect(html).not.toContain('/account/statements?statement=');
+});
