@@ -65,3 +65,5 @@
 制单条件提示沿用001–036，见 [SETTLEMENT_PREREQUISITES.md](SETTLEMENT_PREREQUISITES.md)。成功空交接与查询失败分开显示，来源问题逐项说明，补齐入口保留企业和月份；不放宽来源条件或自动认定报价成本匹配。
 
 制单与独立复核回执沿用001–036，见 [SETTLEMENT_SUBMISSION_RECEIPTS.md](SETTLEMENT_SUBMISSION_RECEIPTS.md)。提交成功显示原草稿编号与定向链接；超时/回执不完整保留待核查，不自动重发或误报成功。发布扣款仍是独立管理员操作。
+
+复核后下一步沿用001–036，见 [SETTLEMENT_REVIEW_FOLLOWUP.md](SETTLEMENT_REVIEW_FOLLOWUP.md)。退回可由管理员载入原报价另存新版本；通过后定位原草稿发布核对；已有正式账单只进入后续跟进，不提供再次发布或修订入口。
