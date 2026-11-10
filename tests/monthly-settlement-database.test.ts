@@ -1,3 +1,4 @@
+import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
 import {clientStatementSchema} from '@/lib/billing/client-statement';
 import {applyMigrationsThrough} from './fixtures/migrations';
 import {PGlite} from '@electric-sql/pglite';
@@ -9,7 +10,7 @@ let db:PGlite;const org='b0000000-0000-4000-8000-000000000001',other='b0000000-0
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await applyMigrationsThrough(db,17);
- for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench','028_upstream_reconciliation','029_upstream_payment_verification'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
+ for(const name of ['018_agency_quote_snapshots','019_quote_revision_archive','020_ads_readonly_reporting','021_ads_source_handoff','023_ads_operational_periods','024_monthly_settlement_review','025_monthly_statement_posting','026_monthly_activity_coverage','027_month_close_workbench','028_upstream_reconciliation','029_upstream_payment_verification','030_upstream_payment_reversals'])await db.exec(await readFile(new URL('../supabase/migrations/'+name+'.sql',import.meta.url),'utf8'));
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;
  insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');
  insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');
@@ -235,4 +236,37 @@ it('independently verifies partial/batch CAD receipts, rejects overlaps, preserv
  await expect(db.query('delete from public.upstream_payment_reviews where payment_id=$1',[p])).rejects.toThrow(/immutable/);await expect(db.query('update public.upstream_payment_records set received_cad_minor=1 where id=$1',[p])).rejects.toThrow(/immutable/);
  await expect(asUser('3',"select public.review_upstream_payment($1,'rejected','Changed historical result')",[p])).rejects.toThrow(/already recorded/);
  expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(before);
+});
+
+it('reverses whole approved allocations independently, preserves history and permits a corrected bank-reference revision',async()=>{
+ const original=(await db.query<{id:string;bank_reference:string;allocations:Array<{statementId:string;amountMinor:string}>}>("select p.id,p.bank_reference,p.allocations from public.upstream_payment_records p join public.upstream_payment_reviews r on r.payment_id=p.id where p.organization_id=$1 and r.decision='approved' and p.received_cad_minor=1000 limit 1",[org])).rows[0];
+ const unchanged=(await db.query('select count(*)::int n from public.wallet_entries')).rows;
+ const originalRows=(await db.query('select to_jsonb(p) original from public.upstream_payment_records p where p.id=$1',[original.id])).rows;
+ const work=async()=>((await asUser('3',"select public.get_upstream_payment_workbench($1,'2023-09-01') data",[org])).rows[0].data as {reversal_enabled:boolean;statements:Array<{id:string;verified_cad_minor:string}>;payments:Array<{id:string;reversed:boolean;reversal_pending:boolean;reversals:Array<{status:string;revision:number}>}>});
+ const before=await work();expect(before.reversal_enabled).toBe(true);
+ const propose=(request=randomUUID(),who='2',reason='Incorrect receipt amount; check original evidence')=>asUser(who,"select public.submit_upstream_reversal($1,$2,$3,'CONTROLLED REVERSAL EVIDENCE',$4) id",[original.id,request,reason,'b'.repeat(64)]);
+ const request=randomUUID(),r=String((await propose(request)).rows[0].id);expect((await propose(request)).rows[0].id).toBe(r);await expect(propose(request,'2','Changed request content')).rejects.toThrow(/request changed/);await expect(propose()).rejects.toThrow(/already pending/);
+ const pending=await work();expect(pending.statements).toEqual(before.statements);expect(pending.payments.find(p=>p.id===original.id)).toMatchObject({reversed:false,reversal_pending:true});
+ const replace=(amount='900',allocations=original.allocations.map((a,i)=>({...a,amountMinor:String(BigInt(a.amountMinor)-(i===0?100n:0n))})))=>asUser('2',"select public.submit_upstream_payment($1,$2,$3,'2024-01-01',$4,'CORRECTED RECEIPT EVIDENCE',$5,'Corrected independently confirmed CAD receipt',$6) id",[randomUUID(),org,original.bank_reference,amount,'c'.repeat(64),JSON.stringify(allocations)]);
+ await expect(replace()).rejects.toThrow(/already registered/);
+ await asUser('3',"select public.review_upstream_reversal($1,'rejected','Need clearer correction evidence')",[r]);expect((await work()).statements).toEqual(before.statements);
+ const req2=randomUUID(),r2=String((await propose(req2,'1')).rows[0].id);
+ await expect(asUser('1',"select public.review_upstream_reversal($1,'approved','Admin self review blocked')",[r2])).rejects.toThrow(/Independent reviewer/);
+ for(const who of ['2','4'])await expect(asUser(who,"select public.review_upstream_reversal($1,'approved','Unauthorized review blocked')",[r2])).rejects.toThrow(/Forbidden/);
+ await expect(asUser('3',"select public.review_upstream_reversal($1,'approved','MFA required')",[r2],'aal1')).rejects.toThrow(/Forbidden/);
+ await asUser('3',"select public.review_upstream_reversal($1,'approved','Original net amount and whole batch correction verified')",[r2]);await asUser('3',"select public.review_upstream_reversal($1,'approved','Original net amount and whole batch correction verified')",[r2]);
+ const reversed=await work();expect(upstreamPaymentWorkbench.safeParse(reversed).success).toBe(true);for(const a of original.allocations){const old=before.statements.find(s=>s.id===a.statementId)!;expect(reversed.statements.find(s=>s.id===a.statementId)?.verified_cad_minor).toBe((BigInt(old.verified_cad_minor)-BigInt(a.amountMinor)).toString());}
+ expect(reversed.payments.find(p=>p.id===original.id)).toMatchObject({reversed:true,reversal_pending:false,reversals:[{revision:2,status:'approved'},{revision:1,status:'rejected'}]});
+ await expect(propose()).rejects.toThrow(/already pending or approved/);await expect(asUser('3',"select public.review_upstream_reversal($1,'rejected','Changed historical decision')",[r2])).rejects.toThrow(/already recorded/);
+ const originalReview=(await db.query<{note:string}>('select note from public.upstream_payment_reviews where payment_id=$1',[original.id])).rows[0].note;
+ await asUser('3',"select public.review_upstream_payment($1,'approved',$2)",[original.id,originalReview]);expect((await work()).statements).toEqual(reversed.statements);
+ await expect(asUser('2',"select public.submit_upstream_reversal($1,$2,'MFA required','Evidence',$3)",[original.id,randomUUID(),'a'.repeat(64)],'aal1')).rejects.toThrow(/Forbidden/);
+ const corrected=String((await replace()).rows[0].id);await asUser('3',"select public.review_upstream_payment($1,'approved','Correct net CAD and allocations verified')",[corrected]);
+ expect((await db.query<{revision:number}>('select revision from public.upstream_payment_records where id=$1',[corrected])).rows[0].revision).toBe(2);
+ expect((await db.query('select to_jsonb(p) original from public.upstream_payment_records p where p.id=$1',[original.id])).rows).toEqual(originalRows);
+ expect((await db.query('select count(*)::int n from public.wallet_entries')).rows).toEqual(unchanged);
+ await expect(db.query('delete from public.upstream_payment_reversals where id=$1',[r2])).rejects.toThrow(/immutable/);await expect(db.query('update public.upstream_reversal_reviews set note=$1 where reversal_id=$2',['Changed note',r2])).rejects.toThrow(/immutable/);
+ await expect(propose(randomUUID(),'4')).rejects.toThrow(/Forbidden/);await expect(asUser('3',"select public.submit_upstream_reversal($1,$2,'No prepare role','Evidence',$3)",[corrected,randomUUID(),'a'.repeat(64)])).rejects.toThrow(/Forbidden/);
+ const notApproved=(await db.query<{id:string}>("select p.id from public.upstream_payment_records p join public.upstream_payment_reviews r on r.payment_id=p.id where r.decision='rejected' limit 1")).rows[0].id;
+ await expect(asUser('2',"select public.submit_upstream_reversal($1,$2,'Cannot reverse rejected record','Evidence',$3)",[notApproved,randomUUID(),'a'.repeat(64)])).rejects.toThrow(/Approved receipt required/);
 });
