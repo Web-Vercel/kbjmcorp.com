@@ -69,3 +69,5 @@
 复核后下一步沿用001–036，见 [SETTLEMENT_REVIEW_FOLLOWUP.md](SETTLEMENT_REVIEW_FOLLOWUP.md)。退回可由管理员载入原报价另存新版本；通过后定位原草稿发布核对；已有正式账单只进入后续跟进，不提供再次发布或修订入口。
 
 已发布账单客户交接沿用001–036，见 [CLIENT_STATEMENT_HANDOFF.md](CLIENT_STATEMENT_HANDOFF.md)。按正式账单显示客户查阅确认与可复制访问链接；链接不授权、不发送，也不代确认。主流程与逐份状态共同拒绝重复/不完整查阅资料，避免误报全部已阅。
+
+客户账单登录后返回沿用001–036，见 [CLIENT_STATEMENT_LOGIN_RETURN.md](CLIENT_STATEMENT_LOGIN_RETURN.md)。账单链接在未登录时保留已验证的账单筛选，验证后回到原账单；只允许客户账单页，不改变身份验证或企业财务授权。隐藏Preview测试入口仍不公开链接。

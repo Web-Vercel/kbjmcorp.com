@@ -13,7 +13,9 @@ import {requireClientPage} from '@/lib/client/page';
 export const dynamic='force-dynamic';
 export const metadata={title:'月度结算账单 | 智点未来',robots:{index:false,follow:false}};
 export default async function Statements({params,searchParams}:{params:Promise<{locale:string}>;searchParams?:Promise<{wallet?:string;month?:string;statement?:string}>}){
- const {locale}=await params;if(locale!=='zh'&&locale!=='en')notFound();const zh=locale==='zh';const {client}=await requireClientPage(locale);const query=await searchParams||{};if(query.wallet&&!z.uuid().safeParse(query.wallet).success)notFound();if(query.statement&&!z.uuid().safeParse(query.statement).success)notFound();if(query.month&&!z.iso.date().safeParse(query.month+'-01').success)notFound();
+ const {locale}=await params;if(locale!=='zh'&&locale!=='en')notFound();const zh=locale==='zh';const query=await searchParams||{};if(query.wallet&&!z.uuid().safeParse(query.wallet).success)notFound();if(query.statement&&!z.uuid().safeParse(query.statement).success)notFound();if(query.month&&!z.iso.date().safeParse(query.month+'-01').success)notFound();
+ const returnQuery=new URLSearchParams();for(const key of ['wallet','month','statement'] as const)if(query[key])returnQuery.set(key,query[key]!);
+ const returnTo=`/${locale}/account/statements${returnQuery.size?'?'+returnQuery:''}${query.statement?'#statement-'+query.statement:''}`;const {client}=await requireClientPage(locale,returnTo);
  const [result,walletResult]=await Promise.all([query.wallet||query.month||query.statement?client.rpc('get_client_monthly_statements',{p_wallet:query.wallet||null,p_month:query.month?query.month+'-01':null,p_statement:query.statement||null}):client.rpc('get_client_monthly_statements'),client.rpc('get_client_wallets')]);
  const walletOptions=z.array(z.object({id:z.uuid(),organization_name:z.string(),currency:z.string()})).safeParse(walletResult.data);
  const walletsAvailable=!walletResult.error&&walletOptions.success;
