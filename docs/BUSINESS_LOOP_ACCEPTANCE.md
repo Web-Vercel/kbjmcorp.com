@@ -53,3 +53,5 @@
 内部月结办理清单导出沿用001–036，无新增迁移，见 [MONTH_CLOSE_CHECKLIST_EXPORT.md](MONTH_CLOSE_CHECKLIST_EXPORT.md)。服务器只把最少办理字段投影给浏览器，资料不完整时不导出；不会保存新数据库快照或改变原记录。
 
 本月待发布草稿合计资金核算沿用001–036，无新增迁移，见 [MONTH_CLOSE_FUNDING_COVERAGE.md](MONTH_CLOSE_FUNDING_COVERAGE.md)。多个账户共用余额时先看合计缺口，逐笔发布仍执行原数据库余额锁定检查。
+
+结算页现保留企业/月筛选、同口径资金核算与账单问题提示，并提供逐份发布预览、有效回执确认和30秒未知结果核查，见 [SETTLEMENT_PUBLICATION_FEEDBACK.md](SETTLEMENT_PUBLICATION_FEEDBACK.md)。沿用001–036，无新增迁移或审批。

@@ -1,3 +1,4 @@
+import {publicationPreview} from '@/lib/operations/publication-preview';
 import {monthFunding} from '@/lib/operations/month-funding';
 import {buildMonthCloseChecklist,monthCloseChecklistCsv} from '@/lib/operations/month-close-checklist';
 import {statementQuestionWorkbench} from '@/lib/operations/statement-questions';
@@ -154,9 +155,11 @@ it('reveals combined funding gaps and preserves the database guard when one of t
  }
  const current=async()=>(await as('3',"select public.get_month_close_overview($1,'2024-03-01') data",[org])).data as CloseOverview;
  const before=await current();expect(before.balance_minor).toBe('39300');const combined=monthFunding(before)!;expect(combined.approved_count).toBe(2);expect(combined.approved_minor).toBe('50000');expect(combined.shortfall_minor).toBe('10700');expect(before.accounts.filter(a=>a.stage==='publication_ready')).toHaveLength(2);expect(mainFlow(before,{financeAccess:null,payments:null},true)[0].state).toBe('pending');
+ const initialPreview=publicationPreview(before,{organizationId:org,month:'2024-03-01',draftId:String(drafts[0]),amountMinor:'25000'});expect(initialPreview?.remaining_minor).toBe('14300');
  const rowsBefore=(await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n;
  await as('1',"select public.publish_monthly_statement($1,'虚构案例：第一份独立发布',$2)",[drafts[0],JSON.stringify(q)]);
  const after=await current(),remaining=monthFunding(after)!;expect(after.balance_minor).toBe('14300');expect(remaining.approved_count).toBe(1);expect(remaining.approved_minor).toBe('25000');expect(remaining.shortfall_minor).toBe('10700');
+ const secondPreview=publicationPreview(after,{organizationId:org,month:'2024-03-01',draftId:String(drafts[1]),amountMinor:'25000'});expect(secondPreview?.remaining_minor).toBe('-10700');
  await expect(as('1',"select public.publish_monthly_statement($1,'虚构案例：余额不足不发布',$2)",[drafts[1],JSON.stringify(q)])).rejects.toThrow(/Insufficient/);
  expect((await current()).balance_minor).toBe('14300');expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(rowsBefore+1);
 },30000);
