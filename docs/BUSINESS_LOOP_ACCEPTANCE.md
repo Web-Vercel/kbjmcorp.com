@@ -76,3 +76,5 @@
 
 
 工单回复回执需要追加037，见 [SERVICE_REPLY_RECEIPTS.md](SERVICE_REPLY_RECEIPTS.md)。不是新审批步骤；只为回复补充原消息回执、同键重试保护和30秒未知结果处理。新表单不在缺少037时降级为无保护提交。贯穿验收已使用新回复函数并确认资金不变。
+
+工单状态与回复衔接沿用001–037，见 [SERVICE_STATUS_CONTINUITY.md](SERVICE_STATUS_CONTINUITY.md)。详情展示当前状态与下一步，员工补充回复默认保持当前状态，不再默认改为处理中。

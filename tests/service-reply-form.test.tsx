@@ -30,3 +30,14 @@ it('does not carry a confirmed reply or its request key into another selected th
  const fetcher=vi.fn().mockImplementation(async(_u,options)=>Response.json({ok:true,receipt:{...receipt,request_id:JSON.parse(options.body).requestId}}));vi.stubGlobal('fetch',fetcher);const view=render(<Thread locale="zh" requests={[row]} selected={row} messages={[]}/>);fireEvent.change(screen.getByLabelText('回复内容'),{target:{value:'FICTIONAL reply body'}});submit();await screen.findByText(/回复已保存/);
  const other={...row,id:msg};view.rerender(<Thread locale="zh" requests={[other]} selected={other} messages={[]}/>);expect(screen.queryByText(/回复已保存/)).toBeNull();expect((screen.getByLabelText('回复内容') as HTMLTextAreaElement).value).toBe('');fireEvent.change(screen.getByLabelText('回复内容'),{target:{value:'FICTIONAL reply body'}});submit();await waitFor(()=>expect(fetcher).toHaveBeenCalledTimes(2));expect(JSON.parse(fetcher.mock.calls[0][1].body).replyKey).not.toBe(JSON.parse(fetcher.mock.calls[1][1].body).replyKey);
 });
+
+it('preserves a resolved staff request when sending a clarification without changing status',async()=>{
+ const {default:Thread}=await import('@/components/operations/ServiceThread');
+ const row={id,organization_id:id,category:'billing',subject:'FICTIONAL resolved request',status:'resolved',created_at:receipt.created_at,updated_at:receipt.created_at};
+ const fetcher=vi.fn().mockResolvedValue(Response.json({ok:true,receipt:{...receipt,status:'resolved'}}));vi.stubGlobal('fetch',fetcher);
+ render(<Thread locale="zh" requests={[row]} selected={row} messages={[]} staff/>);
+ expect(screen.getByText(/当前处理状态/).closest('p')?.textContent).toContain('最后更新');
+ expect((screen.getByLabelText('处理状态') as HTMLSelectElement).value).toBe('resolved');
+ fireEvent.change(screen.getByLabelText('回复内容'),{target:{value:'FICTIONAL clarification'}});submit();await screen.findByText(/回复已保存/);
+ expect(JSON.parse(fetcher.mock.calls[0][1].body).status).toBe('resolved');
+});
