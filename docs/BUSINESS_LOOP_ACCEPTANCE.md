@@ -61,3 +61,5 @@
 本账号月结待办沿用001–036，无新增迁移或审批，见 [MONTH_CLOSE_TASKS.md](MONTH_CLOSE_TASKS.md)。顶部按当前账号权限区分可办理、等待其他角色、条件待确认与已发布回执，并跳到原账户卡片；不将发布等同于整体验收完成。
 
 报价与月结往返修复沿用001–036，见 [QUOTE_MONTH_CLOSE_CONTINUITY.md](QUOTE_MONTH_CLOSE_CONTINUITY.md)。保存后查看版本不再丢失月份；列表筛选、历史修订及返回月结保留正确的企业和报价月份。
+
+制单条件提示沿用001–036，见 [SETTLEMENT_PREREQUISITES.md](SETTLEMENT_PREREQUISITES.md)。成功空交接与查询失败分开显示，来源问题逐项说明，补齐入口保留企业和月份；不放宽来源条件或自动认定报价成本匹配。

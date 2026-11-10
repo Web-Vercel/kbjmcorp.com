@@ -21,3 +21,12 @@ it('offers formal publication only to administrators after independent approval'
 it('replaces publication controls with the immutable receipt once posted',async()=>{
  setup(true,[{id:'statement-example',draft_id:draft.id,month:draft.month,total_cny_minor:'50000',published_at:'2026-01-01T00:00:00Z'}]);const html=await render();expect(html).toContain('已正式发布 · 已完成余额记账');expect(html).toContain('statement-example');expect(html).not.toContain('正式发布并扣余额 CNY');
 });
+
+it('carries the selected company/month into source prerequisite recovery',async()=>{
+ setup(true);const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01'})}));
+ expect(html).toContain('当前筛选下尚无可访问的已交接来源');expect(html).toContain(`/zh/operations/source-data?company=${org}&amp;month=2024-01`);expect(html).toContain('列表为空不表示广告花费为零');
+});
+it('keeps failed source lookups distinct from a successfully empty source list',async()=>{
+ setup(true);const state=await m.operations();state.client.rpc=async()=>({data:null,error:{message:'PRIVATE SOURCE ERROR'}});m.operations.mockResolvedValue(state);
+ const html=await render();expect(html).toContain('记录暂不可用');expect(html).not.toContain('当前筛选下尚无可访问的已交接来源');expect(html).not.toContain('PRIVATE SOURCE ERROR');
+});
