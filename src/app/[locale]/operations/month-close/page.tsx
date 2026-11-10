@@ -1,3 +1,4 @@
+import {statementReadStatus} from '@/lib/billing/statement-read';
 import MainFlowSummary from '@/components/operations/MainFlowSummary';
 import {mainFlow} from '@/lib/operations/main-flow';
 import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
@@ -18,10 +19,11 @@ export default async function MonthClose({params,searchParams}:{params:Promise<{
  const orgs=await client.from('organizations').select('id,name').order('name').limit(500);const selected=query.company||orgs.data?.[0]?.id;if(selected&&!orgs.error&&!orgs.data?.some(o=>o.id===selected))notFound();
  const result=selected&&!orgs.error?await client.rpc('get_month_close_overview',{p_org:selected,p_month:month+'-01'}):{data:null,error:null};const data=result.data as CloseOverview|null;
  const posted=data?.accounts.some(a=>a.stage==='published');
- const [receipts,members]=posted&&selected?await Promise.all([client.rpc('get_upstream_payment_workbench',{p_org:selected,p_month:month+'-01'}),context.owner?client.rpc('get_crm_members',{p_organization_id:selected}):Promise.resolve({data:null,error:null})]):[{data:null,error:null},{data:null,error:null}];
+ const [receipts,members,readStatus]=posted&&selected?await Promise.all([client.rpc('get_upstream_payment_workbench',{p_org:selected,p_month:month+'-01'}),context.owner?client.rpc('get_crm_members',{p_organization_id:selected}):Promise.resolve({data:null,error:null}),client.rpc('get_statement_read_status',{p_org:selected,p_month:month+'-01'})]):[{data:null,error:null},{data:null,error:null},{data:null,error:null}];
  const parsedReceipts=upstreamPaymentWorkbench.safeParse(receipts.data);
  const memberRoles=z.array(z.object({finance_role:z.enum(['none','viewer','manager'])})).safeParse(members.data);
- const stepsMain=data?mainFlow(data,{payments:!receipts.error&&parsedReceipts.success?parsedReceipts.data:null,financeAccess:context.owner&&!members.error&&memberRoles.success?memberRoles.data.some(m=>m.finance_role!=='none'):null},zh):[];
+ const readProof=statementReadStatus.safeParse(readStatus.data);
+ const stepsMain=data?mainFlow(data,{clientRead:!readStatus.error&&readProof.success?readProof.data:null,payments:!receipts.error&&parsedReceipts.success?parsedReceipts.data:null,financeAccess:context.owner&&!members.error&&memberRoles.success?memberRoles.data.some(m=>m.finance_role!=='none'):null},zh):[];
  const testOrg=collectionTestOrganization(),fundingAvailable=!testOrg||testOrg===selected;
  const actors=zh?{owner:'管理员',prepare:'财务制单人员',review:'另一位财务复核人员',finance:'财务到账核实与复核人员',none:'等待月份结束',view:'查看发布回执'}:{owner:'Administrator',prepare:'Finance preparer',review:'Another finance reviewer',finance:'Receipt preparer/reviewer',none:'Wait for month close',view:'View publication receipt'};
  const steps=zh?['来源读取与交接','活动覆盖核实','收费报价','结算制单','独立复核','资金核对与发布','客户可见与余额记账']:['Source collection and handoff','Activity coverage','Pricing quote','Settlement preparation','Independent review','Funds and publication','Client statement and ledger'];
