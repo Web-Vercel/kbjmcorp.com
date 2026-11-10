@@ -40,6 +40,7 @@
 -- 033_client_monthly_funds.sql c391942787a642de1956f1fabcfa850b58220659c12c1a0cb5115340944a1e55
 -- 034_ops_monthly_funds.sql 00ed9b48240ed2a5ac5363d63561edb95024188e777f5bfec8f8bef5865e2dbb
 -- 035_statement_service_questions.sql 15f544d35b8d54592aca8718a01f82527218b56511dc36712615264da8b28137
+-- 036_statement_question_workbench.sql 5725c69ac4eed1925152e5629780d16034d33e8105a92b775a88d16b37174a0d
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -3092,6 +3093,30 @@ revoke all on function public.create_statement_question(uuid,uuid,text,text) fro
 grant execute on function public.create_statement_question(uuid,uuid,text,text) to authenticated;
 notify pgrst,'reload schema';
 -- END 035_statement_service_questions.sql
+
+-- START 036_statement_question_workbench.sql
+-- Read-only monthly billing-question queue. Existing reply/status workflow is unchanged.
+
+create function public.get_statement_question_workbench(p_org uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare result jsonb;
+begin
+ if p_org is null or not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 or p_month<date '2000-01-01' then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not exists(select 1 from public.organizations where id=p_org) then raise exception 'Unknown organization' using errcode='22023';end if;
+ with scoped as (
+ select r.id,r.organization_id,r.category,r.subject,r.status,r.created_at,r.updated_at,r.statement_id,r.statement_month
+ from public.service_requests r join public.monthly_client_statements s on s.id=r.statement_id and s.organization_id=r.organization_id and s.month=r.statement_month
+ where r.organization_id=p_org and r.statement_month=p_month and r.category='billing'
+ ), limited as (select * from scoped order by (status='resolved'),updated_at desc,id desc limit 100)
+ select jsonb_build_object('organization_id',p_org,'month',p_month,'total_count',count(*),'open_count',count(*) filter(where status='open'),'in_progress_count',count(*) filter(where status='in_progress'),'resolved_count',count(*) filter(where status='resolved'),'truncated',count(*)>100,
+ 'rows',coalesce((select jsonb_agg(to_jsonb(l) order by (l.status='resolved'),l.updated_at desc,l.id desc) from limited l),'[]'::jsonb)) into result from scoped;
+ return result;
+end $$;
+revoke all on function public.get_statement_question_workbench(uuid,date) from public,anon;
+grant execute on function public.get_statement_question_workbench(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 036_statement_question_workbench.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';

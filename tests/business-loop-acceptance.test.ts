@@ -1,3 +1,4 @@
+import {statementQuestionWorkbench} from '@/lib/operations/statement-questions';
 import {statementReadStatus} from '@/lib/billing/statement-read';
 import {PGlite} from '@electric-sql/pglite';
 import {randomUUID} from 'node:crypto';
@@ -10,7 +11,7 @@ import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
 import {mainFlow} from '@/lib/operations/main-flow';
 import type {CloseOverview} from '@/lib/operations/month-close';
 let db:PGlite;let originalStatement:string;const org='b0000000-0000-4000-8000-000000000001';
-beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);await applyMigrationsThrough(db,35);
+beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);await applyMigrationsThrough(db,36);
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,5)n;insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');insert into public.organizations(id,name) values('${org}','FICTIONAL BUSINESS LOOP ACCEPTANCE');`);
 },30000);
 afterAll(async()=>{await db?.close();});
@@ -55,8 +56,12 @@ it('runs one fictional case through verified bank credit, source, quote, client 
  await expect(as('5',"select public.reply_service_request($1,'Forged reply','resolved')",[question])).rejects.toThrow(/Forbidden/);
  await as('3',"select public.reply_service_request($1,'The original agreed service fee was checked.','resolved')",[question]);
  expect((await as('4','select status from public.service_requests where id=$1',[question])).status).toBe('resolved');
+ const resolvedQuestions=statementQuestionWorkbench.parse((await as('3',"select public.get_statement_question_workbench($1,'2024-01-01') data",[org])).data);expect(resolvedQuestions.open_count).toBe(0);expect(resolvedQuestions.resolved_count).toBe(1);
  await as('4',"select public.reply_service_request($1,'I still have a follow-up question.','resolved')",[question]);
  expect((await as('3','select status from public.service_requests where id=$1',[question])).status).toBe('open');
+ const pendingQuestions=statementQuestionWorkbench.parse((await as('3',"select public.get_statement_question_workbench($1,'2024-01-01') data",[org])).data);expect(pendingQuestions.open_count).toBe(1);expect(pendingQuestions.rows[0].id).toBe(question);expect(JSON.stringify(pendingQuestions)).not.toContain('Please explain');
+ await expect(as('4',"select public.get_statement_question_workbench($1,'2024-01-01')",[org])).rejects.toThrow(/Forbidden/);
+ const wrongMonth=statementQuestionWorkbench.parse((await as('3',"select public.get_statement_question_workbench($1,'2024-02-01') data",[org])).data);expect(wrongMonth.total_count).toBe(0);
  expect((await as('4','select count(*)::int n from public.service_request_messages where request_id=$1',[question])).n).toBe(3);
  expect((await overview()).balance_minor).toBe('39500');
  const pendingRead=(await as('4','select public.get_client_statement_read_receipts($1) data',[[statement]])).data;expect(pendingRead).toEqual([]);
@@ -117,4 +122,18 @@ it('keeps linked requests immutable, isolates billing visibility and retries saf
  await expect(as('4','select public.create_statement_question($1,$2,$3,$4)',[originalStatement,randomUUID(),'A NEW BILL QUESTION','Please explain another fictional item.'])).rejects.toThrow(/Open request limit/);
  expect((await as('4','select public.create_statement_question($1,$2,$3,$4) id',[originalStatement,request.statement_request_key,request.subject,'Please explain the agreed service fee.'])).id).toBe(request.id);
  expect((await db.query<{n:number}>("select count(*)::int n from public.audit_events where entity_type='service_request' and entity_id=$1 and operation='INSERT'",[request.id])).rows[0].n).toBe(1);
+});
+
+it('counts all monthly statement questions while prioritizing pending work before the 100-row limit',async()=>{
+ const linked=(await db.query<{id:string;statement_id:string;statement_month:string}>("select id,statement_id,statement_month::text from public.service_requests where statement_id=$1",[originalStatement])).rows[0];
+ const before=(await db.query('select count(*)::int n from public.wallet_entries')).rows[0];
+ await db.query(`insert into public.service_requests(organization_id,category,subject,status,created_by,statement_id,statement_month,statement_request_key,statement_input_sha256) select $1,'billing','FICTIONAL RESOLVED '||n,'resolved','a0000000-0000-4000-8000-000000000004',$2,'2024-01-01',gen_random_uuid(),repeat('a',64) from generate_series(1,105)n`,[org,originalStatement]);
+ const report=statementQuestionWorkbench.parse((await as('3',"select public.get_statement_question_workbench($1,'2024-01-01') data",[org])).data);expect(report.total_count).toBe(106);expect(report.open_count).toBe(1);expect(report.resolved_count).toBe(105);expect(report.rows).toHaveLength(100);expect(report.truncated).toBe(true);expect(report.rows[0].id).toBe(linked.id);expect(JSON.stringify(report)).not.toMatch(/statement_input_sha256|statement_request_key|Please explain/);
+ const otherOrg='b0000000-0000-4000-8000-000000000002';const other=statementQuestionWorkbench.parse((await as('3',"select public.get_statement_question_workbench($1,'2024-01-01') data",[otherOrg])).data);expect(other.total_count).toBe(0);
+ await expect(as('3',"select public.get_statement_question_workbench($1,'2024-01-02')",[org])).rejects.toThrow(/Month must/);
+ const source='a0000000-0000-4000-8000-000000000006';await db.exec(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${source}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);`);
+ await expect(db.query("select public.get_statement_question_workbench($1,'2024-01-01')",[org])).rejects.toThrow(/Forbidden/);await db.exec('rollback');
+ await db.exec("begin;set local role authenticated;select set_config('request.jwt.claim.sub','a0000000-0000-4000-8000-000000000003',true);select set_config('request.jwt.claims','{\"aal\":\"aal1\"}',true);");
+ await expect(db.query("select public.get_statement_question_workbench($1,'2024-01-01')",[org])).rejects.toThrow(/Forbidden/);await db.exec('rollback');
+ expect((await db.query('select count(*)::int n from public.wallet_entries')).rows[0]).toEqual(before);
 });
