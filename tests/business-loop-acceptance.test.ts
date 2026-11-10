@@ -1,3 +1,4 @@
+import {buildCadAllocationReport,cadAllocationReportCsv} from '@/lib/operations/cad-allocation-report';
 import {publicationPreview} from '@/lib/operations/publication-preview';
 import {monthFunding} from '@/lib/operations/month-funding';
 import {buildMonthCloseChecklist,monthCloseChecklistCsv} from '@/lib/operations/month-close-checklist';
@@ -163,3 +164,14 @@ it('reveals combined funding gaps and preserves the database guard when one of t
  await expect(as('1',"select public.publish_monthly_statement($1,'虚构案例：余额不足不发布',$2)",[drafts[1],JSON.stringify(q)])).rejects.toThrow(/Insufficient/);
  expect((await current()).balance_minor).toBe('14300');expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(rowsBefore+1);
 },30000);
+
+it('exports actual CAD allocation state before and after a whole-batch reversal without changing client funds',async()=>{
+ const payment=(await db.query<{id:string}>("select id from public.upstream_payment_records where bank_reference='FICTIONAL-CAD-RECEIPT'")).rows[0].id;
+ const beforeBalance=(await overview()).balance_minor;const countBefore=(await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n;
+ const read=async()=>buildCadAllocationReport({organizationId:org,organizationName:'FICTIONAL CAD REPORT',month:'2024-01-01',data:(await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data,generatedAt:new Date().toISOString()});
+ const before=await read();expect(before?.verified_minor).toBe('11000');expect(before?.remaining_minor).toBe('0');expect(cadAllocationReportCsv(before!,true)).toContain('FICTIONAL-CAD-RECEIPT');expect(JSON.stringify(before)).not.toMatch(/FICTIONAL CAD BANK ORIGINAL|prepared_by|evidence_sha256/);
+ const reversal=(await as('2',"select public.submit_upstream_reversal($1,$2,'FICTIONAL REPORT REVERSAL','FICTIONAL REVERSAL ORIGINAL',$3) id",[payment,randomUUID(),'b'.repeat(64)])).id;
+ const pending=await read();expect(pending?.verified_minor).toBe('11000');expect(pending?.pending_reversal_count).toBe(1);
+ await as('3',"select public.review_upstream_reversal($1,'approved','Independent fictional reversal evidence checked')",[reversal]);
+ const reversed=await read();expect(reversed?.verified_minor).toBe('0');expect(reversed?.remaining_minor).toBe('11000');expect(reversed?.registrations[0].reversed).toBe(true);expect(reversed?.allocations[0].verified_minor).toBe('0');expect((await overview()).balance_minor).toBe(beforeBalance);expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(countBefore);
+});

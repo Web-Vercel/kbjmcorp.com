@@ -55,3 +55,5 @@
 本月待发布草稿合计资金核算沿用001–036，无新增迁移，见 [MONTH_CLOSE_FUNDING_COVERAGE.md](MONTH_CLOSE_FUNDING_COVERAGE.md)。多个账户共用余额时先看合计缺口，逐笔发布仍执行原数据库余额锁定检查。
 
 结算页现保留企业/月筛选、同口径资金核算与账单问题提示，并提供逐份发布预览、有效回执确认和30秒未知结果核查，见 [SETTLEMENT_PUBLICATION_FEEDBACK.md](SETTLEMENT_PUBLICATION_FEEDBACK.md)。沿用001–036，无新增迁移或审批。
+
+公司间CAD核销汇总与内部CSV报告沿用001–036，无新增迁移，见 [CAD_ALLOCATION_REPORT.md](CAD_ALLOCATION_REPORT.md)。按账单月份计分配，跨月整笔到账与历史版本不重复计为本月付款；原始客户资金保持独立。

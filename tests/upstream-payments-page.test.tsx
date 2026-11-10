@@ -1,3 +1,4 @@
+import {reportInput} from './fixtures/cad-allocation-report';
 import {beforeEach,it,expect,vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 const m=vi.hoisted(()=>({operations:vi.fn(),rpc:vi.fn()}));
@@ -12,3 +13,13 @@ const render=()=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promis
 it('separates verified, pending and unreconciled amounts and blocks self-review even for an admin',async()=>{const html=await render();expect(html).toContain('尚未核销 CAD 80.00');expect(html).toContain('待复核分配 CAD 30.00');expect(html).toContain('必须由另一位');expect(html).not.toContain('保存独立复核结果');});
 it('offers independent review to another reviewer but no registration form',async()=>{setup(other,false);const html=await render();expect(html).toContain('保存独立复核结果');expect(html).not.toContain('登记加拿大 CAD 净到账与账单分配');});
 it('does not present a failed lookup as reconciled procurement',async()=>{m.rpc.mockResolvedValue({data:null,error:{message:'PRIVATE'}});const html=await render();expect(html).toContain('未知状态不会显示为已核销');expect(html).not.toContain('PRIVATE');expect(html).not.toContain('保存独立复核结果');});
+
+it('offers an internal report and links the original settlement while preserving company/month scope',async()=>{
+ m.rpc.mockResolvedValue({data:reportInput().data,error:null});const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01'})}));expect(html).toContain('下载内部CAD核销报告（CSV）');expect(html).toContain('CAD 80.00');expect(html).toContain('CAD 20.00');expect(html).toContain(`company=${org}&amp;month=2024-01#statement-`);
+});
+it('leaves original records visible but disables summary exports when history is truncated',async()=>{
+ const data=reportInput().data;m.rpc.mockResolvedValue({data:{...data,payment_count:101},error:null});const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01'})}));expect(html).toContain('未知合计不显示为零');expect(html).toContain('FICTIONAL-BANK-3');expect(html).not.toContain('下载内部CAD核销报告（CSV）');
+});
+it('does not expose banking reports to staff without a finance role',async()=>{
+ m.operations.mockResolvedValue({context:{owner:false,canPrepare:false,canReview:false},client:{rpc:m.rpc},user:{id:user}});await expect(render()).rejects.toThrow('Not found');expect(m.rpc).not.toHaveBeenCalled();
+});
