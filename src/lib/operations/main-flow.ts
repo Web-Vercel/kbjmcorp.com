@@ -1,3 +1,4 @@
+import {monthFunding,fundingDescription} from './month-funding';
 import type {StatementReadStatus} from '@/lib/billing/statement-read';
 import type {CloseOverview} from './month-close';
 import type {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
@@ -5,9 +6,9 @@ import type {z} from 'zod';
 type Payments=z.infer<typeof upstreamPaymentWorkbench>;
 export type MainFlowStep={id:string;title:string;state:'ready'|'pending'|'unknown';text:string;target:'funding'|'source'|'settlements'|'access'|'payments'};
 export function mainFlow(data:CloseOverview,extras:{financeAccess:boolean|null;payments:Payments|null;clientRead?:StatementReadStatus|null},zh:boolean):MainFlowStep[]{
- const t=(cn:string,en:string)=>zh?cn:en;const all=data.accounts.length>0&&data.accounts.every(a=>a.stage==='published');const posted=data.accounts.filter(a=>a.statement_id);const sources=data.accounts.filter(a=>a.source_ready||a.stage==='published');
+ const t=(cn:string,en:string)=>zh?cn:en;const all=data.accounts.length>0&&data.accounts.every(a=>a.stage==='published');const posted=data.accounts.filter(a=>a.statement_id);const sources=data.accounts.filter(a=>a.source_ready||a.stage==='published');const funding=all?null:monthFunding(data);
  const steps:MainFlowStep[]=[
- {id:'funding',title:t('1. 客户资金与入账','1. Client funds'),state:all||!!data.wallet_id&&BigInt(data.balance_minor)>0n?'ready':'pending',text:all?t('本月已发布账单的客户扣款已记账；原到账及余额可单独核对。','Client charges for posted statements are recorded; verify original receipts and balance separately.'):data.wallet_id?t('检查已入账余额与本期费用；待复核到账不计入余额，余额未预留。','Check posted funds against charges. Pending receipts are excluded and funds are not reserved.'):t('先开立人民币资金账户，再核实客户实际到账。','Open a CNY wallet, then verify incoming client funds.'),target:'funding'},
+ {id:'funding',title:t('1. 客户资金与入账','1. Client funds'),state:all?'ready':!funding?'unknown':funding.state==='covered'&&funding.excluded_count===0?'ready':'pending',text:all?t('本月已发布账单的客户扣款已记账；原到账及余额可单独核对。','Client charges for posted statements are recorded; verify original receipts and balance separately.'):data.wallet_id?fundingDescription(funding,zh):t('先开立人民币资金账户，再核实客户实际到账。','Open a CNY wallet, then verify incoming client funds.'),target:'funding'},
  {id:'source',title:t('2. 整月广告数据核实','2. Monthly source verification'),state:data.accounts.length>0&&sources.length===data.accounts.length?'ready':'pending',text:t(`已具备核实依据的账户：${sources.length}/${data.accounts.length}。只投放一天也可结算；仍须核实整月范围。`,`Accounts with verified source basis: ${sources.length}/${data.accounts.length}. One active day is enough, but the full month must be verified.`),target:'source'},
  {id:'settlements',title:t('3. 客户账单制单、复核与发布','3. Client statement review and publication'),state:all?'ready':'pending',text:t(`已发布 ${posted.length}/${data.accounts.length} 个账户的月结账单；下方按账户显示当前操作。`,`Published statements for ${posted.length}/${data.accounts.length} accounts. See the current action for each account below.`),target:'settlements'},
  {id:'access',title:t('4. 客户查看与查阅确认','4. Client viewing and acknowledgement'),state:'pending',text:'',target:'access'},

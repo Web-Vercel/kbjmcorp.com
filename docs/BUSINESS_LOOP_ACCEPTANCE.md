@@ -51,3 +51,5 @@
 036 将账单问题的完整状态汇总接入月结工作台，提供按企业与账单月份的待处理优先入口，见 [MONTH_CLOSE_QUESTION_FOLLOWUP.md](MONTH_CLOSE_QUESTION_FOLLOWUP.md)。它是独立跟进提示，不新增审批或财务操作。
 
 内部月结办理清单导出沿用001–036，无新增迁移，见 [MONTH_CLOSE_CHECKLIST_EXPORT.md](MONTH_CLOSE_CHECKLIST_EXPORT.md)。服务器只把最少办理字段投影给浏览器，资料不完整时不导出；不会保存新数据库快照或改变原记录。
+
+本月待发布草稿合计资金核算沿用001–036，无新增迁移，见 [MONTH_CLOSE_FUNDING_COVERAGE.md](MONTH_CLOSE_FUNDING_COVERAGE.md)。多个账户共用余额时先看合计缺口，逐笔发布仍执行原数据库余额锁定检查。

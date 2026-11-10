@@ -1,3 +1,4 @@
+import {monthFunding,monthFundingSchema,fundingDescription} from './month-funding';
 import {z} from 'zod';
 import {closeStages} from './month-close';
 import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
@@ -12,14 +13,14 @@ const stage=z.enum(Object.keys(closeStages) as [keyof typeof closeStages,...(key
 const baseAccount=z.object({binding_id:z.uuid(),account_id:z.string().max(160),account_label:z.string().max(1000),timezone:z.string().max(100).nullable(),stage,source_id:z.uuid().nullable(),source_ready:z.boolean(),draft_id:z.uuid().nullable(),draft_total_cny_minor:minor.nullable(),statement_id:z.uuid().nullable(),published_at:timestamp.nullable(),posted_total_cny_minor:minor.nullable()});
 const overview=z.object({organization_id:z.uuid(),month:date,wallet_id:z.uuid().nullable(),balance_minor:signed,pending_receipt_count:z.number().int().nonnegative(),pending_receipt_minor:minor,accounts:baseAccount.array().max(1000)});
 const row=baseAccount.extend({confirmation_count:z.number().int().nonnegative().nullable(),last_confirmed_at:timestamp.nullable(),procurement_cad_minor:minor.nullable(),verified_cad_minor:minor.nullable(),pending_cad_minor:minor.nullable(),reversal_pending:z.boolean().nullable()});
-export const monthCloseChecklistSchema=z.object({organization_id:z.uuid(),organization_name:z.string().min(1).max(500),month:date,generated_at:timestamp,wallet_id:z.uuid().nullable(),balance_minor:signed.nullable(),pending_receipt_count:z.number().int().nonnegative(),pending_receipt_minor:minor.nullable(),questions:z.object({total_count:z.number().int().nonnegative(),open_count:z.number().int().nonnegative(),in_progress_count:z.number().int().nonnegative(),resolved_count:z.number().int().nonnegative()}),accounts:row.array().min(1).max(1000)});
+export const monthCloseChecklistSchema=z.object({organization_id:z.uuid(),organization_name:z.string().min(1).max(500),month:date,generated_at:timestamp,wallet_id:z.uuid().nullable(),balance_minor:signed.nullable(),pending_receipt_count:z.number().int().nonnegative(),pending_receipt_minor:minor.nullable(),funding:monthFundingSchema,questions:z.object({total_count:z.number().int().nonnegative(),open_count:z.number().int().nonnegative(),in_progress_count:z.number().int().nonnegative(),resolved_count:z.number().int().nonnegative()}),accounts:row.array().min(1).max(1000)});
 export type MonthCloseChecklist=z.infer<typeof monthCloseChecklistSchema>;
 // Project and validate on the server. Raw payment evidence, actor IDs and CRM contacts
 // must never be passed to the client-side download component.
 export function buildMonthCloseChecklist(input:{organizationId:string;organizationName:string;month:string;overview:unknown;payments:unknown;reads:unknown;questions:unknown;generatedAt:string}):MonthCloseChecklist|null{
  const parsed=overview.safeParse(input.overview),questions=statementQuestionWorkbench.safeParse(input.questions);
  if(!parsed.success||!questions.success||!timestamp.safeParse(input.generatedAt).success)return null;
- const data=parsed.data,q=questions.data;
+ const data=parsed.data,q=questions.data;const funding=monthFunding(input.overview,{organizationId:input.organizationId,month:input.month});if(!funding)return null;
  if(data.organization_id!==input.organizationId||data.month!==input.month||q.organization_id!==data.organization_id||q.month!==data.month||!data.accounts.length)return null;
  if(new Set(data.accounts.map(a=>a.binding_id)).size!==data.accounts.length)return null;
  const posted=data.accounts.filter(a=>a.stage==='published');
@@ -36,7 +37,7 @@ export function buildMonthCloseChecklist(input:{organizationId:string;organizati
  for(const statement of p.statements){let verified=0n,pending=0n;for(const payment of p.payments){for(const allocation of payment.allocations.filter(a=>a.statement_id===statement.id)){if(payment.status==='approved'&&!payment.reversed)verified+=BigInt(allocation.amount_cad_minor);if(payment.status==='pending')pending+=BigInt(allocation.amount_cad_minor);}}if(verified!==BigInt(statement.verified_cad_minor)||pending!==BigInt(statement.pending_cad_minor))return null;}
  }
  const result=monthCloseChecklistSchema.safeParse({organization_id:data.organization_id,organization_name:input.organizationName,month:data.month,generated_at:input.generatedAt,wallet_id:data.wallet_id,balance_minor:data.wallet_id?data.balance_minor:null,pending_receipt_count:data.pending_receipt_count,pending_receipt_minor:data.wallet_id?data.pending_receipt_minor:null,
- questions:{total_count:q.total_count,open_count:q.open_count,in_progress_count:q.in_progress_count,resolved_count:q.resolved_count},accounts:data.accounts.map(a=>{
+ funding,questions:{total_count:q.total_count,open_count:q.open_count,in_progress_count:q.in_progress_count,resolved_count:q.resolved_count},accounts:data.accounts.map(a=>{
  const payment=p?.statements.find(s=>s.id===a.statement_id),read=r?.statements.find(s=>s.statement_id===a.statement_id);
  return {...a,confirmation_count:read?.confirmation_count??null,last_confirmed_at:read?.last_confirmed_at??null,procurement_cad_minor:payment?.procurement_cad_minor??null,verified_cad_minor:payment?.verified_cad_minor??null,pending_cad_minor:payment?.pending_cad_minor??null,reversal_pending:payment&&p?p.payments.some(x=>x.reversal_pending&&x.allocations.some(v=>v.statement_id===a.statement_id)):null};
  })});return result.success?result.data:null;
@@ -53,6 +54,7 @@ export function monthCloseChecklistCsv(input:MonthCloseChecklist,zh:boolean){
  [t('资金账户','CNY wallet'),s.wallet_id||t('尚未开户','Not opened')],[t('查询时点已入账余额 CNY','Posted balance at query time CNY'),amount(s.balance_minor)],
  [t('待复核到账笔数（查询时点）','Pending receipts at query time'),String(s.pending_receipt_count)],[t('待复核到账金额 CNY（不计入余额）','Pending receipt amount CNY (excluded from balance)'),amount(s.pending_receipt_minor)],
  [t('资金口径说明','Funds basis'),t('以上不是月末余额，也未为草稿预留资金；广告结算月份可能与资金入账月份不同。CNY与CAD分列，不相加。','These are not month-end balances or reserved draft funds. Settlement and posting months may differ. CNY and CAD are separate and must not be added.')],
+ [t('已复核待发布草稿数量','Reviewed unpublished drafts'),String(s.funding.approved_count)],[t('已复核待发布草稿合计 CNY','Reviewed unpublished drafts CNY'),fundsAmount(s.funding.approved_minor)],[t('覆盖这些草稿尚差 CNY','Shortfall for these drafts CNY'),amount(s.funding.shortfall_minor)],[t('未纳入合计的其他未发布账户','Other unpublished accounts excluded'),String(s.funding.excluded_count)],[t('资金合计核算说明','Combined funding basis'),fundingDescription(s.funding,zh)],[t('核算范围','Assessment scope'),t('只核算本月当前已复核且具备来源条件的待发布草稿；排除已发布、未复核、退回、归档和尚未制单的费用。其他月份也共用此余额，不预留资金，发布仍重新锁定核验。','Only current reviewed drafts with usable sources in this month are assessed. Posted, unreviewed, rejected, archived and unprepared charges are excluded. Other months share the wallet; funds are not reserved and publication locks/rechecks again.')],
  [t('账单关联工单总数','Statement-linked questions'),String(s.questions.total_count)],[t('新建问题','Open questions'),String(s.questions.open_count)],[t('处理中问题','Questions in progress'),String(s.questions.in_progress_count)],[t('团队已处理问题','Team-marked resolved questions'),String(s.questions.resolved_count)],
  [t('查阅与工单说明','Acknowledgement and request basis'),t('客户查阅不代表同意收费；工单已处理不代表客户认可，客户追问可重开。一般未关联账单的服务工单不计入。','Reading does not establish fee agreement; team resolution does not mean client acceptance and a follow-up can reopen a request. Unlinked general service requests are excluded.')],[],
  [t('账户逐项办理状态','Per-account workflow status')],

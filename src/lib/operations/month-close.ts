@@ -19,7 +19,7 @@ export const closeStages={
  published:{step:7,who:'view',zh:'账单已发布，余额记账已完成',en:'Statement published and ledger posted',target:'settlements'},
 } as const;
 export type CloseStage=keyof typeof closeStages;
-export type CloseAccount={binding_id:string;account_id:string;account_label:string;active:boolean;timezone:string|null;stage:CloseStage;source_id:string|null;source_ready:boolean;coverage_reason:string|null;coverage_kind:string|null;source_cad_minor:string|null;operational_source_count:number;quote_match_count:number;coverage_prepared_by_me:boolean;draft_id:string|null;draft_prepared_by_me:boolean;draft_total_cny_minor:string|null;newer_shared_source:boolean;statement_id:string|null;published_at:string|null;posted_total_cny_minor:string|null};
+export type CloseAccount={binding_id:string;account_id:string;account_label:string;active:boolean;timezone:string|null;stage:CloseStage;source_id:string|null;source_ready:boolean;coverage_reason:string|null;coverage_kind:string|null;source_cad_minor:string|null;operational_source_count:number;quote_match_count:number;coverage_prepared_by_me:boolean;draft_id:string|null;draft_status?:'approved'|'rejected'|null;draft_prepared_by_me:boolean;draft_total_cny_minor:string|null;newer_shared_source:boolean;statement_id:string|null;published_at:string|null;posted_total_cny_minor:string|null};
 export type CloseOverview={organization_id:string;month:string;accounts:CloseAccount[];wallet_id:string|null;balance_minor:string;pending_receipt_count:number;pending_receipt_minor:string};
 export function closeAction(account:CloseAccount,context:{owner:boolean;canPrepare:boolean;canReview:boolean},locale:string,company:string,month:string){
  const state=closeStages[account.stage];if(!state)return null;

@@ -1,3 +1,4 @@
+import {monthFunding} from '@/lib/operations/month-funding';
 import {buildMonthCloseChecklist,monthCloseChecklistCsv} from '@/lib/operations/month-close-checklist';
 import {statementQuestionWorkbench} from '@/lib/operations/statement-questions';
 import {statementReadStatus} from '@/lib/billing/statement-read';
@@ -140,3 +141,22 @@ it('counts all monthly statement questions while prioritizing pending work befor
  await expect(db.query("select public.get_statement_question_workbench($1,'2024-01-01')",[org])).rejects.toThrow(/Forbidden/);await db.exec('rollback');
  expect((await db.query('select count(*)::int n from public.wallet_entries')).rows[0]).toEqual(before);
 });
+
+it('reveals combined funding gaps and preserves the database guard when one of two reviewed bills is published',async()=>{
+ const canada={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:0,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};const china={...canada,mode:'fixed' as const,fixedMinor:'25000',waiveWhenZero:false};
+ const q=buildQuoteSnapshot({requestId:randomUUID(),organizationId:org,period:'2024-03-01',sourceCadMinor:'0',rateMode:'manual',rate:'5',canada,china,transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'FICTIONAL COMBINED FUNDING TEST TERMS'});
+ const drafts:unknown[]=[];
+ for(let n=0;n<2;n++){
+ const report={version:'ads-readonly-v1',account:{id:'adacct_fictional_funding_'+n,name:'FICTIONAL FUNDING ACCOUNT '+n,currency_code:'CAD',timezone:'UTC'},since:'2024-03-01',until:'2024-03-31',check:'matched',missingDates:[],endBoundary:'exclusive',dailySpendMicros:'0',periodSpendMicros:'0',rawSha256:'f'.repeat(64),daily:Array.from({length:31},(_,i)=>({date:`2024-03-${String(i+1).padStart(2,'0')}`,spendMicros:'0',impressions:'0',clicks:'0'})),rawResponses:[{path:'/ad_account/insights',body:'FICTIONAL FUNDING SOURCE'}]};
+ const source=(await as('1','select public.save_ads_reporting_snapshot($1,$2) id',[randomUUID(),JSON.stringify(report)])).id;const binding=(await as('1',"select public.bind_ads_reporting_account($1,$2,'FICTIONAL FUNDING AUTHORIZATION') id",[source,org])).id;await as('1',"select public.share_ads_source_snapshot($1,$2,'FICTIONAL FUNDING HANDOFF')",[source,binding]);
+ const quote=(await as('1',"select public.save_agency_quote_snapshot($1,'2024-03-01',$2,$3,$4) id",[org,randomUUID(),'a'.repeat(64),JSON.stringify(q)])).id;
+ const draft=(await as('2',"select public.prepare_monthly_settlement($1,$2,'FICTIONAL AGREED TERMS','FICTIONAL FUNDING PREPARATION') id",[source,quote])).id;await as('3',"select public.review_monthly_settlement($1,'approved','Independent fictional funding review')",[draft]);drafts.push(draft);
+ }
+ const current=async()=>(await as('3',"select public.get_month_close_overview($1,'2024-03-01') data",[org])).data as CloseOverview;
+ const before=await current();expect(before.balance_minor).toBe('39300');const combined=monthFunding(before)!;expect(combined.approved_count).toBe(2);expect(combined.approved_minor).toBe('50000');expect(combined.shortfall_minor).toBe('10700');expect(before.accounts.filter(a=>a.stage==='publication_ready')).toHaveLength(2);expect(mainFlow(before,{financeAccess:null,payments:null},true)[0].state).toBe('pending');
+ const rowsBefore=(await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n;
+ await as('1',"select public.publish_monthly_statement($1,'虚构案例：第一份独立发布',$2)",[drafts[0],JSON.stringify(q)]);
+ const after=await current(),remaining=monthFunding(after)!;expect(after.balance_minor).toBe('14300');expect(remaining.approved_count).toBe(1);expect(remaining.approved_minor).toBe('25000');expect(remaining.shortfall_minor).toBe('10700');
+ await expect(as('1',"select public.publish_monthly_statement($1,'虚构案例：余额不足不发布',$2)",[drafts[1],JSON.stringify(q)])).rejects.toThrow(/Insufficient/);
+ expect((await current()).balance_minor).toBe('14300');expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(rowsBefore+1);
+},30000);
