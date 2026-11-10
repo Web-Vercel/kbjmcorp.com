@@ -1,0 +1,14 @@
+// @vitest-environment jsdom
+import {render,screen,cleanup} from '@testing-library/react';
+import {afterEach,it,expect,vi} from 'vitest';
+import {demoBilling} from '@/lib/billing/demo';
+import {linkedStatementId} from '@/lib/billing/statement-summary';
+import Dashboard from '@/components/billing/BillingDashboard';
+vi.mock('next/navigation',()=>({useRouter:()=>({refresh:vi.fn(),push:vi.fn()})}));
+const id='b0000000-0000-4000-8000-000000000001',wallet='b0000000-0000-4000-8000-000000000002';
+afterEach(cleanup);
+const data=()=>{const d=demoBilling('zh');return {...d,wallets:[{...d.wallets[0],id:wallet}],reports:[],entries:[{...d.entries[0],wallet_id:wallet,statement_id:id,amount_minor:'-55000'}],statementError:false,statementSummaries:[{wallet_id:wallet,month:'2026-10-01',statement_count:2,advertising_service_minor:'55000',operating_other_minor:'5500',total_minor:'60500'}]};};
+it('shows formal statement totals even with no legacy monthly reports and links entries to the exact statement',()=>{render(<Dashboard locale="zh" data={data()}/>);expect(screen.getByText('最近结算月广告与执行服务')).toBeTruthy();expect(screen.getByText('CNY 550.00')).toBeTruthy();expect(screen.getByText('CNY 605.00')).toBeTruthy();expect(screen.getByText(/2 份正式账单/)).toBeTruthy();expect(screen.getByRole('link',{name:'查看对应月度账单'}).getAttribute('href')).toContain(`statement=${id}`);expect(screen.getByRole('link',{name:'查看该月结算账单'}).getAttribute('href')).toContain(`wallet=${wallet}`);});
+it('keeps balances visible but does not label unknown summaries as zero or unpublished',()=>{render(<Dashboard locale="zh" data={{...data(),statementError:true,statementSummaries:[]}}/>);expect(screen.getByText('结算摘要暂不可用')).toBeTruthy();expect(screen.getByTestId('wallet-balance')).toBeTruthy();expect(screen.queryByText('CNY 0.00')).toBeNull();});
+it('only extracts statement IDs from negative charge entries and never leaks arbitrary references',()=>{expect(linkedStatementId('monthly-statement:'+id,'ad_spend','-1')).toBe(id);expect(linkedStatementId('PRIVATE-BANK-REFERENCE','ad_spend','-1')).toBeUndefined();expect(linkedStatementId('monthly-statement:'+id,'topup','100')).toBeUndefined();expect(linkedStatementId('monthly-statement:bad','service_fee','-1')).toBeUndefined();});
+it('preserves the wallet selected by a return link even when company display names are identical',()=>{const d=data(),second='b0000000-0000-4000-8000-000000000003';d.wallets.push({...d.wallets[0],id:second,organization_id:second,balance_minor:'12345'});d.statementSummaries.push({wallet_id:second,month:'2026-10-01',statement_count:1,advertising_service_minor:'100',operating_other_minor:'0',total_minor:'100'});render(<Dashboard locale="zh" data={d} initialWalletId={second}/>);expect(screen.getByTestId('wallet-balance').textContent).toBe('CNY 123.45');expect(screen.getByRole('link',{name:'查看该月结算账单'}).getAttribute('href')).toContain(`wallet=${second}`);});

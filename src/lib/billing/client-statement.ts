@@ -3,7 +3,7 @@ import {z} from 'zod';
 const integer=z.string().regex(/^(0|[1-9]\d{0,29})$/);
 const date=z.iso.date();
 export const clientStatementSchema=z.object({
- id:z.uuid(),organization_name:z.string().max(500),month:date.refine(v=>v.endsWith('-01')),currency:z.literal('CNY'),
+ id:z.uuid(),wallet_id:z.uuid().optional(),organization_id:z.uuid().optional(),organization_name:z.string().max(500),month:date.refine(v=>v.endsWith('-01')),currency:z.literal('CNY'),
  advertising_service_minor:integer,operating_other_minor:integer,total_minor:integer,
  summary_zh:z.string().max(10000),published_at:z.iso.datetime({offset:true}),
  usage:z.object({coverage_kind:z.enum(['complete_rows','aggregate_verified','reviewed_activity','reviewed_zero','not_active']).optional(),account_name:z.string().max(1000),since:date,until:date,timezone:z.string().max(100),impressions:integer,clicks:integer,

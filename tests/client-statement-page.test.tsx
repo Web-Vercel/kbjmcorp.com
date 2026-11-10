@@ -22,3 +22,7 @@ it('does not trust reading receipts returned alongside a lookup error',async()=>
  m.rpc.mockImplementation(async(name:string)=>name==='get_client_monthly_statements'?{data:[statement],error:null}:{data:[{statement_id:statement.id,confirmed_at:'2026-11-01T00:00:00Z'}],error:{message:'PRIVATE'}});
  const html=await render();expect(html).toContain('查阅确认记录暂不可用');expect(html).not.toContain('您已确认查阅');expect(html).toContain('下载本账单（CSV）');
 });
+it('passes wallet, month and statement filters to the database instead of filtering a limited list',async()=>{
+ const wallet='b0000000-0000-4000-8000-000000000002';m.rpc.mockImplementation(async(name:string)=>name==='get_client_wallets'?{data:[{id:wallet,organization_name:'FICTIONAL CLIENT',currency:'CNY'}],error:null}:name==='get_client_monthly_statements'?{data:[{...statement,wallet_id:wallet}],error:null}:{data:[],error:null});
+ const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({wallet,month:'2026-10',statement:statement.id})}));expect(m.rpc).toHaveBeenCalledWith('get_client_monthly_statements',{p_wallet:wallet,p_month:'2026-10-01',p_statement:statement.id});expect(html).toContain(`id="statement-${statement.id}"`);expect(html).toContain(`/zh/account?wallet=${wallet}#transactions`);
+});

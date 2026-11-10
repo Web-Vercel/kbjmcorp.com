@@ -36,6 +36,7 @@
 -- 029_upstream_payment_verification.sql 48d78d968fa777e4bf95b83617a10aa48591fe24562e85f0e4e63e9d9eeb8ada
 -- 030_upstream_payment_reversals.sql 729f4d46136522c831d1f6ec4f2ca3ab15752dd908d874fd379884028dfa4aac
 -- 031_client_statement_read_receipts.sql a73e38b385d1977f9eddfdaa6356713b7bae0dbe30556ea596201d65be3abdb3
+-- 032_client_statement_navigation.sql 501e10325daaa2bd294d7d0e9400e0b8270dddde627135819177dbc815ac3b94
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -2937,6 +2938,32 @@ revoke all on function public.confirm_client_statement_read(uuid),public.get_cli
 grant execute on function public.confirm_client_statement_read(uuid),public.get_client_statement_read_receipts(uuid[]),public.get_statement_read_status(uuid,date) to authenticated;
 notify pgrst,'reload schema';
 -- END 031_client_statement_read_receipts.sql
+
+-- START 032_client_statement_navigation.sql
+-- Read-only statement navigation and complete latest-month totals per authorized wallet.
+
+create function public.get_client_monthly_statements(p_wallet uuid,p_month date,p_statement uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is not null and (not isfinite(p_month) or extract(day from p_month)<>1) then raise exception 'Month must start on day one' using errcode='22023';end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'wallet_id',s.wallet_id,'organization_id',s.organization_id,'organization_name',o.name,'month',s.month,'currency',s.currency,
+ 'advertising_service_minor',s.upstream_cny_minor::text,'operating_other_minor',s.service_cny_minor::text,'total_minor',s.total_cny_minor::text,'summary_zh',s.summary_zh,'usage',s.usage,'published_at',s.published_at) order by s.month desc,s.published_at desc,s.id desc)
+ from (select * from public.monthly_client_statements where public.has_finance_access(organization_id) and (p_wallet is null or wallet_id=p_wallet) and (p_month is null or month=p_month) and (p_statement is null or id=p_statement) order by month desc,published_at desc,id desc limit 100)s join public.organizations o on o.id=s.organization_id),'[]'::jsonb);
+end $$;
+create or replace function public.get_client_monthly_statements() returns jsonb language sql stable security definer set search_path='' as $$
+ select public.get_client_monthly_statements(null::uuid,null::date,null::uuid);
+$$;
+create function public.get_client_statement_summaries() returns jsonb language sql stable security definer set search_path='' as $$
+ select coalesce(jsonb_agg(x.row order by x.wallet_id),'[]'::jsonb) from (
+ select w.id wallet_id,jsonb_build_object('wallet_id',w.id,'month',latest.month,'statement_count',count(*),'advertising_service_minor',sum(s.upstream_cny_minor)::text,'operating_other_minor',sum(s.service_cny_minor)::text,'total_minor',sum(s.total_cny_minor)::text) row
+ from public.client_wallets w join lateral (select month from public.monthly_client_statements where wallet_id=w.id order by month desc limit 1)latest on true
+ join public.monthly_client_statements s on s.wallet_id=w.id and s.month=latest.month
+ where w.currency='CNY' and public.has_finance_access(w.organization_id) group by w.id,latest.month
+ )x;
+$$;
+revoke all on function public.get_client_monthly_statements(uuid,date,uuid),public.get_client_statement_summaries() from public,anon;
+grant execute on function public.get_client_monthly_statements(uuid,date,uuid),public.get_client_statement_summaries() to authenticated;
+notify pgrst,'reload schema';
+-- END 032_client_statement_navigation.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';

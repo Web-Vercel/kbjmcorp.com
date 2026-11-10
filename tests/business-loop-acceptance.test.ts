@@ -9,8 +9,8 @@ import {statementCsv,statementHtml} from '@/lib/billing/statement-export';
 import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
 import {mainFlow} from '@/lib/operations/main-flow';
 import type {CloseOverview} from '@/lib/operations/month-close';
-let db:PGlite;const org='b0000000-0000-4000-8000-000000000001';
-beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);await applyMigrationsThrough(db,31);
+let db:PGlite;let originalStatement:string;const org='b0000000-0000-4000-8000-000000000001';
+beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);await applyMigrationsThrough(db,32);
  await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,5)n;insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');insert into public.organizations(id,name) values('${org}','FICTIONAL BUSINESS LOOP ACCEPTANCE');`);
 },30000);
 afterAll(async()=>{await db?.close();});
@@ -33,9 +33,15 @@ it('runs one fictional case through verified bank credit, source, quote, client 
  const draft=(await as('2',"select public.prepare_monthly_settlement($1,$2,'FICTIONAL AGREEMENT','FICTIONAL PREPARATION') id",[source,quote])).id;
  expect((await overview()).accounts[0].stage).toBe('settlement_review_needed');await as('3',"select public.review_monthly_settlement($1,'approved','Independent source and fee verification')",[draft]);expect((await overview()).accounts[0].stage).toBe('publication_ready');
  const statement=(await as('1',"select public.publish_monthly_statement($1,'虚构验收案例：广告与约定服务费',$2) id",[draft,JSON.stringify(q)])).id;await as('1',"select public.publish_monthly_statement($1,'虚构验收案例：广告与约定服务费',$2)",[draft,JSON.stringify(q)]);
- const closed=await overview();expect(closed.balance_minor).toBe('39500');expect(closed.accounts[0].stage).toBe('published');expect((await as('4','select public.get_client_monthly_statements() data')).data).toEqual([]);
+ originalStatement=String(statement);const closed=await overview();expect(closed.balance_minor).toBe('39500');
+ const summaries=(await as('4','select public.get_client_statement_summaries() data')).data;expect(summaries).toEqual([]);
+ expect(closed.accounts[0].stage).toBe('published');expect((await as('4','select public.get_client_monthly_statements() data')).data).toEqual([]);
  await as('1',"select public.set_client_access($1,'a0000000-0000-4000-8000-000000000004','grant_viewer')",[org]);await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','viewer')",[org]);
  const client=clientStatementSchema.array().parse((await as('4','select public.get_client_monthly_statements() data')).data);expect(client).toHaveLength(1);expect(client[0].id).toBe(statement);expect(statementCsv(client[0],true)).toContain('605.00');expect(statementHtml(client[0],true)).toContain('请勿重复支付');expect(JSON.stringify(client)).not.toMatch(/PRIVATE|rate|sourceCadMinor|private_snapshot/);
+ const customerTotals=(await as('4','select public.get_client_statement_summaries() data')).data as Array<Record<string,unknown>>;expect(customerTotals).toEqual([expect.objectContaining({wallet_id:wallet,statement_count:1,total_minor:'60500',advertising_service_minor:'55000',operating_other_minor:'5500'})]);
+ const filtered=clientStatementSchema.array().parse((await as('4','select public.get_client_monthly_statements($1,$2,$3) data',[wallet,'2024-01-01',statement])).data);expect(filtered).toHaveLength(1);expect(filtered[0].wallet_id).toBe(wallet);
+ expect((await as('4','select public.get_client_monthly_statements($1,$2,$3) data',[randomUUID(),'2024-01-01',statement])).data).toEqual([]);
+ expect((await as('3','select public.get_client_statement_summaries() data')).data).toEqual([]);
  const pendingRead=(await as('4','select public.get_client_statement_read_receipts($1) data',[[statement]])).data;expect(pendingRead).toEqual([]);
  await expect(as('1','select public.confirm_client_statement_read($1)',[statement])).rejects.toThrow(/Client account/);
  const acknowledged=(await as('4','select public.confirm_client_statement_read($1) data',[statement])).data;
@@ -59,3 +65,19 @@ it('runs one fictional case through verified bank credit, source, quote, client 
  expect((await db.query<{n:number}>('select count(*)::int n from public.client_statement_read_receipts')).rows[0].n).toBe(1);
  expect((await as('3',"select public.get_statement_read_status($1,'2024-01-01') data",[org])).data).toEqual(clientRead);
 },30000);
+
+it('aggregates all advertisers in the latest wallet month and can locate an older statement by exact ID',async()=>{
+ await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','viewer')",[org]);
+ const canada={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:0,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};const china={...canada,mode:'fixed' as const,fixedMinor:'100',waiveWhenZero:false};
+ const q=buildQuoteSnapshot({requestId:randomUUID(),organizationId:org,period:'2024-02-01',sourceCadMinor:'0',rateMode:'manual',rate:'5',canada,china,transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'FICTIONAL AGREED FIXED MONTHLY SERVICE'});
+ for(let n=0;n<2;n++){
+  const report={version:'ads-readonly-v1',account:{id:'adacct_fictional_summary_'+n,name:'FICTIONAL SUMMARY ACCOUNT '+n,currency_code:'CAD',timezone:'UTC'},since:'2024-02-01',until:'2024-02-29',check:'matched',missingDates:[],endBoundary:'exclusive',dailySpendMicros:'0',periodSpendMicros:'0',rawSha256:'d'.repeat(64),daily:Array.from({length:29},(_,i)=>({date:`2024-02-${String(i+1).padStart(2,'0')}`,spendMicros:'0',impressions:'0',clicks:'0'})),rawResponses:[{path:'/ad_account/insights',body:'FICTIONAL ZERO ACTIVITY MONTH'}]};
+  const source=(await as('1','select public.save_ads_reporting_snapshot($1,$2) id',[randomUUID(),JSON.stringify(report)])).id;
+  const binding=(await as('1',"select public.bind_ads_reporting_account($1,$2,'FICTIONAL SUMMARY AUTHORIZATION') id",[source,org])).id;await as('1',"select public.share_ads_source_snapshot($1,$2,'FICTIONAL SUMMARY SOURCE')",[source,binding]);
+  const quote=(await as('1',"select public.save_agency_quote_snapshot($1,'2024-02-01',$2,$3,$4) id",[org,randomUUID(),'e'.repeat(64),JSON.stringify(q)])).id;
+  const draft=(await as('2',"select public.prepare_monthly_settlement($1,$2,'FICTIONAL FIXED FEE TERMS','FICTIONAL SUMMARY PREPARATION') id",[source,quote])).id;await as('3',"select public.review_monthly_settlement($1,'approved','Independent fixed service fee review')",[draft]);await as('1',"select public.publish_monthly_statement($1,'虚构案例：按约定固定月费',$2)",[draft,JSON.stringify(q)]);
+ }
+ const totals=(await as('4','select public.get_client_statement_summaries() data')).data;expect(totals).toEqual([expect.objectContaining({month:'2024-02-01',statement_count:2,advertising_service_minor:'0',operating_other_minor:'200',total_minor:'200'})]);
+ const older=clientStatementSchema.array().parse((await as('4','select public.get_client_monthly_statements(null,null,$1) data',[originalStatement])).data);expect(older).toHaveLength(1);expect(older[0].month).toBe('2024-01-01');
+ const month=clientStatementSchema.array().parse((await as('4',"select public.get_client_monthly_statements(null,'2024-02-01',null) data")).data);expect(month).toHaveLength(2);expect(month.every(s=>s.month==='2024-02-01')).toBe(true);
+});
