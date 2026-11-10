@@ -49,3 +49,5 @@
 035 将客户账单问题接入既有服务工单、财务回复与客户追问流程，见 [STATEMENT_SERVICE_QUESTIONS.md](STATEMENT_SERVICE_QUESTIONS.md)。状态变化不改变原账单和资金。
 
 036 将账单问题的完整状态汇总接入月结工作台，提供按企业与账单月份的待处理优先入口，见 [MONTH_CLOSE_QUESTION_FOLLOWUP.md](MONTH_CLOSE_QUESTION_FOLLOWUP.md)。它是独立跟进提示，不新增审批或财务操作。
+
+内部月结办理清单导出沿用001–036，无新增迁移，见 [MONTH_CLOSE_CHECKLIST_EXPORT.md](MONTH_CLOSE_CHECKLIST_EXPORT.md)。服务器只把最少办理字段投影给浏览器，资料不完整时不导出；不会保存新数据库快照或改变原记录。

@@ -1,3 +1,4 @@
+import {buildMonthCloseChecklist,monthCloseChecklistCsv} from '@/lib/operations/month-close-checklist';
 import {statementQuestionWorkbench} from '@/lib/operations/statement-questions';
 import {statementReadStatus} from '@/lib/billing/statement-read';
 import {PGlite} from '@electric-sql/pglite';
@@ -81,6 +82,8 @@ it('runs one fictional case through verified bank credit, source, quote, client 
  const pending=upstreamPaymentWorkbench.parse((await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data);expect(mainFlow(closed,{financeAccess:true,payments:pending},true)[4].state).toBe('pending');
  await as('3',"select public.review_upstream_payment($1,'approved','Independent CAD original and allocation verification')",[payment]);await as('3',"select public.review_upstream_payment($1,'approved','Independent CAD original and allocation verification')",[payment]);
  const paid=upstreamPaymentWorkbench.parse((await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data);expect(paid.statements[0].verified_cad_minor).toBe('11000');expect(mainFlow(closed,{financeAccess:true,payments:paid,clientRead},true).every(s=>s.state==='ready')).toBe(true);
+ const checklist=buildMonthCloseChecklist({organizationId:org,organizationName:'FICTIONAL BUSINESS LOOP',month:'2024-01-01',overview:await overview(),payments:paid,reads:clientRead,questions:(await as('3',"select public.get_statement_question_workbench($1,'2024-01-01') data",[org])).data,generatedAt:new Date().toISOString()});
+ expect(checklist).not.toBeNull();expect(checklist!.questions.open_count).toBe(1);expect(monthCloseChecklistCsv(checklist!,true)).toContain('605.00');expect(monthCloseChecklistCsv(checklist!,true)).toContain('110.00');expect(JSON.stringify(checklist)).not.toMatch(/FICTIONAL-CAD-RECEIPT|private_snapshot|evidence_sha256|prepared_by/);
  expect((await overview()).balance_minor).toBe('39500');expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(3);
  await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','none')",[org]);expect((await as('4','select public.get_client_monthly_statements() data')).data).toEqual([]);
  expect((await as('4','select public.get_client_statement_read_receipts($1) data',[[statement]])).data).toEqual([]);
