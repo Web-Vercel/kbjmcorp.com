@@ -6,7 +6,7 @@ const id='b0000000-0000-4000-8000-000000000001';
 function request(body:unknown,origin='https://site.example'){return new Request('https://site.example/api/monthly-settlements',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)});}
 beforeEach(()=>{vi.clearAllMocks();m.guard.mockResolvedValue({role:'operator',client:{rpc:m.rpc}});m.rpc.mockResolvedValue({data:id,error:null});});
 it('passes source/quote identifiers, not browser-calculated amounts, to the scoped preparation RPC',async()=>{
- const r=await POST(request({action:'prepare',snapshotId:id,quoteId:id,agreement:'Agreement reference',note:'Preparation note',confirm:'on',total:'999999',rate:'forged'}));expect(r.status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('prepare_monthly_settlement',{p_snapshot:id,p_quote:id,p_agreement:'Agreement reference',p_note:'Preparation note'});
+ const r=await POST(request({action:'prepare',snapshotId:id,quoteId:id,agreement:'Agreement reference',note:'Preparation note',confirm:'on',total:'999999',rate:'forged'}));expect(r.status).toBe(200);expect(await r.json()).toEqual({ok:true,draftId:id});expect(m.rpc).toHaveBeenCalledWith('prepare_monthly_settlement',{p_snapshot:id,p_quote:id,p_agreement:'Agreement reference',p_note:'Preparation note'});
 });
 it('requires same-origin confirmation and staff MFA before writes',async()=>{
  const body={action:'review',draftId:id,decision:'approved',note:'Reviewed note',confirm:'on'};
@@ -17,4 +17,12 @@ it('maps blocked source and concurrent review errors without exposing database d
  const body={action:'review',draftId:id,decision:'approved',note:'Reviewed note',confirm:'on'};
  m.rpc.mockResolvedValueOnce({error:{code:'40001',message:'PRIVATE DETAIL'}});const r=await POST(request(body));expect(r.status).toBe(409);expect(await r.text()).not.toContain('PRIVATE');
  m.rpc.mockResolvedValueOnce({error:{code:'23514'}});expect((await POST(request(body))).status).toBe(400);
+});
+
+
+it('returns the reviewed draft ID even though the review RPC returns void',async()=>{
+ m.rpc.mockResolvedValueOnce({data:null,error:null});const r=await POST(request({action:'review',draftId:id,decision:'approved',note:'Reviewed note',confirm:'on'}));expect(r.status).toBe(200);expect(await r.json()).toEqual({ok:true,draftId:id});
+});
+it('does not confirm preparation without a valid database receipt',async()=>{
+ for(const data of [null,'PRIVATE INVALID RECEIPT']){m.rpc.mockResolvedValueOnce({data,error:null});const r=await POST(request({action:'prepare',snapshotId:id,quoteId:id,agreement:'Agreement reference',note:'Preparation note',confirm:'on'}));expect(r.status).toBe(502);expect(await r.json()).toEqual({error:'unconfirmed_result'});}
 });

@@ -11,6 +11,8 @@ export async function POST(request:Request){
  try{
  const result=p.action==='prepare'?await staff.client.rpc('prepare_monthly_settlement',{p_snapshot:p.snapshotId,p_quote:p.quoteId,p_agreement:p.agreement,p_note:p.note}):await staff.client.rpc('review_monthly_settlement',{p_draft:p.draftId,p_decision:p.decision,p_note:p.note});
  if(result.error){const code=result.error.code;return authResponse({error:code==='42501'?'forbidden':code==='40001'?'conflict':code==='23514'?'source_not_ready':code==='22023'?'settlement_mismatch':'save_failed'},code==='42501'?403:code==='40001'?409:code==='23514'||code==='22023'?400:502);}
- return authResponse({ok:true});
+ const draftId=p.action==='prepare'?result.data:p.draftId;
+ if(!z.uuid().safeParse(draftId).success)return authResponse({error:'unconfirmed_result'},502);
+ return authResponse({ok:true,draftId});
  }catch{return authResponse({error:'unavailable'},503);}
 }
