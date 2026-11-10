@@ -40,3 +40,9 @@ it('keeps receipt metadata private and immutable, with no financial side effects
  const t=await create(),receipt=await reply(4,t,randomUUID());await expect(as(4,'select reply_request_key from public.service_request_messages where id=$1',[receipt.message_id])).rejects.toThrow(/permission denied/);await expect(db.query("update public.service_request_messages set body='CHANGED confirmed reply' where id=$1",[receipt.message_id])).rejects.toThrow(/immutable/);await expect(db.query('delete from public.service_request_messages where id=$1',[receipt.message_id])).rejects.toThrow(/immutable/);
  expect((await db.query('select count(*)::int n from public.wallet_entries')).rows[0]).toEqual({n:0});expect((await db.query('select count(*)::int n from public.monthly_client_statements')).rows[0]).toEqual({n:0});
 });
+it('applies the same conversation SELECT scope used by downloads to clients, finance staff and revoked sessions',async()=>{
+ const t=await create();const read=async(n:number,aal='aal2')=>as(n,'select (select count(*)::int from public.service_requests where id=$1) requests,(select count(*)::int from public.service_request_messages where request_id=$1) messages',[t],aal);
+ expect(await read(4)).toEqual({requests:1,messages:1});expect(await read(2)).toEqual({requests:1,messages:1});
+ expect(await read(5)).toEqual({requests:0,messages:0});expect(await read(6)).toEqual({requests:0,messages:0});expect(await read(2,'aal1')).toEqual({requests:0,messages:0});
+ await as(1,"select public.set_crm_finance_access($1,$2,'none')",[org,user(4)]);expect(await read(4)).toEqual({requests:0,messages:0});await as(1,"select public.set_crm_finance_access($1,$2,'viewer')",[org,user(4)]);
+});
