@@ -1,3 +1,4 @@
+import PlatformNavigation from './PlatformNavigation';
 import Link from "next/link";
 import BrandLogo from "./BrandLogo";
 import MobileNavigation from "./MobileNavigation";
@@ -16,5 +17,6 @@ export default function SiteHeader({ locale, path = "" }: { locale: Locale; path
       <div className="header-actions"><Link className="client-login" href={`/${locale}/login`}>{locale === "zh" ? "客户登录" : "Client sign-in"}</Link>
       <Link className="language" href={`/${other}${path}`} lang={other === "zh" ? "zh-CN" : "en"}>{other === "en" ? "EN ⌄" : "中文 ⌄"}</Link><MobileNavigation locale={locale} /></div>
     </header>
+    <PlatformNavigation locale={locale} path={path}/>
   </>;
 }

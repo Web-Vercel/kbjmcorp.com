@@ -16,3 +16,6 @@ Protected source includes:
 New application, portal and administration routes reuse the existing components and design tokens. New styles must be limited to their own page scope; shared global selectors require careful regression review because they may affect the approved homepage.
 
 The application extension adds links on the existing **login and authenticated portal pages**, plus internal staff navigation. The public homepage/header/footer remain byte-for-byte unchanged from development commit `ab8dbe2`; the existing homepage customer-login link leads into the extended flow. No new homepage CTA or navigation styling is needed.
+
+## Explicit user exception — 2026-11-10
+The user requested four platform menu entries and homepage logos with core advertising slogans. This supersedes the byte-for-byte restriction above only for the platform navigation rail, mobile platform links, new homepage showcase and associated bilingual platform pages. Existing brand, headline, hero, marketing copy and sections remain preserved. ChatGPT Ads is the current focus; Google Ads, Meta Ads and TikTok Ads are presented for strategy consultation without claiming API connectivity. No Production publication is authorized.

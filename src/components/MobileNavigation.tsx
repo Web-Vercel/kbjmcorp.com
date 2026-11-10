@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {advertisingPlatforms} from "@/lib/platforms";
 import { useEffect, useRef, useState } from "react";
 import { content, type Locale } from "@/lib/content";
 
@@ -22,6 +23,7 @@ export default function MobileNavigation({ locale }: { locale: Locale }) {
     return () => { document.removeEventListener("keydown", keydown); document.removeEventListener("mousedown", outside); };
   }, [open]);
   const links = [
+    ...advertisingPlatforms.map(p=>({label:p.name,href:`/${locale}/platforms/${p.slug}`})),
     ...content[locale].nav.map((label, index) => ({ label, href: `/${locale}${["#services", "#process", "#contact"][index]}` })),
     { label: locale === "zh" ? "常见问题" : "FAQ", href: `/${locale}#faq` },
   ];
