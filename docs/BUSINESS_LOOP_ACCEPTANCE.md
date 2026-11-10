@@ -59,3 +59,5 @@
 公司间CAD核销汇总与内部CSV报告沿用001–036，无新增迁移，见 [CAD_ALLOCATION_REPORT.md](CAD_ALLOCATION_REPORT.md)。按账单月份计分配，跨月整笔到账与历史版本不重复计为本月付款；原始客户资金保持独立。
 
 本账号月结待办沿用001–036，无新增迁移或审批，见 [MONTH_CLOSE_TASKS.md](MONTH_CLOSE_TASKS.md)。顶部按当前账号权限区分可办理、等待其他角色、条件待确认与已发布回执，并跳到原账户卡片；不将发布等同于整体验收完成。
+
+报价与月结往返修复沿用001–036，见 [QUOTE_MONTH_CLOSE_CONTINUITY.md](QUOTE_MONTH_CLOSE_CONTINUITY.md)。保存后查看版本不再丢失月份；列表筛选、历史修订及返回月结保留正确的企业和报价月份。
