@@ -82,3 +82,5 @@
 工单沟通记录CSV下载沿用001–037，见 [SERVICE_CONVERSATION_EXPORT.md](SERVICE_CONVERSATION_EXPORT.md)。服务器按当前会话重新核对访问范围，拒绝不完整或读取期间变动的记录；沟通副本不会替代账单或触发财务动作。
 
 月结工作台返回数据核对沿用001–037，见 [MONTH_CLOSE_OVERVIEW_VALIDATION.md](MONTH_CLOSE_OVERVIEW_VALIDATION.md)。企业/月、金额、编号或发布字段异常时，不显示办理动作和完成进度，也不继续查阅/核销相关详情；正常SQL贯穿流程经过同一解析器。
+
+月结账户办理列表筛选沿用001–037，见 [MONTH_CLOSE_ACCOUNT_FILTER.md](MONTH_CLOSE_ACCOUNT_FILTER.md)。仅筛选账户卡片，整月资金、主流程与导出清单始终使用全部账户；待办链接可返回全部列表定位隐藏账户。
