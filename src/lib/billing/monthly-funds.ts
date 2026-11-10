@@ -1,7 +1,7 @@
 import {z} from 'zod';
 const signed=z.string().regex(/^-?(0|[1-9]\d{0,29})$/);
 const positive=z.string().regex(/^(0|[1-9]\d{0,29})$/);
-export const fundsEntry=z.object({id:z.uuid(),kind:z.enum(['topup','ad_spend','service_fee','refund','adjustment']),amount_minor:signed,description:z.string().max(240),posted_at:z.iso.datetime({offset:true}),statement_id:z.uuid().nullable()});
+export const fundsEntry=z.object({id:z.uuid(),kind:z.enum(['topup','ad_spend','service_fee','refund','adjustment']),amount_minor:signed,description:z.string().max(240),posted_at:z.iso.datetime({offset:true}),statement_id:z.uuid().nullable(),statement_month:z.iso.date().refine(v=>v.endsWith('-01')).nullable().optional()});
 export const monthlyFundsSchema=z.object({wallet_id:z.uuid(),organization_name:z.string().max(500),currency:z.enum(['CNY','CAD','USD','EUR','GBP','AUD']),month:z.iso.date().refine(v=>v.endsWith('-01')),timezone:z.literal('America/Vancouver'),generated_at:z.iso.datetime({offset:true}),opening_minor:signed,credits_minor:positive,debits_minor:positive,closing_minor:signed,entry_count:z.number().int().nonnegative(),complete:z.boolean(),entries:fundsEntry.array().max(1000)}).superRefine((s,ctx)=>{
  const fail=()=>ctx.addIssue({code:'custom',message:'Funds reconciliation failed'});
  if(![s.opening_minor,s.credits_minor,s.debits_minor,s.closing_minor,...s.entries.map(e=>e.amount_minor)].every(v=>/^-?(0|[1-9]\d{0,29})$/.test(v)))return;
