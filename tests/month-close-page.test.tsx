@@ -24,7 +24,7 @@ it('offers an internal checklist only after all report dependencies are validate
 
 it('connects role-specific tasks to the exact account card without adding RPC calls',async()=>{
  const original=m.rpc.getMockImplementation()!;
- m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{error:null,data:{...overview,accounts:[{...overview.accounts[0],stage:'settlement_review_needed',draft_prepared_by_me:true,statement_id:null}]}}:original(name,...args));
+ m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{error:null,data:{...overview,accounts:[{...overview.accounts[0],stage:'settlement_review_needed',draft_prepared_by_me:true,statement_id:null,published_at:null,posted_total_cny_minor:null}]}}:original(name,...args));
  const html=await render();expect(html).toContain('本账号月结待办');expect(html).toContain('本人已制单，须由另一账号独立复核');expect(html).toContain(`href="#month-close-account-${id}"`);expect(html).toContain(`id="month-close-account-${id}"`);
  expect(m.rpc.mock.calls.map(c=>c[0]).sort()).toEqual(['get_month_close_overview','get_statement_question_workbench']);
 });
@@ -35,5 +35,14 @@ it('shows statement-specific client handoff with no extra queries or contact/pri
 });
 it('keeps handoff unknown when reading lookup fails and offers no link for an unpublished draft',async()=>{
  const original=m.rpc.getMockImplementation()!;m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_statement_read_status'?{data:null,error:{message:'PRIVATE READ ERROR'}}:original(name,...args));let html=await render();expect(html).toContain('此账单查阅确认信息尚未完整取得');expect(html).not.toContain('PRIVATE READ ERROR');
- m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{data:{...overview,accounts:[{...overview.accounts[0],stage:'settlement_review_needed',statement_id:null}]},error:null}:original(name,...args));html=await render();expect(html).not.toContain('客户账单访问链接');expect(html).not.toContain('/account/statements?statement=');
+ m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{data:{...overview,accounts:[{...overview.accounts[0],stage:'settlement_review_needed',statement_id:null,published_at:null,posted_total_cny_minor:null}]},error:null}:original(name,...args));html=await render();expect(html).not.toContain('客户账单访问链接');expect(html).not.toContain('/account/statements?statement=');
+});
+
+it('blocks wrong-scope, malformed and duplicate overviews before showing tasks or reading dependent private data',async()=>{
+ const original=m.rpc.getMockImplementation()!;
+ for(const bad of [null,{...overview,organization_id:'c0000000-0000-4000-8000-000000000001'},{...overview,month:'2026-09-01'},{...overview,balance_minor:'not-money'},{...overview,accounts:[overview.accounts[0],overview.accounts[0]]},{...overview,accounts:[{...overview.accounts[0],statement_id:null}]}]){
+  m.rpc.mockClear();m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{data:bad,error:null}:original(name,...args));
+  const html=await render();expect(html).toContain('资料核对未通过');expect(html).not.toContain('本账号月结待办');expect(html).not.toContain('查看发布回执');expect(html).not.toContain('CNY 395.00');expect(html).not.toContain('下载内部月结办理清单');
+  expect(m.rpc.mock.calls.map(c=>c[0]).sort()).toEqual(['get_month_close_overview','get_statement_question_workbench']);
+ }
 });

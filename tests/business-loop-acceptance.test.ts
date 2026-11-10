@@ -1,3 +1,4 @@
+import {monthCloseOverview} from '@/lib/operations/month-close-overview';
 import {buildCadAllocationReport,cadAllocationReportCsv} from '@/lib/operations/cad-allocation-report';
 import {publicationPreview} from '@/lib/operations/publication-preview';
 import {monthFunding} from '@/lib/operations/month-funding';
@@ -20,7 +21,7 @@ beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role 
 },30000);
 afterAll(async()=>{await db?.close();});
 async function as(who:string,sql:string,args:unknown[]=[]){await db.exec(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','a0000000-0000-4000-8000-00000000000${who}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);`);try{const r=await db.query<Record<string,unknown>>(sql,args);await db.exec('commit');return r.rows[0];}catch(e){await db.exec('rollback');throw e;}}
-const overview=async()=>(await as('1',"select public.get_month_close_overview($1,'2024-01-01') data",[org])).data as CloseOverview;
+const overview=async()=>{const raw=(await as('1',"select public.get_month_close_overview($1,'2024-01-01') data",[org])).data;const parsed=monthCloseOverview(raw,{organizationId:org,month:'2024-01-01'});expect(parsed).not.toBeNull();return parsed!;};
 it('runs one fictional case through verified bank credit, source, quote, client charge/export and CAD allocation',async()=>{
  const wallet=(await as('1','select public.open_crm_wallet($1) id',[org])).id;
  const bank=(await as('1',"select public.create_collection_account('FICTIONAL RECEIVING COMPANY','FICTIONAL BANK','TEST-NOT-PAYABLE-LOOP','FICTIONAL-EVIDENCE') id")).id;

@@ -80,3 +80,5 @@
 工单状态与回复衔接沿用001–037，见 [SERVICE_STATUS_CONTINUITY.md](SERVICE_STATUS_CONTINUITY.md)。详情展示当前状态与下一步，员工补充回复默认保持当前状态，不再默认改为处理中。
 
 工单沟通记录CSV下载沿用001–037，见 [SERVICE_CONVERSATION_EXPORT.md](SERVICE_CONVERSATION_EXPORT.md)。服务器按当前会话重新核对访问范围，拒绝不完整或读取期间变动的记录；沟通副本不会替代账单或触发财务动作。
+
+月结工作台返回数据核对沿用001–037，见 [MONTH_CLOSE_OVERVIEW_VALIDATION.md](MONTH_CLOSE_OVERVIEW_VALIDATION.md)。企业/月、金额、编号或发布字段异常时，不显示办理动作和完成进度，也不继续查阅/核销相关详情；正常SQL贯穿流程经过同一解析器。
