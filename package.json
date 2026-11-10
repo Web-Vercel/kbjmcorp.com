@@ -22,7 +22,8 @@
     "db:bundle:check": "node scripts/prepare-supabase-bootstrap.mjs --check",
     "db:check": "node scripts/check-supabase-connection.mjs",
     "staff:check": "node scripts/check-staff-readiness.mjs",
-    "test:client-email": "node scripts/client-email-test-smoke.mjs"
+    "test:client-email": "node scripts/client-email-test-smoke.mjs",
+    "test:business-loop": "vitest run tests/business-loop-acceptance.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

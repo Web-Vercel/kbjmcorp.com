@@ -1,0 +1,44 @@
+import {PGlite} from '@electric-sql/pglite';
+import {randomUUID} from 'node:crypto';
+import {beforeAll,afterAll,it,expect} from 'vitest';
+import {applyMigrationsThrough} from './fixtures/migrations';
+import {buildQuoteSnapshot} from '@/lib/billing/quote-snapshot';
+import {clientStatementSchema} from '@/lib/billing/client-statement';
+import {statementCsv,statementHtml} from '@/lib/billing/statement-export';
+import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
+import {mainFlow} from '@/lib/operations/main-flow';
+import type {CloseOverview} from '@/lib/operations/month-close';
+let db:PGlite;const org='b0000000-0000-4000-8000-000000000001';
+beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);await applyMigrationsThrough(db,30);
+ await db.exec(`insert into auth.users(id) select ('a0000000-0000-4000-8000-00000000000'||n)::uuid from generate_series(1,4)n;insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin'),('a0000000-0000-4000-8000-000000000002','operator'),('a0000000-0000-4000-8000-000000000003','operator');insert into public.staff_unit_roles(user_id,unit_code,role) values('a0000000-0000-4000-8000-000000000002','zhidian_cn','finance_preparer'),('a0000000-0000-4000-8000-000000000003','zhidian_cn','finance_reviewer');insert into public.organizations(id,name) values('${org}','FICTIONAL BUSINESS LOOP ACCEPTANCE');`);
+},30000);
+afterAll(async()=>{await db?.close();});
+async function as(who:string,sql:string,args:unknown[]=[]){await db.exec(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','a0000000-0000-4000-8000-00000000000${who}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);`);try{const r=await db.query<Record<string,unknown>>(sql,args);await db.exec('commit');return r.rows[0];}catch(e){await db.exec('rollback');throw e;}}
+const overview=async()=>(await as('1',"select public.get_month_close_overview($1,'2024-01-01') data",[org])).data as CloseOverview;
+it('runs one fictional case through verified bank credit, source, quote, client charge/export and CAD allocation',async()=>{
+ const wallet=(await as('1','select public.open_crm_wallet($1) id',[org])).id;
+ const bank=(await as('1',"select public.create_collection_account('FICTIONAL RECEIVING COMPANY','FICTIONAL BANK','TEST-NOT-PAYABLE-LOOP','FICTIONAL-EVIDENCE') id")).id;
+ await as('1',"select public.assign_collection_account($1,$2,'FICTIONAL AGREEMENT')",[wallet,bank]);
+ const receipt=(await as('2',"select public.prepare_bank_receipt($1,null,100000,'FICTIONAL PAYER','FICTIONAL-CNY-RECEIPT','2024-01-31','FICTIONAL BANK ORIGINAL') id",[wallet])).id;
+ expect((await overview()).balance_minor).toBe('0');await expect(as('2',"select public.review_bank_receipt($1,'credited','Self review')",[receipt])).rejects.toThrow(/Independent|Forbidden/);
+ await as('3',"select public.review_bank_receipt($1,'credited','Independent bank receipt verification')",[receipt]);await as('3',"select public.review_bank_receipt($1,'credited','Retry bank approval')",[receipt]);expect((await overview()).balance_minor).toBe('100000');
+ // External Ads API traffic is replaced by a clearly fictional immutable response.
+ const report={version:'ads-readonly-v1',account:{id:'adacct_fictional_loop',name:'FICTIONAL LOOP ACCOUNT',currency_code:'CAD',timezone:'America/Vancouver'},since:'2024-01-01',until:'2024-01-31',check:'matched',missingDates:[],endBoundary:'exclusive',dailySpendMicros:'100000000',periodSpendMicros:'100000000',rawSha256:'a'.repeat(64),daily:Array.from({length:31},(_,i)=>({date:`2024-01-${String(i+1).padStart(2,'0')}`,spendMicros:i===0?'100000000':'0',impressions:i===0?'100':'0',clicks:i===0?'10':'0'})),rawResponses:[{path:'/ad_account/insights',body:'FICTIONAL PRIVATE API RESPONSE'}]};
+ const source=(await as('1','select public.save_ads_reporting_snapshot($1,$2) id',[randomUUID(),JSON.stringify(report)])).id;
+ const binding=(await as('1',"select public.bind_ads_reporting_account($1,$2,'FICTIONAL AUTHORIZATION') id",[source,org])).id;
+ await as('1',"select public.share_ads_source_snapshot($1,$2,'FICTIONAL FULL MONTH SOURCE')",[source,binding]);expect((await overview()).accounts[0].stage).toBe('quote_needed');
+ const rule={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:1000,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};const q=buildQuoteSnapshot({requestId:randomUUID(),organizationId:org,period:'2024-01-01',sourceCadMinor:'10000',rateMode:'manual',rate:'5',canada:rule,china:{...rule,basis:'upstream_total'},transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'FICTIONAL AGREED TERMS'});expect(q.finalMinor).toBe('60500');expect(q.upstreamCadMinor).toBe('11000');
+ const quote=(await as('1',"select public.save_agency_quote_snapshot($1,'2024-01-01',$2,$3,$4) id",[org,randomUUID(),'b'.repeat(64),JSON.stringify(q)])).id;
+ const draft=(await as('2',"select public.prepare_monthly_settlement($1,$2,'FICTIONAL AGREEMENT','FICTIONAL PREPARATION') id",[source,quote])).id;
+ expect((await overview()).accounts[0].stage).toBe('settlement_review_needed');await as('3',"select public.review_monthly_settlement($1,'approved','Independent source and fee verification')",[draft]);expect((await overview()).accounts[0].stage).toBe('publication_ready');
+ const statement=(await as('1',"select public.publish_monthly_statement($1,'虚构验收案例：广告与约定服务费',$2) id",[draft,JSON.stringify(q)])).id;await as('1',"select public.publish_monthly_statement($1,'虚构验收案例：广告与约定服务费',$2)",[draft,JSON.stringify(q)]);
+ const closed=await overview();expect(closed.balance_minor).toBe('39500');expect(closed.accounts[0].stage).toBe('published');expect((await as('4','select public.get_client_monthly_statements() data')).data).toEqual([]);
+ await as('1',"select public.set_client_access($1,'a0000000-0000-4000-8000-000000000004','grant_viewer')",[org]);await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','viewer')",[org]);
+ const client=clientStatementSchema.array().parse((await as('4','select public.get_client_monthly_statements() data')).data);expect(client).toHaveLength(1);expect(client[0].id).toBe(statement);expect(statementCsv(client[0],true)).toContain('605.00');expect(statementHtml(client[0],true)).toContain('请勿重复支付');expect(JSON.stringify(client)).not.toMatch(/PRIVATE|rate|sourceCadMinor|private_snapshot/);
+ const payment=(await as('2',"select public.submit_upstream_payment($1,$2,'FICTIONAL-CAD-RECEIPT','2024-02-01','11000','FICTIONAL CAD BANK ORIGINAL',$3,'FICTIONAL VERIFIED NET CAD',$4) id",[randomUUID(),org,'c'.repeat(64),JSON.stringify([{statementId:statement,amountMinor:'11000'}])])).id;
+ const pending=upstreamPaymentWorkbench.parse((await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data);expect(mainFlow(closed,{financeAccess:true,payments:pending},true)[4].state).toBe('pending');
+ await as('3',"select public.review_upstream_payment($1,'approved','Independent CAD original and allocation verification')",[payment]);await as('3',"select public.review_upstream_payment($1,'approved','Independent CAD original and allocation verification')",[payment]);
+ const paid=upstreamPaymentWorkbench.parse((await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data);expect(paid.statements[0].verified_cad_minor).toBe('11000');expect(mainFlow(closed,{financeAccess:true,payments:paid},true).every(s=>s.state==='ready')).toBe(true);
+ expect((await overview()).balance_minor).toBe('39500');expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(3);
+ await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','none')",[org]);expect((await as('4','select public.get_client_monthly_statements() data')).data).toEqual([]);
+},30000);
