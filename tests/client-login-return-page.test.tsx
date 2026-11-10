@@ -11,3 +11,7 @@ it('retains statement context in the language switch without exposing any test-l
 it('ignores a forged return address and preserves the application flow priority',async()=>{
  for(const query of [{returnTo:'https://evil.example'},{flow:'application',returnTo:target}]){const html=renderToStaticMarkup(await Login({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve(query)}));expect(html).not.toContain('验证成功后将返回原账单');expect(html).not.toContain('evil.example');if('flow'in query)expect(html).toContain('/en/login?flow=application');}
 });
+
+it('shows request-specific login context without exposing a test entry',async()=>{
+ const ticket='b0000000-0000-4000-8000-000000000002';const target=`/zh/account/service?ticket=${ticket}&statement=${id}#service-request-${ticket}`;const html=renderToStaticMarkup(await Login({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({returnTo:target})}));expect(html).toContain('验证成功后将返回原工单');expect(html).not.toContain('/test-login');const doc=new DOMParser().parseFromString(html,'text/html');expect(new URL(doc.querySelector('a.language')!.getAttribute('href')!,'https://example.test').searchParams.get('returnTo')).toBe(target);
+});

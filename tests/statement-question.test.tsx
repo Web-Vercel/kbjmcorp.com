@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import {render,screen,cleanup,fireEvent,act} from '@testing-library/react';
+import {render,screen,cleanup,fireEvent,act,waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {afterEach,it,expect,vi} from 'vitest';
 const m=vi.hoisted(()=>({refresh:vi.fn(),push:vi.fn()}));vi.mock('next/navigation',()=>({useRouter:()=>m}));
@@ -13,4 +13,8 @@ it('submits only on request, prevents double clicks and links the confirmed tick
 it('bounds an unknown request at 30 seconds and retains the idempotency key on unchanged retry',async()=>{
  vi.useFakeTimers();const fetch=vi.fn((_url,init)=>new Promise((_resolve,reject)=>init.signal.addEventListener('abort',()=>reject(new DOMException('timeout','AbortError')))));vi.stubGlobal('fetch',fetch);render(<Question statementId={id} locale="zh"/>);fireEvent.click(screen.getByText('对此账单有疑问？'));fill();const form=screen.getByRole('button').closest('form')!;fireEvent.submit(form);await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});expect(screen.getByRole('status').textContent).toContain('提交结果未知');expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(false);fireEvent.submit(form);expect(JSON.parse(fetch.mock.calls[1][1].body).requestId).toBe(JSON.parse(fetch.mock.calls[0][1].body).requestId);await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});
  fireEvent.change(screen.getByLabelText('问题标题'),{target:{value:'A DIFFERENT QUESTION'}});fireEvent.submit(form);expect(JSON.parse(fetch.mock.calls[2][1].body).requestId).not.toBe(JSON.parse(fetch.mock.calls[0][1].body).requestId);await act(async()=>{await vi.advanceTimersByTimeAsync(30000);});
+});
+
+it('returns an expired question submission to the original bill, not a new ticket',async()=>{
+ const fetcher=vi.fn().mockResolvedValue(Response.json({error:'unauthenticated'},{status:401}));vi.stubGlobal('fetch',fetcher);render(<Question statementId={id} locale="zh"/>);fireEvent.click(screen.getByText('对此账单有疑问？'));fill();fireEvent.submit(screen.getByRole('button').closest('form')!);const target=`/zh/account/statements?statement=${id}#statement-${id}`;await waitFor(()=>expect(m.push).toHaveBeenCalledWith(`/zh/login?${new URLSearchParams({returnTo:target})}`));expect(m.refresh).not.toHaveBeenCalled();expect(fetcher).toHaveBeenCalledTimes(1);expect(screen.queryByRole('link',{name:'打开工单'})).toBeNull();
 });

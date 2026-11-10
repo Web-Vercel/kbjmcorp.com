@@ -71,3 +71,5 @@
 已发布账单客户交接沿用001–036，见 [CLIENT_STATEMENT_HANDOFF.md](CLIENT_STATEMENT_HANDOFF.md)。按正式账单显示客户查阅确认与可复制访问链接；链接不授权、不发送，也不代确认。主流程与逐份状态共同拒绝重复/不完整查阅资料，避免误报全部已阅。
 
 客户账单登录后返回沿用001–036，见 [CLIENT_STATEMENT_LOGIN_RETURN.md](CLIENT_STATEMENT_LOGIN_RETURN.md)。账单链接在未登录时保留已验证的账单筛选，验证后回到原账单；只允许客户账单页，不改变身份验证或企业财务授权。隐藏Preview测试入口仍不公开链接。
+
+账单工单会话衔接沿用001–036，见 [SERVICE_SESSION_CONTINUITY.md](SERVICE_SESSION_CONTINUITY.md)。未登录打开工单、回复会话过期及切换语言时保留工单与关联账单；不把正文放入返回网址，不自动补发或代确认。员工登录与企业权限边界保持。

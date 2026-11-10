@@ -4,7 +4,7 @@
 
 ## 限制范围
 
-只接受 `/zh/account/statements` 和 `/en/account/statements`。只保留 wallet、month、statement，校验UUID与自然月格式；拒绝外部网址、协议相对地址、后台/其他页面、控制字符、反斜线、重复或未知参数及不匹配锚点。目标在服务端登录页和客户端登录成功处分别校验；无效时回到原默认客户中心。中英文切换将合法目标改为当前语言，企业申请流程仍优先回到申请页。
+账单分支只接受 `/zh/account/statements` 和 `/en/account/statements`。后续受限工单分支见 [SERVICE_SESSION_CONTINUITY.md](SERVICE_SESSION_CONTINUITY.md)，不开放其他路由。只保留 wallet、month、statement，校验UUID与自然月格式；拒绝外部网址、协议相对地址、后台/其他页面、控制字符、反斜线、重复或未知参数及不匹配锚点。目标在服务端登录页和客户端登录成功处分别校验；无效时回到原默认客户中心。中英文切换将合法目标改为当前语言，企业申请流程仍优先回到申请页。
 
 这只是导航，不登录、不授予成员/财务权限，也不执行查阅确认。原客户RPC继续核查实际权限，错误或无权访问不会因URL而放开。短信、CAPTCHA、限流与认证请求字段保持原样。
 
