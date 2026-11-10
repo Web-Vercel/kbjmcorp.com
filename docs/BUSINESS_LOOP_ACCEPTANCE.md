@@ -57,3 +57,5 @@
 结算页现保留企业/月筛选、同口径资金核算与账单问题提示，并提供逐份发布预览、有效回执确认和30秒未知结果核查，见 [SETTLEMENT_PUBLICATION_FEEDBACK.md](SETTLEMENT_PUBLICATION_FEEDBACK.md)。沿用001–036，无新增迁移或审批。
 
 公司间CAD核销汇总与内部CSV报告沿用001–036，无新增迁移，见 [CAD_ALLOCATION_REPORT.md](CAD_ALLOCATION_REPORT.md)。按账单月份计分配，跨月整笔到账与历史版本不重复计为本月付款；原始客户资金保持独立。
+
+本账号月结待办沿用001–036，无新增迁移或审批，见 [MONTH_CLOSE_TASKS.md](MONTH_CLOSE_TASKS.md)。顶部按当前账号权限区分可办理、等待其他角色、条件待确认与已发布回执，并跳到原账户卡片；不将发布等同于整体验收完成。

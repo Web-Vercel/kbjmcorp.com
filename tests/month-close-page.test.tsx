@@ -20,3 +20,11 @@ it('offers an internal checklist only after all report dependencies are validate
  let html=await render();expect(html).toContain('下载内部月结办理清单（CSV）');expect(html).not.toContain('disabled=""');
  m.rpc.mockImplementation(async(name:string)=>name==='get_month_close_overview'?{data:overview,error:null}:{data:null,error:{message:'PRIVATE ERROR'}});html=await render();expect(html).toContain('disabled=""');expect(html).toContain('暂不提供清单下载');expect(html).not.toContain('PRIVATE ERROR');
 });
+
+
+it('connects role-specific tasks to the exact account card without adding RPC calls',async()=>{
+ const original=m.rpc.getMockImplementation()!;
+ m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{error:null,data:{...overview,accounts:[{...overview.accounts[0],stage:'settlement_review_needed',draft_prepared_by_me:true,statement_id:null}]}}:original(name,...args));
+ const html=await render();expect(html).toContain('本账号月结待办');expect(html).toContain('本人已制单，须由另一账号独立复核');expect(html).toContain(`href="#month-close-account-${id}"`);expect(html).toContain(`id="month-close-account-${id}"`);
+ expect(m.rpc.mock.calls.map(c=>c[0]).sort()).toEqual(['get_month_close_overview','get_statement_question_workbench']);
+});
