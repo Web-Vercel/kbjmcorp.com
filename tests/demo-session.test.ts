@@ -17,3 +17,8 @@ it('rejects forged, tampered or cross-role sessions and revokes on removal or cr
 it('fails closed on malformed configuration, duplicate names and reused authentication secrets',()=>{
  for(const json of ['invalid',JSON.stringify([accounts[0],accounts[0]]),JSON.stringify([{...accounts[0],role:'admin'}]),JSON.stringify([{...accounts[0],passwordHash:'plain-password'}])]){vi.stubEnv('DEMO_ACCOUNTS_JSON',json);expect(demoConfig()).toBeNull();}vi.stubEnv('DEMO_ACCOUNTS_JSON',JSON.stringify(accounts));vi.stubEnv('DEMO_SESSION_SECRET','r'.repeat(40));expect(demoConfig()).toBeNull();
 });
+
+it('limits training to assigned tracks, denies arbitrary tracks and revokes sessions when tracks change',async()=>{
+ const training={...accounts[2],username:'training-demo',role:'training',trainingTracks:['finance_reviewer']};vi.stubEnv('DEMO_ACCOUNTS_JSON',JSON.stringify([training]));const logged=(await demoLogin('training-demo',password,now))!;expect(demoSession(logged.token,now)).toMatchObject({role:'training',trainingTracks:['finance_reviewer']});vi.stubEnv('DEMO_ACCOUNTS_JSON',JSON.stringify([{...training,trainingTracks:['sales']}]));expect(demoSession(logged.token,now)).toBeNull();
+ for(const a of [{...training,trainingTracks:['admin']},{...training,role:'investor'},{...training,trainingTracks:['sales','sales']}]){vi.stubEnv('DEMO_ACCOUNTS_JSON',JSON.stringify([a]));expect(demoConfig()).toBeNull();}
+});

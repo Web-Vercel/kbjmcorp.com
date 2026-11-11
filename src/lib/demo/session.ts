@@ -2,11 +2,12 @@ import 'server-only';
 import {createHmac,createHash,timingSafeEqual,scrypt as derive} from 'node:crypto';
 import {promisify} from 'node:util';
 import {z} from 'zod';
+import {demoCookie,trainingTracks} from './policy';
+export {demoCookie};
 const scrypt=promisify(derive);
-export const demoCookie='zhidian_demo_session';
-export const demoRole=z.enum(['investor','client','sales']);
+export const demoRole=z.enum(['investor','client','training','sales']);
 export type DemoRole=z.infer<typeof demoRole>;
-const account=z.object({username:z.string().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/),role:demoRole,salt:z.string().regex(/^[a-f0-9]{32}$/),passwordHash:z.string().regex(/^[a-f0-9]{128}$/),expiresAt:z.iso.datetime()});
+const account=z.object({username:z.string().regex(/^[a-z0-9][a-z0-9._-]{2,63}$/),role:demoRole,salt:z.string().regex(/^[a-f0-9]{32}$/),passwordHash:z.string().regex(/^[a-f0-9]{128}$/),expiresAt:z.iso.datetime(),trainingTracks:z.array(z.enum(trainingTracks)).min(1).max(4).optional()}).superRefine((a,ctx)=>{if(a.trainingTracks&&(a.role!=='training'||new Set(a.trainingTracks).size!==a.trainingTracks.length))ctx.addIssue({code:'custom',message:'Invalid training assignment'});});
 const payload=z.object({username:z.string(),role:demoRole,version:z.string().length(64),expires:z.number().int().positive()});
 export function demoConfig(){
  if(process.env.DEMO_LOGIN_ENABLED!=='true')return null;
@@ -27,5 +28,5 @@ export function demoSession(token:string|undefined,now=Date.now()){
  const config=demoConfig();if(!config||!token||token.length>2048)return null;
  try{const [body,signature,...extra]=token.split('.');if(extra.length||!body||!signature)return null;const expected=createHmac('sha256',config.secret).update(body).digest();const received=Buffer.from(signature,'base64url');if(received.length!==expected.length||!timingSafeEqual(received,expected))return null;
  const p=payload.parse(JSON.parse(Buffer.from(body,'base64url').toString()));const a=config.accounts.find(a=>a.username===p.username);if(!a||p.role!==a.role||p.version!==version(a)||p.expires<=now||p.expires>now+8*3600000||Date.parse(a.expiresAt)<p.expires)return null;
- return {username:p.username,role:p.role,expires:p.expires};}catch{return null;}
+ return {username:p.username,role:p.role,expires:p.expires,trainingTracks:a.role==='training'?(a.trainingTracks??['sales']):[]};}catch{return null;}
 }

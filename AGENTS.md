@@ -15,3 +15,6 @@ The user explicitly authorized four platform menu entries, homepage logos and sl
 
 ## Business workspace language — 2026-11-10
 Use clear, concise business language in authenticated operational pages. Keep migration numbers, test-database setup and branch-specific deployment instructions in technical documentation rather than routine business prompts. Preserve accurate draft, review, publication, connection and payment states. Keep explicit fictional-data notices on demonstrations and actual acceptance/test modes; never hide those notices or relabel stored test records as real. Production versus Preview alone does not determine whether data is fictional.
+
+## Demo roles and Production boundary — 2026-11-11
+Investor demos are read-only. Customer experience and assigned employee training may only mutate fictional page-local data. Training completion must not grant real staff rights; real onboarding and authorization are separate. While a demo cookie is present, real workspace pages and real APIs must fail closed even if a real user session also exists in that browser. Keep demo exit available for expired or disabled invitations. Preserve independent preparation/review/publication in training explanations and real workflows.
