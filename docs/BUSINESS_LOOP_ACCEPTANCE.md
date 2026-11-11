@@ -98,3 +98,5 @@
 报价归档/恢复反馈沿用001–037，见 [QUOTE_ARCHIVE_FEEDBACK.md](QUOTE_ARCHIVE_FEEDBACK.md)。确认原报价及归档状态修订号，超时保留说明；核查链接包含已归档记录，保持原版本冲突保护，不删除历史、不修改余额。统一财务验收现为158项。
 
 广告来源交接回执沿用001–037，见 [ADS_SOURCE_SHARE_FEEDBACK.md](ADS_SOURCE_SHARE_FEEDBACK.md)。确认原快照及交接编号，定位财务来源和同一快照的月度核实位置；未知结果保留选项及说明，不把交接当核实、发布或扣费。统一财务验收现为180项。
+
+整月活动覆盖核实与复核回执沿用001–037，见 [MONTHLY_COVERAGE_FEEDBACK.md](MONTHLY_COVERAGE_FEEDBACK.md)。登记只确认原依据ID，不把重试返回的旧记录误报为当前待复核；通过/退回校验原ID和决定，超时保留原件指纹与输入。统一财务验收现为207项。

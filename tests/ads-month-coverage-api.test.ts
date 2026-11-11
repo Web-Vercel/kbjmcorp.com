@@ -15,3 +15,10 @@ it('requires same-origin confirmation, a file fingerprint, and staff MFA',async(
 it('returns a bounded discrepancy response without raw source data',async()=>{
  m.rpc.mockResolvedValue({error:{code:'23514',message:'PRIVATE SOURCE BODY'}});const r=await POST(req());expect(r.status).toBe(400);expect(await r.json()).toEqual({error:'coverage_difference'});
 });
+it('returns the evidence ID and registration stage without claiming the current review status',async()=>{
+ expect(await (await POST(req())).json()).toEqual({ok:true,checkId:id,snapshotId:id,stage:'submitted'});
+ const r=await POST(req({action:'review',checkId:id,decision:'approved',note:'Independent fictional review',confirm:'on'}));expect(await r.json()).toEqual({ok:true,checkId:id,stage:'approved'});
+});
+it('refuses to confirm invalid evidence identifiers',async()=>{
+ for(const data of [null,'invalid',{id}]){m.rpc.mockResolvedValueOnce({data,error:null});const r=await POST(req());expect(r.status).toBe(502);expect(await r.json()).toEqual({error:'coverage_unconfirmed'});}
+});

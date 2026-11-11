@@ -1,6 +1,6 @@
 # 财务闭环回归验收
 
-运行 `npm run test:finance-loop`。本命令将既有数据库边界、银行到账、主流程贯穿、付款通知API/表单与资金页面的核心测试集中运行。当前22个文件、180项全部通过；类型检查通过。这是选定闭环测试集合，不代表全仓库所有测试或真实业务人工验收已经完成。
+运行 `npm run test:finance-loop`。本命令将既有数据库边界、银行到账、主流程贯穿、付款通知API/表单与资金页面的核心测试集中运行。当前27个文件、207项全部通过；类型检查通过。这是选定闭环测试集合，不代表全仓库所有测试或真实业务人工验收已经完成。
 
 全部测试使用本地PGlite空库、虚构企业/客户/银行依据，或模拟认证/网络响应。不读取真实广告密钥，不发送短信，不登记真实银行到账，不向Preview数据库写数据。
 
@@ -33,3 +33,5 @@
 报价归档/恢复回执、管理员界面边界及状态修订号验证现已加入同一命令，见 [QUOTE_ARCHIVE_FEEDBACK.md](QUOTE_ARCHIVE_FEEDBACK.md)。
 
 来源交接回执、绑定/快照范围和月结/运营期间导航已纳入同一命令，见 [ADS_SOURCE_SHARE_FEEDBACK.md](ADS_SOURCE_SHARE_FEEDBACK.md)。
+
+整月覆盖依据登记、独立复核、记录定位及原月结数据库规则已纳入同一命令，见 [MONTHLY_COVERAGE_FEEDBACK.md](MONTHLY_COVERAGE_FEEDBACK.md)。

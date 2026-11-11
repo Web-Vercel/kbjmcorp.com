@@ -125,6 +125,7 @@ it('keeps empty reads unknown until independent evidence review, distinguishing 
  const request=randomUUID();const checked=await coverageSubmit(f,'not_active','1','2024-02-01','0','0',request);const id=String(checked.rows[0].id);expect((await coverageSubmit(f,'not_active','1','2024-02-01','0','0',request)).rows).toEqual(checked.rows);
  await expect(coverageReview(id,'1')).rejects.toThrow(/Independent authorized reviewer/);await expect(coverageReview(id,'4')).rejects.toThrow(/Independent authorized reviewer/);
  expect((await sourceProjection(f.snapshot)).settlement_ready).toBe(false);await coverageReview(id);await coverageReview(id);
+ expect((await coverageSubmit(f,'not_active','1','2024-02-01','0','0',request)).rows).toEqual(checked.rows);
  const view=await sourceProjection(f.snapshot);expect(view.settlement_ready).toBe(true);expect(view.coverage_kind).toBe('not_active');expect((view.effective_daily as Array<Record<string,unknown>>)[0].origin).toBe('not_active');
  const draft=String((await prepare(f)).rows[0].id);expect((await db.query('select coverage_kind,coverage_check_id from public.monthly_settlement_drafts where id=$1',[draft])).rows).toEqual([{coverage_kind:'not_active',coverage_check_id:id}]);
  await expect(db.exec('delete from public.ads_monthly_coverage_checks')).rejects.toThrow(/immutable/);await expect(db.exec('delete from public.ads_monthly_coverage_reviews')).rejects.toThrow(/immutable/);

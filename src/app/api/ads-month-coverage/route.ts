@@ -12,6 +12,7 @@ export async function POST(request:Request){
  try{
  const result=p.action==='submit'?await staff.client.rpc('submit_ads_month_coverage',{p_snapshot:p.snapshotId,p_request:p.requestId,p_kind:p.kind,p_amount:spendMicros(p.amount),p_impressions:p.impressions,p_clicks:p.clicks,p_evidence:p.evidence,p_hash:p.hash,p_active_from:p.activeFrom||null,p_note:p.note}):await staff.client.rpc('review_ads_month_coverage',{p_check:p.checkId,p_decision:p.decision,p_note:p.note});
  if(result.error){const code=result.error.code;return authResponse({error:code==='42501'?'forbidden':code==='40001'||code==='23505'?'conflict':code==='23514'?'coverage_difference':code==='22023'?'coverage_input':'save_failed'},code==='42501'?403:code==='40001'||code==='23505'?409:code==='23514'||code==='22023'?400:502);}
- return authResponse({ok:true});
+ if(p.action==='submit'){if(!z.uuid().safeParse(result.data).success)return authResponse({error:'coverage_unconfirmed'},502);return authResponse({ok:true,checkId:result.data,snapshotId:p.snapshotId,stage:'submitted'});}
+ return authResponse({ok:true,checkId:p.checkId,stage:p.decision});
  }catch{return authResponse({error:'unavailable'},503);}
 }
