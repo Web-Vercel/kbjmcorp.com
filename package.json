@@ -24,7 +24,7 @@
     "staff:check": "node scripts/check-staff-readiness.mjs",
     "test:client-email": "node scripts/client-email-test-smoke.mjs",
     "test:business-loop": "vitest run tests/business-loop-acceptance.test.ts",
-    "test:finance-loop": "vitest run tests/admin-database.test.ts tests/bank-receipt-acceptance.test.ts tests/business-loop-acceptance.test.ts tests/billing-api.test.ts tests/topup-form.test.tsx tests/billing.test.tsx tests/bank-receipt-form.test.tsx tests/collections-api.test.ts tests/collections-test-mode-api.test.ts tests/collections-scope-page.test.tsx"
+    "test:finance-loop": "vitest run tests/admin-database.test.ts tests/bank-receipt-acceptance.test.ts tests/business-loop-acceptance.test.ts tests/billing-api.test.ts tests/topup-form.test.tsx tests/billing.test.tsx tests/bank-receipt-form.test.tsx tests/collections-api.test.ts tests/collections-test-mode-api.test.ts tests/collections-scope-page.test.tsx tests/quote-save-feedback.test.tsx tests/agency-quote-ui.test.tsx tests/quote-snapshot-api.test.ts tests/quote-snapshot-database.test.ts tests/quote-lifecycle-database.test.ts tests/pricing-workflow-page.test.tsx"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

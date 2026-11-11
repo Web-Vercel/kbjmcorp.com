@@ -92,3 +92,5 @@
 统一财务闭环回归使用 `npm run test:finance-loop`，见 [FINANCE_LOOP_REGRESSION.md](FINANCE_LOOP_REGRESSION.md)。上轮记录的6项旧测试预期与角色夹具问题已修复，72项原数据库测试全部保留并通过；合并付款通知、银行到账及业务贯穿共102项通过。未修改SQL、接口或权限，也不代表已代办真实业务人工验收。
 
 到账制单与独立复核回执沿用001–037，见 [BANK_RECEIPT_SUBMISSION_FEEDBACK.md](BANK_RECEIPT_SUBMISSION_FEEDBACK.md)。不再只提示已保存；编号可定位原记录，区分待复核/已入账/拒绝，超时保留输入核查。统一财务闭环验收现覆盖123项，未新增SQL或审批。
+
+报价保存反馈沿用001–037，见 [QUOTE_SAVE_FEEDBACK.md](QUOTE_SAVE_FEEDBACK.md)。保存期间锁定输入，未知结果保留原试算/请求编号，避免将旧保存回执归到新输入；服务器和前端均验证报价ID，不改变收费规则或余额。
