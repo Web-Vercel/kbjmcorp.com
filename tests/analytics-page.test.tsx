@@ -1,0 +1,10 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {analyticsFixture} from './fixtures/analytics';
+const m=vi.hoisted(()=>({read:vi.fn()}));vi.mock('@/lib/analytics/server',()=>({readAnalytics:m.read}));vi.mock('next/navigation',()=>({notFound:()=>{throw Error('not_found')},redirect:(url:string)=>{throw Error(url)}}));vi.mock('@/components/SignOutButton',()=>({default:()=> <button>Sign out</button>}));
+import Page from '@/app/[locale]/access/analytics/page';
+const render=async()=>renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({})}));
+beforeEach(()=>{m.read.mockReset();});
+it('does not substitute zeros or show charts when analytics cannot be loaded',async()=>{m.read.mockResolvedValue({error:'unavailable',status:503});const html=await render();expect(html).toContain('分析数据暂不可用');expect(html).not.toContain('<svg');expect(html).not.toContain('CNY 0.00');});
+it('routes anonymous and MFA-required visitors to the correct sign-in step',async()=>{m.read.mockResolvedValue({error:'unauthenticated'});await expect(render()).rejects.toThrow('/zh/access/login');m.read.mockResolvedValue({error:'mfa_required'});await expect(render()).rejects.toThrow('/zh/access/security');});
+it('renders real role-specific data with date filtering and read-only analysis actions',async()=>{m.read.mockResolvedValue({data:analyticsFixture('client'),context:{label:'CLIENT FIXTURE',organization_name:'ASSIGNED COMPANY'}});const html=await render();expect(html).toContain('经营与广告分析');expect(html).toContain('ASSIGNED COMPANY');expect(html).toContain('method="GET"');expect(html).not.toContain('USD');expect(html).not.toContain('spendMicros');});
