@@ -15,6 +15,6 @@ export async function POST(request:Request){
  const result=await staff.client.rpc('publish_monthly_statement',{p_draft:p.data.draftId,p_summary:p.data.summary,p_expected:expected});
  if(result.error){const code=result.error.code;return authResponse({error:code==='42501'?'forbidden':code==='23505'?'already_posted':code==='P0003'?'insufficient_balance':code==='P0002'?'wallet_required':code==='40001'?'conflict':code==='23514'?'source_not_ready':'save_failed'},code==='42501'?403:code==='23505'||code==='40001'?409:code==='P0003'||code==='P0002'||code==='23514'?400:502);}
  if(!z.uuid().safeParse(result.data).success)return authResponse({error:'unavailable'},503);
- return authResponse({ok:true,id:result.data});
+ return authResponse({ok:true,id:result.data,draftId:p.data.draftId,organizationId:parsed.data.organization_id,period:parsed.data.period});
  }catch{return authResponse({error:'unavailable'},503);}
 }

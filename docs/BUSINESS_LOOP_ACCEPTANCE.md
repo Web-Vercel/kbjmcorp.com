@@ -102,3 +102,5 @@
 整月活动覆盖核实与复核回执沿用001–037，见 [MONTHLY_COVERAGE_FEEDBACK.md](MONTHLY_COVERAGE_FEEDBACK.md)。登记只确认原依据ID，不把重试返回的旧记录误报为当前待复核；通过/退回校验原ID和决定，超时保留原件指纹与输入。统一财务验收现为207项。
 
 六项办理操作与整库验收已合并完成，沿用001–037，见 [CLOSED_LOOP_BATCH_ACCEPTANCE.md](CLOSED_LOOP_BATCH_ACCEPTANCE.md)。CAD登记/复核/撤销申请/撤销复核与账户归属/交接访问都有原操作回执、未知结果输入保留和定位入口；完整仓库137文件778项全部通过，构建及24个隔离浏览器场景通过。Preview只读核查被环境网络403阻止，不据此声称已部署或真实业务已完成。
+
+月结制单、独立复核、正式发布三项操作已统一强化，沿用001–037，见 [MONTHLY_PROCESS_RECEIPTS.md](MONTHLY_PROCESS_RECEIPTS.md)。回执逐项匹配来源/报价/草稿/决定及服务器企业月份，成功不自动刷新、超时保留说明并在新页核查。全库137文件782项全部通过。

@@ -28,3 +28,7 @@ it('reports insufficient funds and duplicate account months without leaking priv
 it('does not report success for an invalid publication receipt even after the write RPC returns',async()=>{
  m.rpc.mockImplementation((name:string)=>Promise.resolve(name==='get_monthly_publication_input'?{data:{quote_id:id,organization_id:id,period:'2024-01-01',private_snapshot:quote},error:null}:{data:'not-a-receipt-id',error:null}));const response=await POST(req());expect(response.status).toBe(503);expect(await response.json()).toEqual({error:'unavailable'});
 });
+
+it('confirms the original draft and server-derived company/month without exposing private pricing',async()=>{
+ const r=await POST(req());expect(await r.json()).toEqual({ok:true,id,draftId:id,organizationId:id,period:'2024-01-01'});
+});

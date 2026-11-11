@@ -13,6 +13,6 @@ export async function POST(request:Request){
  if(result.error){const code=result.error.code;return authResponse({error:code==='42501'?'forbidden':code==='40001'?'conflict':code==='23514'?'source_not_ready':code==='22023'?'settlement_mismatch':'save_failed'},code==='42501'?403:code==='40001'?409:code==='23514'||code==='22023'?400:502);}
  const draftId=p.action==='prepare'?result.data:p.draftId;
  if(!z.uuid().safeParse(draftId).success)return authResponse({error:'unconfirmed_result'},502);
- return authResponse({ok:true,draftId});
+ return authResponse({ok:true,draftId,receipt:p.action==='prepare'?{action:p.action,draftId,snapshotId:p.snapshotId,quoteId:p.quoteId}:{action:p.action,draftId,decision:p.decision}});
  }catch{return authResponse({error:'unavailable'},503);}
 }
