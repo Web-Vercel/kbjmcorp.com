@@ -86,3 +86,5 @@
 月结账户办理列表筛选沿用001–037，见 [MONTH_CLOSE_ACCOUNT_FILTER.md](MONTH_CLOSE_ACCOUNT_FILTER.md)。仅筛选账户卡片，整月资金、主流程与导出清单始终使用全部账户；待办链接可返回全部列表定位隐藏账户。
 
 客户资金对账登录返回沿用001–037，见 [CLIENT_FUNDS_LOGIN_RETURN.md](CLIENT_FUNDS_LOGIN_RETURN.md)。会话过期后保留资金账户和入账月份，中英文切换保持同一对账范围；财务授权仍在登录后独立检查。
+
+客户付款通知回执沿用001–037，见 [PAYMENT_NOTICE_RECEIPTS.md](PAYMENT_NOTICE_RECEIPTS.md)。保存后定位原通知；网络/超时未知结果保留输入，不误报未保存或已到账。文档同时记录扩展运行发现的6项旧数据库测试失败，未放宽权限或修改SQL。
