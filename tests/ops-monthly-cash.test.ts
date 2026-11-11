@@ -5,7 +5,7 @@ let db:PGlite;
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await db.exec(await readFile(new URL('../supabase/bootstrap/new-test-project.sql',import.meta.url),'utf8'));
- await db.exec(await readFile(new URL('../supabase/migrations/015_ops_monthly_cash.sql',import.meta.url),'utf8'));
+ // Bootstrap already includes this migration; do not apply it twice.
  await db.exec(`insert into auth.users(id) values('a0000000-0000-4000-8000-000000000001');insert into public.staff_members(user_id,role) values('a0000000-0000-4000-8000-000000000001','admin');
  insert into public.organizations(id,name) values('b0000000-0000-4000-8000-000000000001','Fictional cash client');
  insert into public.client_wallets(id,organization_id,currency) values('c0000000-0000-4000-8000-000000000001','b0000000-0000-4000-8000-000000000001','CNY');

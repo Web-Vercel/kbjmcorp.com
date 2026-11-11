@@ -5,7 +5,7 @@ let db:PGlite;let probe:string;
 beforeAll(async()=>{
  db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
  await db.exec(await readFile(new URL('../supabase/bootstrap/new-test-project.sql',import.meta.url),'utf8'));
- await db.exec(await readFile(new URL('../supabase/migrations/014_ops_cash_summary.sql',import.meta.url),'utf8'));
+ // Bootstrap already includes this migration; do not apply it twice.
  probe=await readFile(new URL('../supabase/tests/bank-receipt-acceptance.sql',import.meta.url),'utf8');
 },30000);
 afterAll(async()=>{await db?.close();});

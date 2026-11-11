@@ -35,3 +35,7 @@
 来源交接回执、绑定/快照范围和月结/运营期间导航已纳入同一命令，见 [ADS_SOURCE_SHARE_FEEDBACK.md](ADS_SOURCE_SHARE_FEEDBACK.md)。
 
 整月覆盖依据登记、独立复核、记录定位及原月结数据库规则已纳入同一命令，见 [MONTHLY_COVERAGE_FEEDBACK.md](MONTHLY_COVERAGE_FEEDBACK.md)。
+
+六项办理操作批次已将CAD登记、复核、撤销、账户归属以及全局/月度资金汇总加入同一命令，详见 [CLOSED_LOOP_BATCH_ACCEPTANCE.md](CLOSED_LOOP_BATCH_ACCEPTANCE.md)。全库另行运行137文件778项全部通过。首次全库发现的两处014/015重复初始化已只在测试夹具修正；保留资金断言及原数据库脚本。
+
+本批统一财务验收结果：`npm run test:finance-loop`，37个文件、241项全部通过。

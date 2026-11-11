@@ -13,3 +13,7 @@ export const upstreamPaymentWorkbench=z.object({reversal_enabled:z.boolean().def
 export type PaymentStatement=z.infer<typeof upstreamPaymentWorkbench>['statements'][number];
 
 export type PaymentRecord=z.infer<typeof upstreamPaymentWorkbench>['payments'][number];
+
+// Operation receipts confirm the original action, not the current bank or allocation state.
+export const upstreamActionReceipt=z.object({id:z.uuid(),action:z.enum(['submit','review','reversal_submit','reversal_review']),stage:z.enum(['registered','approved','rejected']),organizationId:z.uuid().optional(),paymentId:z.uuid().optional()});
+export type UpstreamActionReceipt=z.infer<typeof upstreamActionReceipt>;

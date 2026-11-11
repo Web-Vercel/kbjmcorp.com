@@ -17,3 +17,9 @@ it('submits and reviews whole-batch reversals without trusting browser amounts',
  await POST(req({action:'reversal_review',reversalId:id,decision:'approved',note:'Independent correction review',confirm:'on'}));expect(m.rpc).toHaveBeenLastCalledWith('review_upstream_reversal',{p_reversal:id,p_decision:'approved',p_note:'Independent correction review'});
  m.rpc.mockResolvedValueOnce({data:null,error:{code:'23514',message:'PRIVATE'}});const failed=await POST(req({action:'reversal_submit',paymentId:id,requestId:id,reason:'Correct evidence',evidence:'CONTROLLED ORIGINAL',hash:'b'.repeat(64),confirm:'on'}));expect(await failed.json()).toEqual({error:'upstream_reversal_invalid'});
 });
+it('returns action-bound receipts and rejects malformed create IDs',async()=>{
+ let r=await POST(req(input));expect((await r.json()).receipt).toEqual({id,action:'submit',stage:'registered',organizationId:id});
+ r=await POST(req({action:'review',paymentId:id,decision:'approved',note:'Checked independent review',confirm:'on'}));expect((await r.json()).receipt).toEqual({id,action:'review',stage:'approved'});
+ r=await POST(req({action:'reversal_submit',paymentId:id,requestId:id,reason:'Correct original allocation',evidence:'Original reversal record',hash:'b'.repeat(64),confirm:'on'}));expect((await r.json()).receipt).toEqual({id,action:'reversal_submit',stage:'registered',paymentId:id});
+ for(const data of [null,'invalid',{id}]){m.rpc.mockResolvedValueOnce({data,error:null});expect((await POST(req(input))).status).toBe(502);}
+});

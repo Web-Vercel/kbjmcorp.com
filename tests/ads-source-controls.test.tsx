@@ -31,3 +31,6 @@ it('does not offer a verification shortcut for paused handoffs',async()=>{
  render(await AdsSourceControls({client:client({...binding,active:false},[{snapshot_id:monthly.id}]),locale:'zh',accountId:'adacct_fictional',snapshots:[monthly],expectedCompany:company,month:'2026-10'}));
  expect(screen.queryByRole('link',{name:'查看整月活动覆盖核实'})).toBeNull();
 });
+it('pins new ownership choices to the explicitly selected workbench company',async()=>{
+ render(await AdsSourceControls({client:client(),locale:'zh',accountId:'adacct_fictional',snapshots:[snapshot],expectedCompany:company,month:'2026-10'}));const select=screen.getByLabelText('实际获授权的客户企业') as HTMLSelectElement;expect(select.value).toBe('');expect([...select.options].filter(o=>o.value).map(o=>o.value)).toEqual([company]);
+});
