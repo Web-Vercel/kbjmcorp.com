@@ -2,7 +2,7 @@ import {monthCloseOverview} from '@/lib/operations/month-close-overview';
 import {buildCadAllocationReport,cadAllocationReportCsv} from '@/lib/operations/cad-allocation-report';
 import {publicationPreview} from '@/lib/operations/publication-preview';
 import {monthFunding} from '@/lib/operations/month-funding';
-import {buildMonthCloseChecklist,monthCloseChecklistCsv} from '@/lib/operations/month-close-checklist';
+import {buildMonthCloseChecklist,monthCloseChecklistCsv,monthClosure} from '@/lib/operations/month-close-checklist';
 import {statementQuestionWorkbench} from '@/lib/operations/statement-questions';
 import {statementReadStatus} from '@/lib/billing/statement-read';
 import {PGlite} from '@electric-sql/pglite';
@@ -100,6 +100,34 @@ it('runs one fictional case through verified bank credit, source, quote, client 
  expect((await as('3',"select public.get_statement_read_status($1,'2024-01-01') data",[org])).data).toEqual(clientRead);
 },30000);
 
+it('finishes the complete loop after correcting an allocation and resolving billing follow-up, then detects reopening',async()=>{
+ const balance=(await overview()).balance_minor;const entries=(await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n;
+ const state=async()=>{const report=buildMonthCloseChecklist({organizationId:org,organizationName:'FICTIONAL FINAL ACCEPTANCE',month:'2024-01-01',overview:await overview(),payments:(await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data,reads:(await as('3',"select public.get_statement_read_status($1,'2024-01-01') data",[org])).data,questions:(await as('3',"select public.get_statement_question_workbench($1,'2024-01-01') data",[org])).data,generatedAt:new Date().toISOString()});expect(report).not.toBeNull();return monthClosure(report,{organizationId:org,month:'2024-01-01'});};
+ expect((await state()).state).toBe('followup');
+ const original=(await db.query<{id:string}>("select id from public.upstream_payment_records where bank_reference='FICTIONAL-CAD-RECEIPT' order by revision desc limit 1")).rows[0].id;
+ const reversal=(await as('2',"select public.submit_upstream_reversal($1,$2,'FICTIONAL CORRECTION','FICTIONAL CORRECTION EVIDENCE',$3) id",[original,randomUUID(),'b'.repeat(64)])).id;
+ expect((await state()).state).toBe('pending');
+ await as('3',"select public.review_upstream_reversal($1,'approved','Independent correction evidence checked')",[reversal]);
+ expect((await state()).state).toBe('pending');
+ const args=[randomUUID(),org,'a'.repeat(64),JSON.stringify([{statementId:originalStatement,amountMinor:'11000'}])];
+ const payment=(await as('2',"select public.submit_upstream_payment($1,$2,'FICTIONAL-CAD-RECEIPT','2024-02-01','11000','FICTIONAL CORRECTED BANK ORIGINAL',$3,'Corrected independently verified original receipt',$4) id",args)).id;
+ await expect(as('2',"select public.review_upstream_payment($1,'approved','Self review forbidden')",[payment])).rejects.toThrow(/Forbidden|Independent/);
+ await as('3',"select public.review_upstream_payment($1,'approved','Corrected evidence and allocation checked')",[payment]);
+ await as('3',"select public.review_upstream_payment($1,'approved','Corrected evidence and allocation checked')",[payment]);
+ expect((await state()).state).toBe('followup');
+ const question=(await db.query<{id:string}>("select id from public.service_requests where statement_id=$1 and status='open'",[originalStatement])).rows[0].id;
+ await as('3',"select public.reply_service_request_once($1,$2,'Original charges explained and checked.','resolved')",[question,randomUUID()]);
+ expect(await state()).toMatchObject({state:'complete',accounts:1,published:1,acknowledged:1,allocated:1,unresolved:0});
+ await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','viewer')",[org]);
+ await as('4',"select public.reply_service_request_once($1,$2,'Please clarify one more agreed fee item.','resolved')",[question,randomUUID()]);
+ expect((await state()).state).toBe('followup');
+ await as('3',"select public.reply_service_request_once($1,$2,'Additional agreed fee clarification recorded.','resolved')",[question,randomUUID()]);
+ expect((await state()).state).toBe('complete');
+ expect((await overview()).balance_minor).toBe(balance);expect((await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n).toBe(entries);
+ // Leave a deliberate new follow-up for the existing pending-work priority checks below.
+ await as('4',"select public.reply_service_request_once($1,$2,'A further clarification remains for the follow-up workbench.','resolved')",[question,randomUUID()]);expect((await state()).state).toBe('followup');
+},30000);
+
 it('aggregates all advertisers in the latest wallet month and can locate an older statement by exact ID',async()=>{
  await as('1',"select public.set_crm_finance_access($1,'a0000000-0000-4000-8000-000000000004','viewer')",[org]);
  const canada={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:0,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};const china={...canada,mode:'fixed' as const,fixedMinor:'100',waiveWhenZero:false};
@@ -168,7 +196,7 @@ it('reveals combined funding gaps and preserves the database guard when one of t
 },30000);
 
 it('exports actual CAD allocation state before and after a whole-batch reversal without changing client funds',async()=>{
- const payment=(await db.query<{id:string}>("select id from public.upstream_payment_records where bank_reference='FICTIONAL-CAD-RECEIPT'")).rows[0].id;
+ const payment=(await db.query<{id:string}>("select id from public.upstream_payment_records where bank_reference='FICTIONAL-CAD-RECEIPT' order by revision desc limit 1")).rows[0].id;
  const beforeBalance=(await overview()).balance_minor;const countBefore=(await db.query<{n:number}>('select count(*)::int n from public.wallet_entries')).rows[0].n;
  const read=async()=>buildCadAllocationReport({organizationId:org,organizationName:'FICTIONAL CAD REPORT',month:'2024-01-01',data:(await as('3',"select public.get_upstream_payment_workbench($1,'2024-01-01') data",[org])).data,generatedAt:new Date().toISOString()});
  const before=await read();expect(before?.verified_minor).toBe('11000');expect(before?.remaining_minor).toBe('0');expect(cadAllocationReportCsv(before!,true)).toContain('FICTIONAL-CAD-RECEIPT');expect(JSON.stringify(before)).not.toMatch(/FICTIONAL CAD BANK ORIGINAL|prepared_by|evidence_sha256/);

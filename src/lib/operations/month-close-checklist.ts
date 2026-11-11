@@ -44,13 +44,14 @@ export function buildMonthCloseChecklist(input:{organizationId:string;organizati
 }
 function csvCell(v:string){return `"${(/^[\s\uFEFF]*[=+\-@]/.test(v)?"'"+v:v).replaceAll('"','""')}"`;}
 export function monthCloseChecklistCsv(input:MonthCloseChecklist,zh:boolean){
- const s=monthCloseChecklistSchema.parse(input),t=(cn:string,en:string)=>zh?cn:en;
+ const s=monthCloseChecklistSchema.parse(input),closure=monthClosure(input,{organizationId:input.organization_id,month:input.month}),t=(cn:string,en:string)=>zh?cn:en;
  const amount=(v:string|null)=>v===null?'':fundsAmount(v),time=(v:string|null)=>v===null?'':statementPublishedAt(v,zh);
  const rows=[
  [t('内部月结办理清单','Internal month-close checklist')],
  [t('用途','Purpose'),t('内部财务留档与交接，不是客户账单、税务发票或结清证明；下载不批准、扣款、汇款或锁定数据。','Internal finance handoff, not a client bill, tax invoice or settlement certificate. Downloading does not approve, charge, remit or lock data.')],
  [t('企业','Company'),s.organization_name],[t('企业编号','Company ID'),s.organization_id],[t('结算月份','Settlement month'),s.month.slice(0,7)],[t('清单生成时间','Checklist generated at'),time(s.generated_at)],
  [t('读取口径','Read basis'),t('各模块读取页面查询结果，可能因并发更新而变化；以原账单、流水和复核记录为准。','Based on page query results from separate modules, subject to concurrent updates. Original statements, ledger entries and reviews are authoritative.')],
+ [t('本月系统记录闭环状态','Monthly system-record completion'),closureLabel(closure.state,zh)],
  [t('资金账户','CNY wallet'),s.wallet_id||t('尚未开户','Not opened')],[t('查询时点已入账余额 CNY','Posted balance at query time CNY'),amount(s.balance_minor)],
  [t('待复核到账笔数（查询时点）','Pending receipts at query time'),String(s.pending_receipt_count)],[t('待复核到账金额 CNY（不计入余额）','Pending receipt amount CNY (excluded from balance)'),amount(s.pending_receipt_minor)],
  [t('资金口径说明','Funds basis'),t('以上不是月末余额，也未为草稿预留资金；广告结算月份可能与资金入账月份不同。CNY与CAD分列，不相加。','These are not month-end balances or reserved draft funds. Settlement and posting months may differ. CNY and CAD are separate and must not be added.')],
@@ -63,3 +64,21 @@ export function monthCloseChecklistCsv(input:MonthCloseChecklist,zh:boolean){
  [],[t('空白与核销说明','Blank fields and allocation basis'),t('未发布账户的账单、查阅及核销字段留空，不推断零费用或结清。公司间核销来自系统记录，不代替银行原件，亦不再次扣客户余额。清单不会自动更新。','Statement, reading and allocation fields remain blank for unpublished accounts; do not infer zero costs or settlement. System allocations do not replace bank originals or debit clients again. This file does not update automatically.')],
  ];return '\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n')+'\r\n';
 }
+
+export type ClosureState={state:'complete'|'pending'|'followup'|'unknown';accounts:number;published:number;acknowledged:number;allocated:number;unresolved:number|null};
+// A read-time assessment, not an irreversible close or accounting certificate.
+// Only server-projected, complete and scoped evidence can establish completion.
+export function monthClosure(input:unknown,scope:{organizationId:string;month:string}):ClosureState{
+ const unknown:ClosureState={state:'unknown',accounts:0,published:0,acknowledged:0,allocated:0,unresolved:null};
+ const parsed=monthCloseChecklistSchema.safeParse(input);if(!parsed.success)return unknown;const s=parsed.data;
+ if(s.organization_id!==scope.organizationId||s.month!==scope.month||new Set(s.accounts.map(a=>a.binding_id)).size!==s.accounts.length||s.questions.total_count!==s.questions.open_count+s.questions.in_progress_count+s.questions.resolved_count)return unknown;
+ const posted=s.accounts.filter(a=>a.stage==='published');
+ if(s.accounts.some(a=>a.stage!=='published'&&(a.statement_id!==null||a.posted_total_cny_minor!==null||a.published_at!==null)))return unknown;
+ if(new Set(posted.map(a=>a.statement_id)).size!==posted.length||posted.some(a=>!a.statement_id||!a.source_id||!a.draft_id||!a.published_at||a.posted_total_cny_minor===null||a.posted_total_cny_minor!==a.draft_total_cny_minor||a.confirmation_count===null||a.procurement_cad_minor===null||a.verified_cad_minor===null||a.pending_cad_minor===null||a.reversal_pending===null||(a.confirmation_count===0)!==(a.last_confirmed_at===null)||BigInt(a.verified_cad_minor)>BigInt(a.procurement_cad_minor)))return unknown;
+ const acknowledged=posted.filter(a=>a.confirmation_count!>0).length;
+ const allocated=posted.filter(a=>a.procurement_cad_minor===a.verified_cad_minor&&a.pending_cad_minor==='0'&&!a.reversal_pending).length;
+ const ready=!!s.wallet_id&&posted.length===s.accounts.length&&acknowledged===posted.length&&allocated===posted.length;
+ const unresolved=s.questions.open_count+s.questions.in_progress_count;
+ return {state:!ready?'pending':unresolved?'followup':'complete',accounts:s.accounts.length,published:posted.length,acknowledged,allocated,unresolved};
+}
+export function closureLabel(state:ClosureState['state'],zh:boolean){return ({complete:zh?'本月系统记录已闭环':'Monthly system records complete',pending:zh?'本月仍有业务待办':'Monthly business tasks remain',followup:zh?'主流程已贯通，账单问题仍待跟进':'Main workflow complete; billing follow-up remains',unknown:zh?'闭环状态待核实':'Completion status unconfirmed'})[state];}
