@@ -51,3 +51,9 @@ it('identifies invalid account fields without rendering arbitrary response field
  render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><input name="userId" defaultValue="bad"/></AdminForm>);
  await userEvent.setup().click(screen.getByRole('button',{name:'保存权限'}));await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('用户ID'));expect(screen.getByRole('status').textContent).not.toContain('PRIVATE');
 });
+it('explains demo isolation and provides an explicit exit without retrying the blocked business write',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({error:'demo_only'}),{status:403}));
+ render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><input name="userId" defaultValue="fixture"/></AdminForm>);
+ const user=userEvent.setup();await user.click(screen.getByRole('button',{name:'保存权限'}));await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('浏览器仍处于演示模式'));
+ expect(screen.getByRole('button',{name:'退出演示，返回网站'})).toBeTruthy();expect(fetchMock).toHaveBeenCalledTimes(1);expect(navigation.refresh).not.toHaveBeenCalled();
+});
