@@ -14,3 +14,5 @@ it('binds the exact verified user/email/org with an expected revision and report
 it('rejects investor/customer writes and does not accept an organization override in sales requests',async()=>{
  const body={requestId:id,revision:1,status:'active',note:'Real follow-up fixture'};for(const role of ['investor','client']){m.live.mockResolvedValue({context:{role},client:{rpc:m.rpc}});expect((await followup(req(body))).status).toBe(403);}expect((await followup(req({...body,organizationId:id}))).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled();
 });
+
+it('reports only known account validation reasons without exposing arbitrary database errors',async()=>{for(const [message,error,status] of [['Verified email user required','account_email_unverified',400],['Dedicated scoped identity required','account_conflicting_grants',400],['Account scope is immutable','account_scope_locked',400],['Stale account revision','account_revision_conflict',409]] as const){m.rpc.mockResolvedValue({error:{code:'22023',message}});const r=await manage(req(input));expect(r.status).toBe(status);expect(await r.json()).toEqual({error});}});
