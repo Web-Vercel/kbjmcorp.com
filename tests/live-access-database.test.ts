@@ -34,3 +34,18 @@ it('handles assigned non-financial customer service persistently without opening
  const view=(await as(4,'select public.get_live_workspace() data'))[0].data;expect(view.tickets).toHaveLength(1);expect(JSON.stringify(view)).not.toContain('PRIVATE BILLING');expect(JSON.stringify(view)).not.toContain('OTHER PRIVATE REQUEST');
  await set(4,'sales',false,1);await expect(as(4,'select public.reply_live_customer_service($1,$2,$3,$4)',[request,uid(906),'resolved','Paused reply'])).rejects.toThrow(/unavailable/);await set(4,'sales',true,2);await session(4);
 });
+
+it('provides all-company investor business projections without granting admin access or write rights',async()=>{
+ const {readFile}=await import('node:fs/promises');await db.exec(await readFile(new URL('../supabase/migrations/039_investor_business_readonly.sql',import.meta.url),'utf8'));
+ const {investorCatalog}=await import('@/lib/live-access/investor-catalog');await session(2);
+ const read=async(section:string,offset=0)=> (await as(2,'select public.read_investor_business($1,$2,25) data',[section,offset]))[0].data;
+ const companies=await read('organizations');expect(companies.total).toBe(2);expect(JSON.stringify(companies)).toContain('UNAUTHORIZED COMPANY');
+ for(const section of investorCatalog){const data=await read(section.key);expect(data.section).toBe(section.key);expect(data.rows).toBeInstanceOf(Array);for(const row of data.rows)expect(Object.keys(row).sort()).toEqual([...section.columns].sort());}
+ expect((await read('organizations',1)).rows).toHaveLength(1);
+ for(const name of ['staff_members','auth.users','audit_events','finance_access','live_access_accounts','auth_rate_limits','organizations; delete from organizations'])await expect(read(name)).rejects.toThrow(/unavailable/);
+ for(const n of [3,4,6])await expect(as(n,"select public.read_investor_business('organizations')")).rejects.toThrow();
+ await expect(as(2,"select public.read_investor_business('organizations')",[],'aal1')).rejects.toThrow(/verification/);
+ await expect(as(2,"insert into public.organizations(name) values('FORGED')")).rejects.toThrow();await expect(as(2,"select public.save_crm_client(null,'FORGED','LEGAL',null,'CA',null,'Property','active','forged',0)")).rejects.toThrow(/Forbidden/);
+ expect((await as(2,'select id from public.client_wallets')).length).toBe(0);
+ await set(2,'investor',false,1);await expect(read('organizations')).rejects.toThrow(/unavailable/);await set(2,'investor',true,2);await expect(read('organizations')).rejects.toThrow(/sign-in/);await session(2);expect((await read('organizations')).total).toBe(2);
+});
