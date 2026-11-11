@@ -1,0 +1,22 @@
+.corner {
+  display: flex;
+  justify-content: flex-start;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e2e9de;
+}
+.link { display: inline-flex; max-width: 100%; }
+.link :global(.brand-lockup) { display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; }
+.link :global(.brand-mark) { width: 54px; height: auto; flex-shrink: 0; }
+.link :global(.brand-divider) { width: 1px; height: 30px; background: #174c40; transform: rotate(11deg); }
+.link :global(.brand-wordmark) { display: flex; flex-direction: column; gap: 4px; color: #073b35; }
+.link :global(.brand-wordmark strong) { font-size: 20px; font-weight: 850; letter-spacing: 1px; line-height: 1.15; font-style: italic; }
+.link :global(.brand-wordmark > span) { font-size: 10px; letter-spacing: 3px; font-weight: 600; }
+/* Existing public headers and branded admin sidebars already satisfy the page branding. */
+:global(body:has(.site-brand)) .corner,
+:global(body:has(.admin-brand .brand-mark)) .corner { display: none; }
+@media (max-width: 600px) {
+  .corner { padding: 12px 18px; }
+  .link :global(.brand-mark) { width: 46px; }
+  .link :global(.brand-wordmark strong) { font-size: 18px; }
+}
