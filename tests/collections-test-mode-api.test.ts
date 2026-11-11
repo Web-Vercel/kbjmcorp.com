@@ -5,7 +5,7 @@ vi.mock('@/lib/admin/guard',async()=>{const {authResponse}=await import('@/lib/a
 import {POST} from '@/app/api/collections/route';
 const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const req=(data:object)=>new Request('https://site.example/api/collections',{method:'POST',headers:{Origin:'https://site.example','Content-Type':'application/json'},body:JSON.stringify({...data,confirm:'on'})});
-beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc,from:m.from}});m.rpc.mockResolvedValue({error:null});m.wallet.mockResolvedValue(true);m.account.mockResolvedValue(true);const q={select:()=>q,eq:()=>q,maybeSingle:m.single};m.from.mockReturnValue(q);});
+beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc,from:m.from}});m.rpc.mockResolvedValue({data:id,error:null});m.wallet.mockResolvedValue(true);m.account.mockResolvedValue(true);const q={select:()=>q,eq:()=>q,maybeSingle:m.single};m.from.mockReturnValue(q);});
 it('forces nonpayable fictional account identity and verifies company',async()=>{
  m.single.mockResolvedValue({data:{name:'财务流程验收企业（虚构）'}});
  expect((await POST(req({action:'account',legalName:'Caller real name',bankName:'Caller real bank',accountNumber:'123456789',evidence:'REAL-EVIDENCE'}))).status).toBe(200);
