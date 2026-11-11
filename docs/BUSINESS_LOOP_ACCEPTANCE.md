@@ -84,3 +84,5 @@
 月结工作台返回数据核对沿用001–037，见 [MONTH_CLOSE_OVERVIEW_VALIDATION.md](MONTH_CLOSE_OVERVIEW_VALIDATION.md)。企业/月、金额、编号或发布字段异常时，不显示办理动作和完成进度，也不继续查阅/核销相关详情；正常SQL贯穿流程经过同一解析器。
 
 月结账户办理列表筛选沿用001–037，见 [MONTH_CLOSE_ACCOUNT_FILTER.md](MONTH_CLOSE_ACCOUNT_FILTER.md)。仅筛选账户卡片，整月资金、主流程与导出清单始终使用全部账户；待办链接可返回全部列表定位隐藏账户。
+
+客户资金对账登录返回沿用001–037，见 [CLIENT_FUNDS_LOGIN_RETURN.md](CLIENT_FUNDS_LOGIN_RETURN.md)。会话过期后保留资金账户和入账月份，中英文切换保持同一对账范围；财务授权仍在登录后独立检查。

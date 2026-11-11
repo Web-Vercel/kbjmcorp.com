@@ -16,3 +16,9 @@ it('keeps the statement-only helper narrow while allowing validated request cont
  expect(clientStatementReturnTo(target,'zh')).toBeNull();expect(clientReturnTo(target,'en')).toBe(target.replace('/zh/','/en/'));expect(new URL(clientLoginDestination('zh',target),'https://example.test').searchParams.get('returnTo')).toBe(target);
  for(const bad of ['/zh/account/service?ticket=invalid','/zh/account/service?month=2026-10',`/zh/account/service?ticket=${ticket}&ticket=${ticket}`,`/zh/account/service?ticket=${ticket}#service-request-${id}`,'/zh/account/service?next=https://evil.example'])expect(clientReturnTo(bad,'zh')).toBeNull();
 });
+
+it('preserves only validated wallet and posting month for funds return, without expanding statement-only helpers',async()=>{
+ const {clientReturnTo}=await import('@/lib/auth/client-return');const target=`/zh/account/funds?wallet=${id}&month=2026-10`;
+ expect(clientReturnTo(target,'en')).toBe(target.replace('/zh/','/en/'));expect(clientStatementReturnTo(target,'zh')).toBeNull();expect(new URL(clientLoginDestination('zh',target),'https://example.test').searchParams.get('returnTo')).toBe(target);
+ for(const bad of ['https://evil.example/zh/account/funds','//evil.example/zh/account/funds','/zh/account/funds?wallet=invalid','/zh/account/funds?month=2026-13',`/zh/account/funds?wallet=${id}&wallet=${id}`,`/zh/account/funds?statement=${id}`,'/zh/account/funds?next=/zh/admin','/zh/account/funds#transactions','/zh/account/funds/../statements','/zh/%61ccount/funds'])expect(clientReturnTo(bad,'zh')).toBeNull();
+});
