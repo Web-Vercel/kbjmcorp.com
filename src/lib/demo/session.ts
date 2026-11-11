@@ -2,6 +2,7 @@ import 'server-only';
 import {createHmac,createHash,timingSafeEqual,scrypt as derive} from 'node:crypto';
 import {promisify} from 'node:util';
 import {z} from 'zod';
+import {demoSettingChecks} from './readiness';
 import {demoCookie,trainingTracks} from './policy';
 export {demoCookie};
 const scrypt=promisify(derive);
@@ -14,6 +15,7 @@ export function demoConfig(){
  const secret=process.env.DEMO_SESSION_SECRET;if(!secret||secret.length<32||secret.trim()!==secret||secret===process.env.AUTH_RATE_LIMIT_SECRET)return null;
  try{const parsed=z.array(account).min(1).max(100).parse(JSON.parse(process.env.DEMO_ACCOUNTS_JSON||''));if(new Set(parsed.map(a=>a.username)).size!==parsed.length)return null;return {secret,accounts:parsed};}catch{return null;}
 }
+export function demoReadiness(){return demoSettingChecks(value=>{const parsed=z.array(account).min(1).max(100).safeParse(value);return parsed.success&&new Set(parsed.data.map(a=>a.username)).size===parsed.data.length;});}
 function version(a:z.infer<typeof account>){return createHash('sha256').update(JSON.stringify(a)).digest('hex');}
 export async function demoLogin(username:string,password:string,now=Date.now()){
  const config=demoConfig();if(!config)return null;const a=config.accounts.find(a=>a.username===username);

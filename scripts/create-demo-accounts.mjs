@@ -10,4 +10,5 @@ const config={DEMO_LOGIN_ENABLED:'true',DEMO_SESSION_SECRET:randomBytes(32).toSt
 // Exclusive creation prevents accidentally replacing a previously issued credential file.
 await writeFile(resolve(dir,'server-config.json'),JSON.stringify(config,null,2)+'\n',{mode:0o600,flag:'wx'});
 await writeFile(resolve(dir,'demo-credentials.json'),JSON.stringify(credentials,null,2)+'\n',{mode:0o600,flag:'wx'});
-console.log('Created server-config.json and demo-credentials.json in '+dir+'. These files contain secrets. Configure the server privately; share each visitor only their own credentials. No hosted account or permission was created.');
+await writeFile(resolve(dir,'demo-preview.env'),Object.entries(config).map(([key,value])=>key+'='+value).join('\n')+'\n',{mode:0o600,flag:'wx'});
+console.log('Created server-config.json, demo-preview.env and demo-credentials.json in '+dir+'. These files contain secrets. Configure the server privately; share each visitor only their own credentials. No hosted account or permission was created.');
