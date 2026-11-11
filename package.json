@@ -23,7 +23,8 @@
     "db:check": "node scripts/check-supabase-connection.mjs",
     "staff:check": "node scripts/check-staff-readiness.mjs",
     "test:client-email": "node scripts/client-email-test-smoke.mjs",
-    "test:business-loop": "vitest run tests/business-loop-acceptance.test.ts"
+    "test:business-loop": "vitest run tests/business-loop-acceptance.test.ts",
+    "test:finance-loop": "vitest run tests/admin-database.test.ts tests/bank-receipt-acceptance.test.ts tests/business-loop-acceptance.test.ts tests/billing-api.test.ts tests/topup-form.test.tsx tests/billing.test.tsx"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

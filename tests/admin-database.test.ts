@@ -282,7 +282,9 @@ describe("CNY settlement, locked quotes and disclosed fees",()=>{
   const result=await asUser<{ad_spend_minor:number;service_fee_minor:number;fee_basis_points:number}>(alice,'aal1','select ad_spend_minor,service_fee_minor,fee_basis_points from public.monthly_ad_reports where id=$1',[report]);expect(result.rows).toEqual([{ad_spend_minor:1222000,service_fee_minor:0,fee_basis_points:0}]);
   await expect(db.query("update public.billing_fx_quotes set cad_cny_rate='6.0' where id=$1",[quote])).rejects.toThrow(/immutable/);
   expect((await asUser(bob,'aal1','select * from public.billing_fx_quotes')).rows).toEqual([]);
-  expect((await asUser(alice,'aal1','select id from public.billing_fx_quotes where id=$1',[quote])).rows).toEqual([{id:quote}]);
+  expect((await asUser(alice,'aal1','select id from public.billing_fx_quotes where id=$1',[quote])).rows).toEqual([]);
+  expect((await asUser(admin,'aal1','select id from public.billing_fx_quotes where id=$1',[quote])).rows).toEqual([]);
+  expect((await asUser(admin,'aal2','select id from public.billing_fx_quotes where id=$1',[quote])).rows).toEqual([{id:quote}]);
  });
  it("requires a new revision for adjustments and rejects using a demo rate in a final bill",async()=>{
   await expect(db.query('update public.monthly_ad_reports set service_fee_minor=1 where id=$1',[report])).rejects.toThrow(/immutable/);
@@ -398,12 +400,14 @@ describe("Three-party operating boundaries and source handoff",()=>{
  });
  it("requires a real current quote and independent finance responsibilities",async()=>{
   quote=(await db.query<{id:string}>("insert into public.billing_fx_quotes(cad_cny_rate,value_date,quoted_at,source_name) values('5.2',(now() at time zone 'Asia/Shanghai')::date,now(),'Test fixture rate, not live') returning id")).rows[0].id;
-  await expect(asUser(canada,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[packet,quote])).rejects.toThrow(/Forbidden/);
-  reconciliation=(await asUser<{id:string}>(preparer,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'') as id",[packet,quote])).rows[0].id;
+  for(const who of [canada,preparer,reviewer,unassigned])await expect(asUser(who,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[packet,quote])).rejects.toThrow(/Administrator required for private FX/);
+  await expect(asUser(admin,'aal1',"select public.prepare_ops_reconciliation($1,$2,0,'')",[packet,quote])).rejects.toThrow(/Administrator required for private FX/);
+  const outdated=(await db.query<{id:string}>("insert into public.billing_fx_quotes(cad_cny_rate,value_date,quoted_at,source_name) values('5.2',(now() at time zone 'Asia/Shanghai')::date-1,now()-interval '1 day','Fictional outdated quote') returning id")).rows[0].id;
+  await expect(asUser(admin,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[packet,outdated])).rejects.toThrow(/Current verified quote required/);
+  reconciliation=(await asUser<{id:string}>(admin,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'') as id",[packet,quote])).rows[0].id;
   expect((await asUser(canada,'aal2','select id from public.ops_reconciliations')).rows).toEqual([]);
   expect((await asUser(alice,'aal1','select id from public.ops_reconciliations')).rows).toEqual([]);
-  await asUser(admin,'aal2',"select public.assign_operating_role($1,'zhidian_cn','finance_reviewer',true)",[preparer]);
-  await expect(asUser(preparer,'aal2',"select public.review_ops_reconciliation($1,'approved','Self review must not succeed')",[reconciliation])).rejects.toThrow(/Independent reviewer/);
+  await expect(asUser(admin,'aal2',"select public.review_ops_reconciliation($1,'approved','Self review must not succeed')",[reconciliation])).rejects.toThrow(/Independent reviewer/);
  });
  it("reviews a CNY draft without debiting funds or publishing a client report",async()=>{
   const before=await db.query<{count:number}>('select count(*)::integer as count from public.wallet_entries');
@@ -415,14 +419,14 @@ describe("Three-party operating boundaries and source handoff",()=>{
  });
  it("invalidates stale draft revisions when Canada submits corrected source metadata",async()=>{
   const first=(await asUser<{id:string}>(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-09-01','CAD',10000,'OLDER-SOURCE-FIXTURE','','UTC','en') as id",[orgA,accountA])).rows[0].id;
-  const draft=(await asUser<{id:string}>(preparer,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'') as id",[first,quote])).rows[0].id;
+  const draft=(await asUser<{id:string}>(admin,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'') as id",[first,quote])).rows[0].id;
   await asUser(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-09-01','CAD',11000,'CORRECTED-SOURCE-FIXTURE','','UTC','en')",[orgA,accountA]);
   expect((await db.query<{status:string}>('select status from public.ops_reconciliations where id=$1',[draft])).rows[0].status).toBe('superseded');
   await expect(asUser(reviewer,'aal2',"select public.review_ops_reconciliation($1,'approved','Stale approval')",[draft])).rejects.toThrow(/Stale review/);
  });
  it("does not treat USD source costs as CAD or let revoked employees keep unit access",async()=>{
   const usd=(await asUser<{id:string}>(canada,'aal2',"select public.submit_ops_source($1,$2,'2026-08-01','USD',10000,'USD-SOURCE-FIXTURE','','UTC','en') as id",[orgA,accountA])).rows[0].id;
-  await expect(asUser(preparer,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[usd,quote])).rejects.toThrow(/CAD to CNY adapter/);
+  await expect(asUser(admin,'aal2',"select public.prepare_ops_reconciliation($1,$2,0,'')",[usd,quote])).rejects.toThrow(/CAD to CNY adapter/);
   await asUser(admin,'aal2',"select public.assign_operating_role($1,'kbjm_ca','ad_operations',false)",[canada]);
   expect((await asUser(canada,'aal2','select id from public.ops_source_packets')).rows).toEqual([]);
   await asUser(admin,'aal2',"select public.assign_operating_role($1,'kbjm_ca','ad_operations',true)",[canada]);
@@ -471,7 +475,10 @@ describe('Manual bank receipt posting',()=>{
   const before=(await db.query('select id from public.wallet_entries')).rows;
   receipt=(await prep('BANK-REFERENCE-001')).rows[0].id;
   expect((await db.query('select id from public.wallet_entries')).rows).toEqual(before);
-  await expect(asUser(preparer,'aal2',"select public.review_bank_receipt($1,'credited','Attempted self approval')",[receipt])).rejects.toThrow(/Independent reviewer/);
+  await expect(asUser(preparer,'aal2',"select public.review_bank_receipt($1,'credited','No reviewer role')",[receipt])).rejects.toThrow(/Forbidden/);
+  await asUser(admin,'aal2',"select public.assign_operating_role($1,'zhidian_cn','finance_reviewer',true)",[preparer]);
+  try {await expect(asUser(preparer,'aal2',"select public.review_bank_receipt($1,'credited','Attempted self approval')",[receipt])).rejects.toThrow(/Independent reviewer/);}
+  finally {await asUser(admin,'aal2',"select public.assign_operating_role($1,'zhidian_cn','finance_reviewer',false)",[preparer]);}
   await expect(asUser(reviewer,'aal1',"select public.review_bank_receipt($1,'credited','Missing MFA approval')",[receipt])).rejects.toThrow(/Forbidden/);
   await expect(asUser(operator,'aal2',"select public.review_bank_receipt($1,'credited','Support cannot credit')",[receipt])).rejects.toThrow(/Forbidden/);
   for(const who of [canada,operator,alice,bob])expect((await asUser(who,'aal2','select id from public.bank_receipts')).rows).toEqual([]);
