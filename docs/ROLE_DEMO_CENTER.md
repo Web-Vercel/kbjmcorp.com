@@ -1,3 +1,5 @@
+> 最新真实业务账号方案见 [三个真实业务账号](REAL_PRODUCTION_ACCOUNTS.md)。下文旧演示使用虚构资料，不会创建真实 Auth 用户。
+
 # 三角色独立登录演示中心
 
 入口：`/zh/demo/login`（英文 `/en/demo/login`）。可在Preview和Production配置；仅提交Preview分支，不代表已部署正式站。

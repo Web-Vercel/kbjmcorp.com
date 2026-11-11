@@ -1,0 +1,5 @@
+import {notFound,redirect} from 'next/navigation';
+import {getLiveContext} from '@/lib/live-access/server';
+import StaffMfa from '@/components/admin/StaffMfa';
+export const dynamic='force-dynamic';export const metadata={title:'账号二次验证 | 智点未来',robots:{index:false,follow:false}};
+export default async function Page({params}:{params:Promise<{locale:string}>}){const {locale}=await params;if(locale!=='zh'&&locale!=='en')notFound();const c=await getLiveContext(false);if('error'in c)redirect(`/${locale}/access/login`);const a=await c.client.auth.mfa.getAuthenticatorAssuranceLevel();if(a.data?.currentLevel==='aal2')redirect(`/${locale}/access`);const r=await c.client.auth.mfa.listFactors();return <main className="admin-auth"><h1>{locale==='zh'?'验证您的身份':'Verify your identity'}</h1>{r.error?<p>{locale==='zh'?'验证器设置暂不可用。':'Authenticator settings unavailable.'}</p>:<StaffMfa locale={locale} endpoint="/api/access/mfa" destination={`/${locale}/access`} verifiedFactorId={r.data.totp.find(f=>f.status==='verified')?.id}/>}</main>}
