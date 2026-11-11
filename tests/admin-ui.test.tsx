@@ -40,3 +40,14 @@ it("limits selectable ad accounts to the selected organization and resets the se
  render(<form><ProjectFields locale="zh" organizations={[{id:'org-a',name:'Company A'},{id:'org-b',name:'Company B'}]} accounts={[{id:'account-a',organization_id:'org-a',label:'Account A',external_id:'fixture-A'},{id:'account-b',organization_id:'org-b',label:'Account B',external_id:'fixture-B'}]}/></form>);
  const user=userEvent.setup();const account=screen.getByLabelText('广告账户关联（选填）') as HTMLSelectElement;expect(screen.queryByRole('option',{name:'Account B'})).toBeNull();await user.selectOptions(account,'account-a');await user.selectOptions(screen.getByLabelText('客户公司'),'org-b');expect(account.value).toBe('');expect(screen.queryByRole('option',{name:'Account A'})).toBeNull();expect(screen.getByRole('option',{name:'Account B'})).toBeTruthy();
 });
+it('shows safe account-save database codes instead of a generic retry instruction',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({error:'account_save_unavailable',diagnosticCode:'42703'}),{status:503}));
+ render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><label>授权依据<textarea name="note" required/></label></AdminForm>);
+ const user=userEvent.setup();await user.type(screen.getByLabelText('授权依据'),'Authorization');await user.click(screen.getByRole('button',{name:'保存权限'}));
+ await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('数据库字段'));expect(screen.getByRole('status').textContent).toContain('42703');expect(navigation.refresh).not.toHaveBeenCalled();
+});
+it('identifies invalid account fields without rendering arbitrary response field names',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({error:'account_input_invalid',fields:['userId','PRIVATE FIELD']}),{status:400}));
+ render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><input name="userId" defaultValue="bad"/></AdminForm>);
+ await userEvent.setup().click(screen.getByRole('button',{name:'保存权限'}));await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('用户ID'));expect(screen.getByRole('status').textContent).not.toContain('PRIVATE');
+});
