@@ -12,3 +12,6 @@ The user approved the existing public website as the visual and branding baselin
 
 ## Authorized public platform additions — 2026-11-10
 The user explicitly authorized four platform menu entries, homepage logos and slogans, and related service presentation for ChatGPT Ads, Google Ads, Meta Ads and TikTok Ads. This narrow exception permits the new platform rail, mobile links, homepage showcase and bilingual platform detail pages. Preserve the original headline, brand, hero and existing sections. ChatGPT remains the current focus; the other three offer consultation pending assessment. Preview only; no Production publication is authorized.
+
+## Business workspace language — 2026-11-10
+Use clear, concise business language in authenticated operational pages. Keep migration numbers, test-database setup and branch-specific deployment instructions in technical documentation rather than routine business prompts. Preserve accurate draft, review, publication, connection and payment states. Keep explicit fictional-data notices on demonstrations and actual acceptance/test modes; never hide those notices or relabel stored test records as real. Production versus Preview alone does not determine whether data is fictional.

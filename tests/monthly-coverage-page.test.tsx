@@ -11,5 +11,5 @@ it('does not offer self-review or another review on completed evidence',async()=
  m.self=true;let html=await render();expect(html).toContain('另一位有权限的人员复核');expect(html).not.toContain('保存整月覆盖复核结果');m.self=false;m.status='approved';html=await render();expect(html).toContain('已通过独立复核');expect(html).not.toContain('保存整月覆盖复核结果');
 });
 it('does not show mutation controls or private errors when source/evidence reads fail',async()=>{
- m.error=true;const html=await render();expect(html).toContain('记录不可用');expect(html).not.toContain('保存整月覆盖复核结果');expect(html).not.toContain('PRIVATE ERROR');
+ m.error=true;const html=await render();expect(html).toContain('核实记录暂不可用');expect(html).not.toContain('保存整月覆盖复核结果');expect(html).not.toContain('PRIVATE ERROR');
 });
