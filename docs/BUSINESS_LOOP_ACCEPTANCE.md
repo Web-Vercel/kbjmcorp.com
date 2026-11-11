@@ -94,3 +94,5 @@
 到账制单与独立复核回执沿用001–037，见 [BANK_RECEIPT_SUBMISSION_FEEDBACK.md](BANK_RECEIPT_SUBMISSION_FEEDBACK.md)。不再只提示已保存；编号可定位原记录，区分待复核/已入账/拒绝，超时保留输入核查。统一财务闭环验收现覆盖123项，未新增SQL或审批。
 
 报价保存反馈沿用001–037，见 [QUOTE_SAVE_FEEDBACK.md](QUOTE_SAVE_FEEDBACK.md)。保存期间锁定输入，未知结果保留原试算/请求编号，避免将旧保存回执归到新输入；服务器和前端均验证报价ID，不改变收费规则或余额。
+
+报价归档/恢复反馈沿用001–037，见 [QUOTE_ARCHIVE_FEEDBACK.md](QUOTE_ARCHIVE_FEEDBACK.md)。确认原报价及归档状态修订号，超时保留说明；核查链接包含已归档记录，保持原版本冲突保护，不删除历史、不修改余额。统一财务验收现为158项。

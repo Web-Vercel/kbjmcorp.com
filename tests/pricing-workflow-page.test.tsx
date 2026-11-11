@@ -20,3 +20,9 @@ it('edits a version in its own month and drops account binding when changing com
 it('rejects malformed months before making quote queries',async()=>{
  await expect(render('zh','2026-13')).rejects.toThrow();expect(m.rpc).not.toHaveBeenCalled();
 });
+it('anchors the exact quote and provides the guarded archive reason form for administrators',async()=>{
+ const doc=await render('zh','2026-10');expect(doc.querySelector(`#quote-${quote}`)).not.toBeNull();expect(doc.querySelector('textarea[name=note]')).not.toBeNull();expect([...doc.querySelectorAll('button')].some(b=>b.textContent==='确认归档（保留历史）')).toBe(true);
+});
+it('keeps archive mutation controls and private quote details out of finance staff views',async()=>{
+ const base=await m.operations();m.operations.mockResolvedValue({...base,context:{owner:false,canPrepare:true}});const doc=await render('zh','2026-10');expect(doc.querySelector(`#quote-${quote}`)).not.toBeNull();expect(doc.querySelector('textarea[name=note]')).toBeNull();expect(doc.body.textContent).toContain('汇率与内部成本仅管理员可见');expect(doc.body.textContent).not.toContain('确认归档');
+});
