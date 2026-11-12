@@ -28,3 +28,7 @@ The owner explicitly authorized replacing the homepage cooperation-process secti
 
 ## Static frontend Production release — 2026-11-12
 The owner explicitly authorized publishing static frontend design and content to Production, and renamed the homepage/navigation Partners label to “合作模式 / Partnership Models”. This supersedes earlier blanket prohibitions on pushing the Production branch only for an isolated frontend release based on the current origin/next-rebuild. Do not merge the Preview branch wholesale: backend workspaces, APIs, auth, permissions, financial logic, analytics and SQL continue on Preview. Root branding/error-page presentation and public marketing/application-form presentation may ship; the existing production inquiry API must remain unchanged. Never force-push or alter deployment settings, environment variables, domains or DNS.
+
+
+## Customer-focused homepage revision — 2026-11-12
+The owner requested a quieter partnership presence and an honest customer-focused presentation of project progress, charges, receipts, permissions and reports. Add an illustrative information structure without fabricated account metrics; retain detailed partnership models on a separate public page. Preserve brand, headline and hero artwork. Prepare this revision on Preview for review; backend and Production remain unchanged by this iteration.

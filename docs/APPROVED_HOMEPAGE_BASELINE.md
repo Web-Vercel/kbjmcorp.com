@@ -26,3 +26,7 @@ Replace “合作流程 / Our process” with “合作伙伴 / Partners” in h
 
 ## Static frontend Production authorization — 2026-11-12
 The owner renamed the public navigation/section label to 合作模式 / Partnership Models and authorized Production publication of static frontend design/content. Ship only a reviewed frontend file allowlist from the current Production baseline; backend workspaces, APIs, auth/permissions, finance, analytics and SQL remain on Preview. This supersedes the earlier no-Production statements for the isolated public/frontend release only.
+
+
+## Customer-focused homepage revision — 2026-11-12
+The owner requested a quieter partnership presence and an honest customer-focused presentation of project progress, charges, receipts, permissions and reports. Add an illustrative information structure without fabricated account metrics; retain detailed partnership models on a separate public page. Preserve brand, headline and hero artwork. Prepare this revision on Preview for review; backend and Production remain unchanged by this iteration.
