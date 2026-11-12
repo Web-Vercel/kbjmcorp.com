@@ -19,3 +19,6 @@ The application extension adds links on the existing **login and authenticated p
 
 ## Explicit user exception — 2026-11-10
 The user requested four platform menu entries and homepage logos with core advertising slogans. This supersedes the byte-for-byte restriction above only for the platform navigation rail, mobile platform links, new homepage showcase and associated bilingual platform pages. Existing brand, headline, hero, marketing copy and sections remain preserved. ChatGPT Ads is the current focus; Google Ads, Meta Ads and TikTok Ads are presented for strategy consultation without claiming API connectivity. No Production publication is authorized.
+
+## Explicit user exception — 2026-11-12
+Replace “合作流程 / Our process” with “合作伙伴 / Partners” in homepage navigation and the corresponding section. Use the owner's supplied five models (Direct Sales, Referral, Channel, White-label, Affiliate), benefits, application CTA and agreement disclaimer. A bilingual partner application page may reuse the existing inquiry flow and accept individuals as well as teams and companies. Keep the old #process fragment as a compatibility anchor; new navigation uses #partners. All other approved homepage elements remain preserved. No Production publication is authorized by this content change.

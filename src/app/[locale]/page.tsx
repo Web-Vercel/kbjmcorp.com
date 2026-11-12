@@ -1,3 +1,4 @@
+import PartnersSection from '@/components/PartnersSection';
 import PlatformShowcase from '@/components/PlatformShowcase';
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -16,7 +17,7 @@ export default async function Page({params}: {params:Promise<{locale:string}>}) 
  <div className="market-strip"><div className="wrap market-inner"><p>{t.market}</p>{t.markets.map(m=><span key={m}>{m}<b aria-hidden="true">↗</b></span>)}</div></div>
  <PlatformShowcase locale={locale}/>
  <section className="section wrap" id="services"><p className="eyebrow">{t.serviceLabel}</p><div className="section-heading"><h2>{t.serviceTitle}</h2><p>{t.serviceIntro}</p></div><div className="services">{t.services.map(([n,title,desc,meta],i)=><article key={n}><div className="card-top"><span>{n}</span><span aria-hidden="true">↗</span></div><h3>{title}</h3><p>{desc}</p><small>{meta}</small><Link className="service-link" href={`/${locale}/services/${serviceSlugs[i]}`}>{locale==="zh"?"了解服务":"Explore service"} ↗</Link></article>)}</div></section>
- <section className="process" id="process"><div className="section wrap"><p className="eyebrow">{t.processLabel}</p><h2>{t.processTitle}</h2><div className="steps">{t.steps.map(([title,desc],i)=><article key={title}><span>0{i+1}</span><h3>{title}</h3><p>{desc}</p></article>)}</div></div></section>
+ <PartnersSection locale={locale}/>
  <Faq locale={locale}/><section className="section wrap contact" id="contact"><div><p className="eyebrow">{t.contactLabel}</p><h2>{t.contactTitle}</h2><p>{t.contactText}</p><div className="contact-mark" aria-hidden="true">Let’s<br/><em>go global.</em><span>↗</span></div></div><InquiryForm locale={locale}/></section></main>
  <SiteFooter locale={locale}/></>;
 }

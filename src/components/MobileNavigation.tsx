@@ -24,7 +24,7 @@ export default function MobileNavigation({ locale }: { locale: Locale }) {
   }, [open]);
   const links = [
     ...advertisingPlatforms.map(p=>({label:p.name,href:`/${locale}/platforms/${p.slug}`})),
-    ...content[locale].nav.map((label, index) => ({ label, href: `/${locale}${["#services", "#process", "#contact"][index]}` })),
+    ...content[locale].nav.map((label, index) => ({ label, href: `/${locale}${["#services", "#partners", "#contact"][index]}` })),
     { label: locale === "zh" ? "常见问题" : "FAQ", href: `/${locale}#faq` },
   ];
   return <div className="mobile-navigation" ref={root}>
