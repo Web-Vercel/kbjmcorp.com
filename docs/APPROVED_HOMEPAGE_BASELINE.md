@@ -22,3 +22,7 @@ The user requested four platform menu entries and homepage logos with core adver
 
 ## Explicit user exception — 2026-11-12
 Replace “合作流程 / Our process” with “合作伙伴 / Partners” in homepage navigation and the corresponding section. Use the owner's supplied five models (Direct Sales, Referral, Channel, White-label, Affiliate), benefits, application CTA and agreement disclaimer. A bilingual partner application page may reuse the existing inquiry flow and accept individuals as well as teams and companies. Keep the old #process fragment as a compatibility anchor; new navigation uses #partners. All other approved homepage elements remain preserved. No Production publication is authorized by this content change.
+
+
+## Static frontend Production authorization — 2026-11-12
+The owner renamed the public navigation/section label to 合作模式 / Partnership Models and authorized Production publication of static frontend design/content. Ship only a reviewed frontend file allowlist from the current Production baseline; backend workspaces, APIs, auth/permissions, finance, analytics and SQL remain on Preview. This supersedes the earlier no-Production statements for the isolated public/frontend release only.
