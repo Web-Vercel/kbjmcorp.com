@@ -39,3 +39,6 @@ The owner requested replacing the lengthy customer-benefit copy with concise vis
 
 ## Concise customer service copy — 2026-11-12
 The owner requested removing the budget diagrams in favor of short, clear text covering funds management, an integrated workflow, stakeholders' responsibilities and interests, and efficient campaign design. Replace only this customer section; no graphics or tabs. Avoid guaranteed returns or safety claims. Preview review first.
+
+## Service sequence and partnership cards — 2026-11-12
+The owner requested a logical sequence for services, management benefits and platforms, ensuring the Services navigation does not skip the management section. Order the homepage as Services → Customer management benefits → Advertising platforms; both the hero exploration link and Services navigation start at #services. Restore the five partnership models in the previous numbered text-card grid, with concise one-sentence summaries and understated links. Preview review first.
