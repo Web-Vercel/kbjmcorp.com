@@ -9,3 +9,7 @@ The user approved the existing public website as the visual and branding baselin
 - Scope new UI styles to the new pages; shared global CSS and components can affect the approved homepage. Verify relevant public-page regressions.
 - Work on `next-rebuild`; do not rewrite/force-push main or change domain, DNS, SSL, email, repository identity or Vercel project identity. GitHub pushes to the development branch are authorized; do not claim a Vercel deployment was verified without evidence.
 - Keep public fictional demos distinct from authenticated persisted workflows. Never present an unconfigured database, SMS, payment or advertising API as connected or a business write as successful.
+
+
+## Authorized static frontend Production release — 2026-11-12
+The owner explicitly authorized shipping static frontend design/content to Production and renamed the homepage partnership navigation/label to 合作模式 / Partnership Models. Only an isolated frontend release based on current Production may be pushed to next-rebuild. Keep all existing backend code at the Production baseline; new workspaces, APIs, analytics, identity/permission changes and SQL migrations remain on preview/tenant-isolation. Do not merge Preview wholesale, force-push, change environment variables or alter domain/DNS/deployment settings. Public presentation includes four-platform service pages, partner content/application form through the unchanged inquiry endpoint, and shared logo/error-page presentation.

@@ -16,3 +16,13 @@ Protected source includes:
 New application, portal and administration routes reuse the existing components and design tokens. New styles must be limited to their own page scope; shared global selectors require careful regression review because they may affect the approved homepage.
 
 The application extension adds links on the existing **login and authenticated portal pages**, plus internal staff navigation. The public homepage/header/footer remain byte-for-byte unchanged from development commit `ab8dbe2`; the existing homepage customer-login link leads into the extended flow. No new homepage CTA or navigation styling is needed.
+
+## Explicit user exception — 2026-11-10
+The user requested four platform menu entries and homepage logos with core advertising slogans. This supersedes the byte-for-byte restriction above only for the platform navigation rail, mobile platform links, new homepage showcase and associated bilingual platform pages. Existing brand, headline, hero, marketing copy and sections remain preserved. ChatGPT Ads is the current focus; Google Ads, Meta Ads and TikTok Ads are presented for strategy consultation without claiming API connectivity. No Production publication is authorized.
+
+## Explicit user exception — 2026-11-12
+Replace “合作流程 / Our process” with “合作伙伴 / Partners” in homepage navigation and the corresponding section. Use the owner's supplied five models (Direct Sales, Referral, Channel, White-label, Affiliate), benefits, application CTA and agreement disclaimer. A bilingual partner application page may reuse the existing inquiry flow and accept individuals as well as teams and companies. Keep the old #process fragment as a compatibility anchor; new navigation uses #partners. All other approved homepage elements remain preserved. No Production publication is authorized by this content change.
+
+
+## Static frontend Production authorization — 2026-11-12
+The owner renamed the public navigation/section label to 合作模式 / Partnership Models and authorized Production publication of static frontend design/content. Ship only a reviewed frontend file allowlist from the current Production baseline; backend workspaces, APIs, auth/permissions, finance, analytics and SQL remain on Preview. This supersedes the earlier no-Production statements for the isolated public/frontend release only.

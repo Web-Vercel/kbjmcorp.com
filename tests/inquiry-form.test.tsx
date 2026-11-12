@@ -43,3 +43,9 @@ it("provides English field validation when English is selected", async () => {
   const user = userEvent.setup(); await user.click(screen.getByRole("button", { name: /Send inquiry/ }));
   expect(screen.getByText("Enter a company name of 2–160 characters.")).toBeTruthy(); expect(fetchMock).not.toHaveBeenCalled();
 });
+it('accepts an individual partnership application through the inquiry flow without creating an account',async()=>{
+ fetchMock.mockResolvedValue(new Response('{}',{status:201}));render(<InquiryForm locale="zh" purpose="partner"/>);const user=userEvent.setup();await user.type(screen.getByLabelText('姓名、团队或公司名称'),'王小明');await user.type(screen.getByLabelText('联系邮箱（选填）'),'fixture@example.test');await user.type(screen.getByLabelText('意向合作模式与资源情况'),'我希望申请推荐合作伙伴，拥有企业客户资源。');await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button',{name:/申请成为合作伙伴/}));await waitFor(()=>expect(fetchMock).toHaveBeenCalledTimes(1));const [url,options]=fetchMock.mock.calls[0];expect(url).toBe('/api/inquiries');const body=JSON.parse(options.body);expect(body.company).toBe('王小明');expect(body.message).toBe('合作伙伴申请\n我希望申请推荐合作伙伴，拥有企业客户资源。');await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('合作申请已收到'));
+});
+it('does not let the partnership prefix bypass validation of an empty English message',async()=>{
+ render(<InquiryForm locale="en" purpose="partner"/>);const user=userEvent.setup();await user.type(screen.getByLabelText('Your name, team or company'),'Fixture Referrer');await user.type(screen.getByLabelText('Contact email (optional)'),'fixture@example.test');await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button',{name:/Apply to become a partner/}));expect(fetchMock).not.toHaveBeenCalled();expect(screen.getByLabelText(/Preferred partnership model and relevant experience/).getAttribute('aria-invalid')).toBe('true');
+});
