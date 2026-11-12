@@ -1,6 +1,6 @@
 export const partners = {
  zh: {
-  label: '合作伙伴', englishLabel: 'Partners', title: '携手智点未来，共拓全球 AI 广告市场',
+  label: '合作模式', englishLabel: 'Partnership Models', title: '携手智点未来，共拓全球 AI 广告市场',
   intro: ['智点未来诚邀销售人才、个人推荐人、营销服务商、渠道合作伙伴及内容创作者加入我们的合作网络。','我们提供广告投放、账户管理、数据报表及技术支持。合作伙伴可以发挥自身的客户资源、销售能力或行业影响力，共同开拓中国企业的海外数字广告市场。'],
   modelsTitle: '合作模式',
   models: [
@@ -15,7 +15,7 @@ export const partners = {
   formIntro:'请介绍意向合作模式、客户资源或销售与营销经验。我们会通过您提供的联系方式与您沟通。',company:'姓名、团队或公司名称',message:'意向合作模式与资源情况',consent:'我同意智点未来为回复本次合作申请而处理我提交的信息。',formPrefix:'合作伙伴申请',
  },
  en: {
-  label:'Partners',englishLabel:'',title:'Partner with 智点未来 to grow the global AI advertising market',
+  label:'Partnership Models',englishLabel:'',title:'Partner with 智点未来 to grow the global AI advertising market',
   intro:['We welcome sales professionals, individual referrers, marketing service providers, channel partners and content creators to join our partner network.','We provide advertising delivery, account management, data reporting and technical support. Partners can contribute their client relationships, sales expertise or industry influence to help Chinese businesses reach overseas digital advertising markets.'],
   modelsTitle:'Partnership models',models:[
    {name:'Direct Sales',en:'',audience:'For sales professionals, independent sales representatives and business development specialists.',description:'Develop business clients, promote our advertising services and help bring agreements to completion.'},

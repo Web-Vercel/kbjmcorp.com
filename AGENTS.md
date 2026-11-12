@@ -24,3 +24,7 @@ The owner authorized real persisted investor/client/sales accounts through unifi
 
 ## Homepage Partners section — 2026-11-12
 The owner explicitly authorized replacing the homepage cooperation-process section and navigation label with Partners, using the supplied five partnership models, benefits, application CTA and agreement disclaimer. Bilingual updates and a partner-purpose application form reusing the existing inquiry endpoint are within this scope. Preserve the existing headline, hero, brand, service and platform sections. Preview publication only; do not publish Production.
+
+
+## Static frontend Production release — 2026-11-12
+The owner explicitly authorized publishing static frontend design and content to Production, and renamed the homepage/navigation Partners label to “合作模式 / Partnership Models”. This supersedes earlier blanket prohibitions on pushing the Production branch only for an isolated frontend release based on the current origin/next-rebuild. Do not merge the Preview branch wholesale: backend workspaces, APIs, auth, permissions, financial logic, analytics and SQL continue on Preview. Root branding/error-page presentation and public marketing/application-form presentation may ship; the existing production inquiry API must remain unchanged. Never force-push or alter deployment settings, environment variables, domains or DNS.
