@@ -32,3 +32,7 @@ The owner explicitly authorized publishing static frontend design and content to
 
 ## Customer-focused homepage revision — 2026-11-12
 The owner requested a quieter partnership presence and an honest customer-focused presentation of project progress, charges, receipts, permissions and reports. Add an illustrative information structure without fabricated account metrics; retain detailed partnership models on a separate public page. Preserve brand, headline and hero artwork. Prepare this revision on Preview for review; backend and Production remain unchanged by this iteration.
+
+
+## Visual budget explanation — 2026-11-12
+The owner requested replacing the lengthy customer-benefit copy with concise visual explanations of receipts, spending and records. Use accessible interactive schematic diagrams without fabricated monetary amounts or performance charts. Preview review first; retain the quieter partnership entry and existing brand.
