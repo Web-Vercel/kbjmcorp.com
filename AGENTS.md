@@ -36,3 +36,6 @@ The owner requested a quieter partnership presence and an honest customer-focuse
 
 ## Visual budget explanation — 2026-11-12
 The owner requested replacing the lengthy customer-benefit copy with concise visual explanations of receipts, spending and records. Use accessible interactive schematic diagrams without fabricated monetary amounts or performance charts. Preview review first; retain the quieter partnership entry and existing brand.
+
+## Concise customer service copy — 2026-11-12
+The owner requested removing the budget diagrams in favor of short, clear text covering funds management, an integrated workflow, stakeholders' responsibilities and interests, and efficient campaign design. Replace only this customer section; no graphics or tabs. Avoid guaranteed returns or safety claims. Preview review first.
