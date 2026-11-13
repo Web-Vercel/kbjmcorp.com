@@ -1,0 +1,4 @@
+export const sourceId='c0000000-0000-4000-8000-000000000001';
+export const testOrg='b0000000-0000-4000-8000-000000000001';
+export const realOrg='b0000000-0000-4000-8000-000000000002';
+export const acceptanceOriginal={version:'ads-readonly-v1',account:{id:'adacct_fictional_original',name:'FICTIONAL OWNER SOURCE',currency_code:'CAD',timezone:'America/Vancouver'},since:'2026-10-01',until:'2026-10-31',check:'matched',dailySpendMicros:'36240000',periodSpendMicros:'36240000',rawSha256:'a'.repeat(64),coverageKind:'complete_rows',startBoundary:'requested',endBoundary:'exclusive',periodRange:{since:'2026-10-01',until:'2026-11-01'},missingDates:[],impressions:'10',clicks:'1',periodImpressions:'10',periodClicks:'1',differenceMicros:'0',daily:Array.from({length:31},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,spendMicros:i===0?'36240000':'0',impressions:i===0?'10':'0',clicks:i===0?'1':'0'})),rawResponses:[{path:'/fixture',body:'PRIVATE ORIGINAL RESPONSE'}]};

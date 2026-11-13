@@ -32,3 +32,13 @@ Use the existing dedicated test enterprise if present. Set its UUID in Preview `
 ## Production start
 
 Use the same real advertiser with independently configured Production authorization. Read real source data afresh or verify the approved source copy. Open the formal customer ledger from actual business evidence, not Preview's test closing balance. Check formal bank reference, advertiser/customer/month and existing invoices before posting. Only Production produces the formal financial result. If any real transaction has already been posted in Preview, stop this plan and reconcile/hand over that actual event once; do not charge/collect/pay it again.
+
+## Isolated source-copy entrypoint
+
+The owner confirmed the real Preview enterprise is 温哥华房地产买卖及出租管理, whose October 2026 source was read, matched at CAD 36.24 and handed off; the dedicated acceptance enterprise already shows CNY 1,000.01 and no ad binding. Do not credit it again.
+
+The administrator Ads reporting page now exposes **独立财务验收来源副本** only with the existing Preview test-company configuration. Choose the verified whole-month source, confirm, then create/handoff the copy and return using **返回虚构企业月结工作台**. This does not change the original advertiser or customer ownership. No new SQL migration, key, bank movement, wallet credit, statement or role grant is created.
+
+The endpoint requires Preview deployment, the pinned Preview Supabase project, MFA administrator, exact configured fictional company, and a source for the currently pinned real advertiser already bound to another enterprise. Only matched, complete, boundary-verified CAD calendar-month sources with exact spend/count totals are eligible. A copy has an obvious synthetic account ID, test account name, original snapshot ID/account/company/hash/date provenance and a new fingerprint over the provenance record. Original raw API responses are not duplicated or misrepresented as synthetic API traffic. Amounts and normalized daily data are retained.
+
+A stable synthetic identity is derived from original advertiser + test enterprise across versions/months, so normal per-binding/month publication uniqueness still applies. Deterministic source requests and existing binding/handoff RPCs make unchanged retries idempotent. The three RPCs are separate transactions: a partial failure may leave an unshared source or binding, but never posts money; retry the same source to finish. Do not delete partial records. The entrypoint is blocked in Production even if an operator copies the test setting there.
