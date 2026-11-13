@@ -1,7 +1,8 @@
+import {diagnosticTimezone} from './report-timezone';
 import 'server-only';
 import {readPeriod,type ReadSelection} from './read-period';
 import {createHash} from 'node:crypto';
-import {accountSchema,accountRangeSeconds,insightPageSchema,parseAdsJson,summarize,type InsightRow,type AdsReport} from './report-model';
+import {accountSchema,accountRangeSeconds,insightPageSchema,parseAdsJson,summarize,sameReportingTimezone,type InsightRow,type AdsReport} from './report-model';
 const base='https://api.ads.openai.com/v1';
 export {AdsReadError} from './read-errors';
 import {AdsReadError,safeNetworkCode,type AdsFailure} from './read-errors';
@@ -40,7 +41,7 @@ export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelect
    if(granularity==='daily')fields.push('metadata.readable_time','metadata.timezone');
    for(const field of fields)q.append('fields[]',field);if(cursor)q.set('after',cursor);
    const path='/ad_account/insights?'+q.toString();const body=await read(path,key,signal,phase);rawResponses.push({path,body});if(rawResponses.reduce((n,r)=>n+Buffer.byteLength(r.body),0)>524288)throw new AdsReadError('invalid_response');
-   const parsed=insightPageSchema.parse(parseAdsJson(body));if(parsed.timezone&&parsed.timezone!==account.timezone)throw new AdsReadError('invalid_response');for(const row of parsed.data){if(ids.has(row.id))throw new AdsReadError('invalid_response');ids.add(row.id);rows.push(row);}if(!parsed.has_more)return rows;if(!parsed.last_id||cursors.has(parsed.last_id))throw new AdsReadError('invalid_response');cursors.add(parsed.last_id);cursor=parsed.last_id;
+   const parsed=insightPageSchema.parse(parseAdsJson(body));if(parsed.timezone&&!sameReportingTimezone(parsed.timezone,account.timezone,window))throw new AdsReadError('invalid_response',{phase:'check',validation:'timezone',source:granularity==='daily'?'daily':'period',expectedTimezone:diagnosticTimezone(account.timezone),actualTimezone:diagnosticTimezone(parsed.timezone)});for(const row of parsed.data){if(ids.has(row.id))throw new AdsReadError('invalid_response');ids.add(row.id);rows.push(row);}if(!parsed.has_more)return rows;if(!parsed.last_id||cursors.has(parsed.last_id))throw new AdsReadError('invalid_response');cursors.add(parsed.last_id);cursor=parsed.last_id;
   }throw new AdsReadError('invalid_response');
  }
  const daily=await insights('daily');const totals=await insights('none');phase='check';let summary=summarize(account,range,daily,totals);

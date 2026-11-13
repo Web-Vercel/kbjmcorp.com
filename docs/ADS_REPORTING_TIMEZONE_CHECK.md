@@ -1,0 +1,9 @@
+# Reporting timezone checks
+
+Preview correction, 2026-11-13. The owner encountered a daily-row timezone validation failure while reading the October 2026 source. No failed report was saved; no customer debit, publication, source reassignment or advertising write was attempted by this correction.
+
+Previously, row timezone aliases were canonicalized through Intl, but top-level page timezone metadata used exact string equality. Distinct valid timezone names were rejected even when every reporting-day boundary agreed. Both now use a shared period-specific comparison: canonical identity, or equality of each calendar day's inclusive-start and exclusive-end epoch boundaries. A single matching current UTC offset is insufficient; DST transitions can make two zones differ within a report. Daily/total midnight, account identity, dates, completeness and monetary checks remain in place. Returned source data is not relabelled or shifted to make it pass.
+
+Failures now include validated account and returned timezone names in the administrator-only diagnostic. Invalid/unrecognized timezone values are represented as `unrecognized`, never raw upstream strings. This lets the next real attempt distinguish a supported equivalent zone from a real source mismatch. The actual two timezone values in the user's failed response were not available during this repair; do not claim the real read has passed from fixture tests alone.
+
+After the Preview deployment is Ready, refresh the fixed branch URL and repeat the same October read. Request IDs still protect snapshot storage retries. A successful read must show a snapshot receipt; a continued failure should show both timezone names. Do not change the real advertiser timezone or mark missing rows as zero to bypass a mismatch. Real conflicts require confirmation of the upstream reporting convention before any financial use.

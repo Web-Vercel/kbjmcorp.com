@@ -125,3 +125,10 @@ it('requests official zero-row expansion and recognizes an explicit full-month z
  fetcher.mockReset().mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json(page([]))).mockResolvedValueOnce(Response.json(page([])));
  const unknown=await fetchAdsReport(new Date('2026-11-09T12:00:00Z'),'2026-10-01');expect(unknown.check).toBe('no_data');expect(unknown.periodSpendMicros).toBeNull();expect(unknown.coverageKind).toBe('pending');
 });
+it('applies identical timezone rules to page metadata and individual rows',async()=>{
+ const total={...row,start_time:'1792886400',end_time:'1793491200'};
+ fetcher.mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json({...page([row]),timezone:'Etc/UTC'})).mockResolvedValueOnce(Response.json({...page([total]),timezone:'Etc/UTC'}));
+ expect((await fetchAdsReport(new Date('2026-11-01T12:00:00Z'))).check).toBe('matched');
+ fetcher.mockReset().mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json({...page([row]),timezone:'America/Vancouver'}));
+ await expect(fetchAdsReport(new Date('2026-11-01T12:00:00Z'))).rejects.toMatchObject({code:'invalid_response',diagnostic:{validation:'timezone',source:'daily',expectedTimezone:'UTC',actualTimezone:'America/Vancouver'}});
+});

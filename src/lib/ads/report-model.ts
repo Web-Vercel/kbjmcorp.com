@@ -1,3 +1,4 @@
+import {canonicalReportingTimezone,diagnosticTimezone} from './report-timezone';
 import {z} from 'zod';
 import {AdsReadError,type AdsFailure} from './read-errors';
 function invalid(validation:NonNullable<AdsFailure['validation']>,details:Partial<AdsFailure>={}):never{throw new AdsReadError('invalid_response',{phase:'check',validation,...details});}
@@ -56,17 +57,28 @@ export type AdsReport={version:'ads-readonly-v1';account:AdsAccount;since:string
 function midnightDate(seconds:string,timezone:string,source:'daily'|'period'):string{
  const n=Number(seconds);if(!Number.isSafeInteger(n))invalid('timestamp',{source});const d=new Date(n*1000);const date=localDate(d,timezone);const parts=new Intl.DateTimeFormat('en-US',{timeZone:timezone,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(d);const localTime=['hour','minute','second'].map(t=>parts.find(p=>p.type===t)!.value).join(':');if(localTime!=='00:00:00')invalid('partial_day',{source,actualSince:date,localTime});return date;
 }
-function sameTimezone(a:string,b:string){try{return new Intl.DateTimeFormat('en-US',{timeZone:a}).resolvedOptions().timeZone===new Intl.DateTimeFormat('en-US',{timeZone:b}).resolvedOptions().timeZone;}catch{return false;}}
+export function sameReportingTimezone(a:string,b:string,range:{since:string;until:string}){
+ if(!z.iso.date().safeParse(range.since).success||!z.iso.date().safeParse(range.until).success||range.since>range.until)return false;
+ const first=canonicalReportingTimezone(a),second=canonicalReportingTimezone(b);
+ if(!first||!second)return false;if(first===second)return true;
+ // Compare every local midnight in the requested window, including its exclusive end.
+ // Matching today's UTC offset alone would miss daylight-saving changes.
+ try{for(let day=range.since;day<=range.until;day=addDays(day,1)){
+  const left=accountRangeSeconds({since:day,until:day},a),right=accountRangeSeconds({since:day,until:day},b);
+  if(left.start!==right.start||left.end!==right.end)return false;
+ }return true;}catch{return false;}
+}
 
 export function summarize(account:AdsAccount,range:{since:string;until:string},daily:InsightRow[],totals:InsightRow[],boundaryProbe?:InsightRow[]):Omit<AdsReport,'version'|'rawSha256'|'rawResponses'>{
  if(totals.length>1)invalid('multiple_totals',{source:'period'});const dates=new Set<string>();let endBoundary:NonNullable<AdsReport['endBoundary']>=totals.length?'exclusive':'unavailable';let startBoundary:NonNullable<AdsReport['startBoundary']>=totals.length?'requested':'unavailable';let periodRange:AdsReport['periodRange']=null;
- const rows=daily.map(r=>{const date=midnightDate(r.start_time,account.timezone,'daily');if(r.readable_time&&/^\d{4}-\d{2}-\d{2}$/.test(r.readable_time)&&r.readable_time!==date)invalid('daily_label',{source:'daily',actualSince:date});if(r.timezone&&!sameTimezone(r.timezone,account.timezone))invalid('timezone',{source:'daily'});if(r.ad_account_id&&r.ad_account_id!==account.id)invalid('account',{source:'daily'});if(date<range.since||date>range.until||dates.has(date)||Number(r.end_time)<=Number(r.start_time))invalid('daily_bucket',{source:'daily',actualSince:date});const end=midnightDate(r.end_time,account.timezone,'daily');if(end!==addDays(date,1))invalid('daily_bucket',{source:'daily',actualSince:date,actualUntil:end});dates.add(date);return {date,impressions:r.impressions,clicks:r.clicks,spendMicros:spendMicros(r.spend)};}).sort((a,b)=>a.date.localeCompare(b.date));
+ const timezoneChecks=new Map<string,boolean>();const matchesTimezone=(value:string)=>{if(!timezoneChecks.has(value))timezoneChecks.set(value,sameReportingTimezone(value,account.timezone,range));return timezoneChecks.get(value)!;};
+ const rows=daily.map(r=>{const date=midnightDate(r.start_time,account.timezone,'daily');if(r.readable_time&&/^\d{4}-\d{2}-\d{2}$/.test(r.readable_time)&&r.readable_time!==date)invalid('daily_label',{source:'daily',actualSince:date});if(r.timezone&&!matchesTimezone(r.timezone))invalid('timezone',{source:'daily',expectedTimezone:diagnosticTimezone(account.timezone),actualTimezone:diagnosticTimezone(r.timezone)});if(r.ad_account_id&&r.ad_account_id!==account.id)invalid('account',{source:'daily'});if(date<range.since||date>range.until||dates.has(date)||Number(r.end_time)<=Number(r.start_time))invalid('daily_bucket',{source:'daily',actualSince:date});const end=midnightDate(r.end_time,account.timezone,'daily');if(end!==addDays(date,1))invalid('daily_bucket',{source:'daily',actualSince:date,actualUntil:end});dates.add(date);return {date,impressions:r.impressions,clicks:r.clicks,spendMicros:spendMicros(r.spend)};}).sort((a,b)=>a.date.localeCompare(b.date));
  for(const r of totals){
   const since=midnightDate(r.start_time,account.timezone,'period'),until=midnightDate(r.end_time,account.timezone,'period');
   if(since<range.since||since>range.until||(until!==addDays(range.until,1)&&until!==range.until))invalid('total_range',{source:'period',actualSince:since,actualUntil:until,expectedSince:range.since,expectedUntil:addDays(range.until,1)});
   periodRange={since,until};if(since!==range.since)startBoundary='later_start_unverified';
   if(until===range.until)endBoundary='last_day_label_unverified';
-  if(r.ad_account_id&&r.ad_account_id!==account.id)invalid('account',{source:'period'});if(r.timezone&&!sameTimezone(r.timezone,account.timezone))invalid('timezone',{source:'period'});
+  if(r.ad_account_id&&r.ad_account_id!==account.id)invalid('account',{source:'period'});if(r.timezone&&!matchesTimezone(r.timezone))invalid('timezone',{source:'period',expectedTimezone:diagnosticTimezone(account.timezone),actualTimezone:diagnosticTimezone(r.timezone)});
  }
  // An inclusive final-day label is not accepted as an exclusive timestamp.
  // Confirm its meaning with a separate one-day query and matching positive activity.
