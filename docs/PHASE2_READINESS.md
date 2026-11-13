@@ -1,4 +1,6 @@
-# 第二阶段就绪评估
+# 第二阶段就绪评估（历史记录）
+
+> 当前开发结论和真实验收边界见 [BUSINESS_LOOP_COMPLETION.md](BUSINESS_LOOP_COMPLETION.md)。以下内容描述早期阶段，不再作为当前功能清单。
 
 当前结论：**可用于虚构业务的界面评审与本地逻辑测试，尚不适合开放真实客户后台。**
 
@@ -74,3 +76,7 @@ Independent application overview, phone-verified submissions/status, requests fo
 ### First staff login activation
 
 User reports the test-project schema and initial administrator assignment were completed in Supabase. New server-key compatibility and a local metadata-only readiness check are implemented. Saved URL/public-key assignment formats still need correction; server secret, HMAC limiter secret and Turnstile are not configured. A successful hosted password login, CAPTCHA and AAL2 session have not been verified. Follow [STAFF_LOGIN_ACTIVATION.md](STAFF_LOGIN_ACTIVATION.md); keep SMS and real customer applications disabled until separate acceptance.
+
+### Two-client browser acceptance while SMS is unconfigured
+
+The user's hosted Phone provider UI exposes no test-number option. A separate email/password client acceptance entry is now implemented, disabled by default and hard-disabled outside Vercel Preview. It requires two allowlisted verified non-staff Auth IDs, CAPTCHA, shared persistent limits and exactly one pre-approved company per user; it creates no identities, memberships or finance permissions. Hosted client login remains pending. See [PREVIEW_CLIENT_EMAIL_ACCEPTANCE.md](PREVIEW_CLIENT_EMAIL_ACCEPTANCE.md). Official mainland SMS integration can use Send SMS Hook with a separately qualified regional sender; no SMS vendor was connected or purchased.

@@ -52,3 +52,7 @@ it("official SSR client persists the aal2 session after authenticator verificati
   expect((await next!.auth.mfa.getAuthenticatorAssuranceLevel()).data?.currentLevel).toBe('aal2');
   expect(Array.from(fixture.store.values()).filter(entry=>entry.value).every(entry=>entry.options.httpOnly===true)).toBe(true);
 });
+
+it('does not expose a real auth client during a demo, even with a real session cookie present',async()=>{
+ fixture.store.set('sb-fixture-auth-token',{value:'FICTIONAL-REAL-SESSION',options:{}});fixture.store.set('zhidian_demo_session',{value:'FICTIONAL-DEMO',options:{}});const fetcher=vi.fn();vi.stubGlobal('fetch',fetcher);expect(await authClient(true)).toBeNull();expect(fetcher).not.toHaveBeenCalled();expect(fixture.store.has('sb-fixture-auth-token')).toBe(true);fixture.store.delete('zhidian_demo_session');expect(await authClient()).not.toBeNull();
+});

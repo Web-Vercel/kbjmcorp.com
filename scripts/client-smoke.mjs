@@ -3,9 +3,9 @@ import { chromium, expect } from '@playwright/test';
 const base=process.env.SMOKE_BASE_URL||'http://127.0.0.1:3017';
 let checks=0;
 for(const locale of ['zh','en']){
- for(const path of ['account','account/projects/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']){
+ for(const path of ['account','account/funds?month=2024-01','account/projects/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']){
   const response=await fetch(`${base}/${locale}/${path}`,{redirect:'manual'});
-  assert.equal(response.status,307);assert.equal(response.headers.get('location'),`/${locale}/login`);checks++;
+  assert.equal(response.status,307);const expected=path.startsWith('account/funds')?`/${locale}/login?${new URLSearchParams({returnTo:`/${locale}/${path}`})}`:`/${locale}/login`;assert.equal(response.headers.get('location'),expected);checks++;
  }
  const response=await fetch(`${base}/${locale}/admin/clients`,{redirect:'manual'});assert.equal(response.status,307);assert.equal(response.headers.get('location'),`/${locale}/admin/login`);checks++;
 }

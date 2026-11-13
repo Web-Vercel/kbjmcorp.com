@@ -1,0 +1,24 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn()}));
+vi.mock('@/lib/admin/guard',async()=>{const {authResponse}=await import('@/lib/auth/http');return {getStaffContext:m.guard,staffError:(s:{error:string;status:number})=>authResponse({error:s.error},s.status)};});
+import {POST} from '@/app/api/admin/ads-source-handoff/route';
+const id='a0000000-0000-4000-8000-000000000001';
+const req=(body:object,origin='https://site.example')=>new Request('https://site.example/api/admin/ads-source-handoff',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(body)});
+beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc}});m.rpc.mockImplementation(async(name:string)=>({data:name==='set_ads_binding_active'?2:id,error:null}));});
+it('requires an explicit confirmed ownership decision and ignores forged account and permission fields',async()=>{const r=await POST(req({action:'bind',snapshotId:id,organizationId:id,reference:'Ownership evidence',confirm:'on',accountId:'forged',role:'admin'}));expect(r.status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('bind_ads_reporting_account',{p_snapshot:id,p_org:id,p_reference:'Ownership evidence'});expect((await POST(req({action:'bind',snapshotId:id,organizationId:id,reference:'Ownership evidence'}))).status).toBe(400);});
+it('rejects cross-origin, operator and non-MFA actions before writing',async()=>{const data={action:'share',snapshotId:id,bindingId:id,note:'Checked source',confirm:'on'};expect((await POST(req(data,'https://evil.example'))).status).toBe(403);expect(m.guard).not.toHaveBeenCalled();m.guard.mockResolvedValueOnce({role:'operator'});expect((await POST(req(data))).status).toBe(403);m.guard.mockResolvedValueOnce({error:'mfa_required',status:403});expect((await POST(req(data))).status).toBe(403);expect(m.rpc).not.toHaveBeenCalled();});
+it('freezes the selected snapshot and passes the expected revision for access changes',async()=>{expect((await POST(req({action:'share',snapshotId:id,bindingId:id,note:'Checked source',confirm:'on'}))).status).toBe(200);expect(m.rpc).toHaveBeenLastCalledWith('share_ads_source_snapshot',{p_snapshot:id,p_binding:id,p_note:'Checked source'});await POST(req({action:'access',bindingId:id,active:'no',revision:'2',note:'Pause access',confirm:'on'}));expect(m.rpc).toHaveBeenLastCalledWith('set_ads_binding_active',{p_id:id,p_active:false,p_revision:2,p_note:'Pause access'});});
+it('maps ownership conflicts without exposing database error details',async()=>{m.rpc.mockResolvedValueOnce({error:{code:'23505',message:'PRIVATE'}});const r=await POST(req({action:'bind',snapshotId:id,organizationId:id,reference:'Checked source',confirm:'on'}));expect(r.status).toBe(409);expect(await r.json()).toEqual({error:'already_linked'});});
+it('returns the exact source, binding and confirmed handoff ID without source contents',async()=>{
+ const response=await POST(req({action:'share',snapshotId:id,bindingId:id,note:'Checked source',confirm:'on'}));expect(await response.json()).toEqual({ok:true,handoff:{id,bindingId:id,snapshotId:id}});
+});
+it('does not confirm an invalid handoff ID and maps invalid source binding requests safely',async()=>{
+ for(const data of [null,'invalid',{id}]){m.rpc.mockResolvedValueOnce({data,error:null});const response=await POST(req({action:'share',snapshotId:id,bindingId:id,note:'Checked source',confirm:'on'}));expect(response.status).toBe(502);expect(await response.json()).toEqual({error:'handoff_unconfirmed'});}
+ m.rpc.mockResolvedValue({error:{code:'22023',message:'PRIVATE SOURCE'}});const r=await POST(req({action:'share',snapshotId:id,bindingId:id,note:'Checked source',confirm:'on'}));expect(r.status).toBe(400);expect(await r.json()).toEqual({error:'invalid_input'});
+});
+it('confirms ownership and access with bounded original record receipts',async()=>{
+ let r=await POST(req({action:'bind',snapshotId:id,organizationId:id,reference:'Verified ownership',confirm:'on'}));expect(await r.json()).toEqual({ok:true,receipt:{action:'bind',bindingId:id,organizationId:id,snapshotId:id}});
+ r=await POST(req({action:'access',bindingId:id,active:'no',revision:1,note:'Verified pause',confirm:'on'}));expect(await r.json()).toEqual({ok:true,receipt:{action:'access',bindingId:id,active:false,revision:2}});
+ m.rpc.mockResolvedValueOnce({data:null,error:null});expect((await POST(req({action:'bind',snapshotId:id,organizationId:id,reference:'Verified ownership',confirm:'on'}))).status).toBe(502);
+ m.rpc.mockResolvedValueOnce({data:'2',error:null});expect((await POST(req({action:'access',bindingId:id,active:'yes',revision:1,note:'Verified restore',confirm:'on'}))).status).toBe(502);
+});

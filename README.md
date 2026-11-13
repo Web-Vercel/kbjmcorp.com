@@ -88,3 +88,11 @@ Connection diagnostics now reach the user-selected Tokyo project, with valid pub
 ## Staff login activation
 
 New Supabase server credentials use `SUPABASE_SECRET_KEY` (`sb_secret_...`); existing `SUPABASE_SERVICE_ROLE_KEY` deployments remain compatible. User sessions continue to use only the publishable key. `npm run staff:check` reports configuration metadata without values, network calls or Auth attempts. See [STAFF_LOGIN_ACTIVATION.md](docs/STAFF_LOGIN_ACTIVATION.md) for first-admin, Preview-only configuration, persistent rate limits, Turnstile and required TOTP. The reported first administrator assignment does not by itself enable website login. No configuration was published or hosted login performed in this iteration.
+
+## Two-company isolation acceptance
+
+Work now uses `preview/tenant-isolation`, because the user's Vercel screenshot confirmed `next-rebuild` deploys to Production. Do not push that production source branch. The rollback-only [SQL acceptance script](supabase/tests/two-company-isolation.sql) checks 42 two-company database boundaries with fictional fixtures and cleans them up. It simulates database claims, not actual customer sign-in. Client contract/report pages additionally enforce personal finance scope even when employee RLS is broader. See [TWO_COMPANY_ISOLATION_ACCEPTANCE.md](docs/TWO_COMPANY_ISOLATION_ACCEPTANCE.md) for hosted SQL and real-browser acceptance steps and limits.
+
+## Preview-only client email acceptance
+
+A separate `/{locale}/test-login` entry can verify the two test clients through real Supabase email/password Auth while SMS is unconfigured. It is disabled by default, hard-disabled outside Vercel Preview, and requires exactly two allowlisted verified non-staff Auth identities, CAPTCHA, persistent limits, and one pre-approved company each. It never creates accounts or grants roles. See [PREVIEW_CLIENT_EMAIL_ACCEPTANCE.md](docs/PREVIEW_CLIENT_EMAIL_ACCEPTANCE.md) for activation, revocation and real-browser acceptance limits. The homepage and normal phone login stay unchanged. Mainland SMS can later use a verified Send SMS Hook and regional sender; see [MAINLAND_SMS_INTEGRATION.md](docs/MAINLAND_SMS_INTEGRATION.md).

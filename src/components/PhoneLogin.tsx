@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import {clientReturnTo} from "@/lib/auth/client-return";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/content";
 import Captcha from "./Captcha";
 
-export default function PhoneLogin({ locale, enabled, siteKey, codeLength, applicationFlow = false }: { applicationFlow?: boolean; locale: Locale; enabled: boolean; siteKey: string; codeLength: number }) {
+export default function PhoneLogin({ locale, enabled, siteKey, codeLength, applicationFlow = false, returnTo }: { returnTo?:string|null; applicationFlow?: boolean; locale: Locale; enabled: boolean; siteKey: string; codeLength: number }) {
   const zh = locale === "zh"; const router = useRouter();
+  const returnTarget=applicationFlow?null:clientReturnTo(returnTo,locale);
   const [phone, setPhone] = useState(""); const [code, setCode] = useState("");
   const [sent, setSent] = useState(false); const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState(""); const [busy, setBusy] = useState(false);
@@ -51,7 +53,7 @@ export default function PhoneLogin({ locale, enabled, siteKey, codeLength, appli
     try {
       const response = await fetch("/api/auth/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone, code }) });
       if (!response.ok) { setStatus(response.status === 503 ? text.unavailable : response.status === 429 ? text.limited : text.invalid); return; }
-      setCode(""); router.replace(`/${locale}/account${applicationFlow ? "/application" : ""}`); router.refresh();
+      setCode(""); router.replace(returnTarget||`/${locale}/account${applicationFlow ? "/application" : ""}`); router.refresh();
     } catch { setStatus(text.retry); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -60,6 +62,7 @@ export default function PhoneLogin({ locale, enabled, siteKey, codeLength, appli
     <p className="login-badge">{zh ? "短信验证码登录" : "SMS VERIFICATION SIGN-IN"}</p>
     <h2>{zh ? "手机号登录" : "Sign in with your phone"}</h2>
     <p className="login-description">{zh ? "使用中国大陆手机号登录，无需设置密码。首次验证后可创建账户，公司数据需关联权限后才能访问。" : "Use a mainland China mobile number without a password. First verification can create an account; organization data requires assigned access."}</p>
+    {returnTarget&&<p className="login-notice">{returnTarget.includes('/account/funds')?(zh?'验证成功后将返回原资金账户及对账月份；可查看范围仍由企业财务授权决定。':'After verification, return to the original wallet and reconciliation month. Company finance permissions still determine access.'):returnTarget.includes('/account/service')?(zh?'验证成功后将返回原工单；可查看范围仍由企业授权决定。':'After verification, return to your service request. Company permissions still determine access.'):(zh?'验证成功后将返回原账单；可查看范围仍由企业授权决定。':'After verification, return to your statement. Company permissions still determine access.')}</p>}
     <label htmlFor="login-phone">{zh ? "中国大陆手机号" : "Mainland China mobile number"}</label>
     <div className="phone-field"><span aria-label={zh ? "国家代码 加八六" : "Country code plus eighty-six"}>+86</span><input id="login-phone" name="phone" type="tel" inputMode="numeric" autoComplete="tel-national" required pattern="1[3-9][0-9]{9}" maxLength={11} value={phone} readOnly={sent || busy} onChange={event => { setPhone(event.target.value.replace(/[^0-9]/g, "").slice(0, 11)); setStatus(""); }} aria-describedby="phone-help" placeholder={zh ? "请输入 11 位手机号" : "11-digit mobile number"}/></div>
     <p id="phone-help" className="field-help">{zh ? "仅支持 +86 中国大陆手机号码。" : "For +86 mainland China mobile numbers."}</p>

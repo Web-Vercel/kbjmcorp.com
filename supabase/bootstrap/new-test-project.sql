@@ -18,6 +18,33 @@
 -- 011_three_party_operations.sql 4b91a8f0962c3c2dc466058b8a361d2d57d57a0710d02a4770e534fde1bc4815
 -- 012_manual_bank_collections.sql ee9de382b65a3094e2a817ab64452aba2e24a0cc80ef300e7d32a5afca844ad2
 -- 013_customer_applications.sql 91151489990f0fdf03212f14bb620769c8290903326df54965046bbaff7c37ad
+-- 014_ops_cash_summary.sql 5a2e877b2af44f76cb7cc85f8d9f0a51904c21adb31721ce0a9cc1d2db3552be
+-- 015_ops_monthly_cash.sql 125990d097a40e515d9f8110ada35a9f5a7bf87d461f83a6e8e7f5fade88ad2b
+-- 016_agency_fee_drafts.sql cb6888cd4aa1bab0981d357bc9fe0ac576261aec406fd5a469e7d07349349b93
+-- 017_private_fx.sql 07c181834efff3f7d37db38ae811a946631d53f81cd4bc950d983c96c03759ae
+-- 018_agency_quote_snapshots.sql 5d1c74dcfbeb124e5689e40f67a5b8100bb74e3e8635879d50f7c343673f161d
+-- 019_quote_revision_archive.sql e6331dca9ea21649152fe3a297f760bec20217db50159aa9724849b5bde3874c
+-- 020_ads_readonly_reporting.sql cb697c796ffdd38a3f808524b39f377867953a90168d12502a2e82a8af226f72
+-- 021_ads_source_handoff.sql ec3c9ee0a055a21e5a87bb9fd36b712bb5ea4074dda656146a9a5a6f3f57a895
+-- 022_ads_calendar_month.sql b99326a0be1e43229a2dad9062ec43338a759d14f9f22fdb0135ab5755be4982
+-- 023_ads_operational_periods.sql 947ee35a5b910f6af4cf387562df74699ca9667b49466bb00954ce4eaa828f4d
+-- 024_monthly_settlement_review.sql 5b4439a72ad6e93c03e9bce53df6ded041fe5eb99ff8ec7fe6ddfbc4160cc3f3
+-- 025_monthly_statement_posting.sql 23ec645c0978af62c94a0e3bde11717a95ff87a3ebbdef04511fd7918460f67e
+-- 026_monthly_activity_coverage.sql 5cc380e0dae0f846aac9e55fd9c14e9934fe3313ec8593414ac1b24ab049037a
+-- 027_month_close_workbench.sql 6002c4a9355eead799fcd906c1a89e3b80e81a402ae2ee31e7d5174a1352837b
+-- 028_upstream_reconciliation.sql fd0aca1c376fd857ccdf580e74492f5b58fdf4dabcd5ff9968bf74455cdb52c9
+-- 029_upstream_payment_verification.sql 48d78d968fa777e4bf95b83617a10aa48591fe24562e85f0e4e63e9d9eeb8ada
+-- 030_upstream_payment_reversals.sql 729f4d46136522c831d1f6ec4f2ca3ab15752dd908d874fd379884028dfa4aac
+-- 031_client_statement_read_receipts.sql a73e38b385d1977f9eddfdaa6356713b7bae0dbe30556ea596201d65be3abdb3
+-- 032_client_statement_navigation.sql 501e10325daaa2bd294d7d0e9400e0b8270dddde627135819177dbc815ac3b94
+-- 033_client_monthly_funds.sql c391942787a642de1956f1fabcfa850b58220659c12c1a0cb5115340944a1e55
+-- 034_ops_monthly_funds.sql 00ed9b48240ed2a5ac5363d63561edb95024188e777f5bfec8f8bef5865e2dbb
+-- 035_statement_service_questions.sql 15f544d35b8d54592aca8718a01f82527218b56511dc36712615264da8b28137
+-- 036_statement_question_workbench.sql 5725c69ac4eed1925152e5629780d16034d33e8105a92b775a88d16b37174a0d
+-- 037_service_reply_receipts.sql 44d73fa2022a88ba3924088fd1bf5755d010f00fc566a98f4c34286ca107a0e2
+-- 038_scoped_live_accounts.sql 66bc6764982c9e07c038b2b1176c720b4d72db2c1dd6d117d532b0ef5b78f73e
+-- 039_investor_business_readonly.sql c235d2ad15f77674ed21dc21cc33f3bc723be9cc1d6cc737e53efb7fc6ab80f1
+-- 040_business_analytics.sql 348c2b1ce562e53961e122eb0ab823df32e6d5051f6b4f8601f9356fcb7f3713
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -26,7 +53,7 @@ begin
  if to_regclass('auth.users') is null or not exists(select 1 from pg_roles where rolname='authenticated') or not exists(select 1 from pg_roles where rolname='service_role') then
   raise exception 'Supabase Auth schema and roles required; nothing was initialized';
  end if;
- if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('ad_accounts','ad_sync_runs','audit_events','auth_rate_limits','bank_receipts','billing_fx_quotes','campaign_metrics_daily','campaigns','client_contracts','client_operating_links','client_profiles','client_topups','client_wallets','collection_accounts','crm_contacts','crm_opportunities','customer_application_history','customer_applications','customer_invites','finance_access','inquiries','inquiry_notes','memberships','monthly_ad_report_lines','monthly_ad_reports','operating_units','ops_reconciliations','ops_source_packets','organizations','project_activity','project_reviews','project_submissions','projects','service_request_messages','service_requests','staff_members','staff_unit_roles','wallet_collection_accounts','wallet_entries')) then
+ if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('ad_accounts','ad_sync_runs','ads_monthly_coverage_checks','ads_monthly_coverage_reviews','ads_reporting_bindings','ads_reporting_snapshots','ads_source_handoffs','agency_fee_rule_drafts','agency_quote_derivations','agency_quote_lifecycle','agency_quote_snapshots','audit_events','auth_rate_limits','bank_receipts','billing_fx_quotes','campaign_metrics_daily','campaigns','client_contracts','client_operating_links','client_profiles','client_statement_read_receipts','client_topups','client_wallets','collection_accounts','crm_contacts','crm_opportunities','customer_application_history','customer_applications','customer_invites','finance_access','inquiries','inquiry_notes','live_access_accounts','live_sales_updates','memberships','monthly_ad_report_lines','monthly_ad_reports','monthly_client_statements','monthly_settlement_drafts','monthly_settlement_reviews','operating_units','ops_reconciliations','ops_source_packets','organizations','project_activity','project_reviews','project_submissions','projects','service_request_messages','service_requests','staff_members','staff_unit_roles','upstream_payment_allocations','upstream_payment_records','upstream_payment_reversals','upstream_payment_reviews','upstream_reversal_reviews','wallet_collection_accounts','wallet_entries')) then
   raise exception 'Existing application objects detected. Stop and inspect migration history; do not overwrite';
  end if;
 end;
@@ -1515,6 +1542,1901 @@ grant execute on function public.get_my_customer_applications() to authenticated
 revoke all on function public.save_customer_application(uuid,integer,text,text,text,text,text,text,text,text),public.withdraw_customer_application(uuid,integer),public.review_customer_application(uuid,integer,text,text) from public,anon;
 grant execute on function public.save_customer_application(uuid,integer,text,text,text,text,text,text,text,text),public.withdraw_customer_application(uuid,integer),public.review_customer_application(uuid,integer,text,text) to authenticated;
 -- END 013_customer_applications.sql
+
+-- START 014_ops_cash_summary.sql
+-- Read-only, single-statement cash snapshot. Does not approve or post money.
+
+create function public.get_ops_cash_summary(p_org uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(jsonb_build_object(
+  'id',w.id,'currency',w.currency,
+  'balance_minor',coalesce((select sum(e.amount_minor) from public.wallet_entries e where e.wallet_id=w.id),0)::text,
+  'pending_notice_count',(select count(*) from public.client_topups t where t.wallet_id=w.id and t.status='pending')::text,
+  'pending_notice_minor',coalesce((select sum(t.amount_minor) from public.client_topups t where t.wallet_id=w.id and t.status='pending'),0)::text,
+  'pending_receipt_count',(select count(*) from public.bank_receipts r where r.wallet_id=w.id and r.status='pending')::text,
+  'pending_receipt_minor',coalesce((select sum(r.amount_minor) from public.bank_receipts r where r.wallet_id=w.id and r.status='pending'),0)::text,
+  'recent_entries',coalesce((select jsonb_agg(x.record order by x.posted_at desc,x.id desc) from (
+   select e.posted_at,e.id,jsonb_build_object('id',e.id,'kind',e.kind,'amount_minor',e.amount_minor::text,'description',e.description,'posted_at',e.posted_at) as record
+   from public.wallet_entries e where e.wallet_id=w.id order by e.posted_at desc,e.id desc limit 10
+  ) x),'[]'::jsonb)
+ )) from public.client_wallets w where w.organization_id=p_org),'[]'::jsonb);
+end $$;
+revoke all on function public.get_ops_cash_summary(uuid) from public,anon;
+grant execute on function public.get_ops_cash_summary(uuid) to authenticated;
+-- END 014_ops_cash_summary.sql
+
+-- START 015_ops_monthly_cash.sql
+-- Read-only monthly ledger reconciliation, Beijing calendar boundaries.
+
+create function public.get_ops_monthly_cash(p_org uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare starts timestamptz; ends timestamptz;
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_month is null or extract(day from p_month)<>1 or p_month<date '2000-01-01' or p_month>date_trunc('month',now() at time zone 'Asia/Shanghai')::date then raise exception 'Valid current or past month required' using errcode='22023'; end if;
+ starts:=p_month::timestamp at time zone 'Asia/Shanghai';
+ ends:=(p_month+interval '1 month')::timestamp at time zone 'Asia/Shanghai';
+ return coalesce((select jsonb_agg(jsonb_build_object(
+  'id',w.id,'currency',w.currency,'month',p_month::text,'timezone','Asia/Shanghai',
+  'opening_minor',s.opening::text,'topup_minor',s.topup::text,
+  'ad_spend_minor',s.ad_spend::text,'service_fee_minor',s.service_fee::text,
+  'refund_minor',s.refund::text,'adjustment_minor',s.adjustment::text,
+  'closing_minor',s.closing::text,'entry_count',s.n::text,'as_of',statement_timestamp()
+ )) from public.client_wallets w cross join lateral (
+  select coalesce(sum(e.amount_minor) filter(where e.posted_at<starts),0) opening,
+   coalesce(sum(e.amount_minor) filter(where e.posted_at>=starts and e.kind='topup'),0) topup,
+   -coalesce(sum(e.amount_minor) filter(where e.posted_at>=starts and e.kind='ad_spend'),0) ad_spend,
+   -coalesce(sum(e.amount_minor) filter(where e.posted_at>=starts and e.kind='service_fee'),0) service_fee,
+   -coalesce(sum(e.amount_minor) filter(where e.posted_at>=starts and e.kind='refund'),0) refund,
+   coalesce(sum(e.amount_minor) filter(where e.posted_at>=starts and e.kind='adjustment'),0) adjustment,
+   coalesce(sum(e.amount_minor),0) closing,
+   count(*) filter(where e.posted_at>=starts) n
+  from public.wallet_entries e where e.wallet_id=w.id and e.posted_at<ends
+ ) s where w.organization_id=p_org),'[]'::jsonb);
+end $$;
+revoke all on function public.get_ops_monthly_cash(uuid,date) from public,anon;
+grant execute on function public.get_ops_monthly_cash(uuid,date) to authenticated;
+-- END 015_ops_monthly_cash.sql
+
+-- START 016_agency_fee_drafts.sql
+-- Append-only commercial rule drafts. Not agreed prices; no billing or wallet writes.
+
+create table public.agency_fee_rule_drafts (
+ id uuid primary key default gen_random_uuid(), organization_id uuid not null references public.organizations(id),
+ unit_code text not null check(unit_code in ('kbjm_ca','zhidian_cn')),
+ currency text generated always as(case when unit_code='kbjm_ca' then 'CAD' else 'CNY' end) stored,
+ revision integer not null check(revision>0), effective_month date not null check(extract(day from effective_month)=1),
+ mode text not null check(mode in ('percentage','fixed','greater_of')),
+ basis text not null check(basis in ('platform_ad_spend','upstream_total')),
+ basis_points integer not null check(basis_points between 0 and 10000),
+ fixed_minor bigint not null check(fixed_minor between 0 and 9999999999),
+ minimum_minor bigint not null check(minimum_minor between 0 and 9999999999),
+ waive_when_zero boolean not null default true,
+ note text not null check(char_length(btrim(note)) between 3 and 1000),
+ created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),
+ check(unit_code<>'kbjm_ca' or basis='platform_ad_spend'),
+ unique(organization_id,unit_code,revision)
+);
+alter table public.agency_fee_rule_drafts enable row level security;
+revoke all on public.agency_fee_rule_drafts from public,anon,authenticated;
+grant select on public.agency_fee_rule_drafts to authenticated;
+create policy finance_fee_drafts on public.agency_fee_rule_drafts for select to authenticated using(public.has_ops_capability('finance.read',organization_id));
+create trigger immutable_fee_draft before update or delete on public.agency_fee_rule_drafts for each row execute function public.lock_posted_money();
+create function public.save_agency_fee_draft(p_org uuid,p_unit text,p_month date,p_mode text,p_basis text,p_bps integer,p_fixed bigint,p_minimum bigint,p_waive boolean,p_note text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare result uuid; revision integer;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ perform 1 from public.organizations where id=p_org for update;
+ if not found then raise exception 'Company unavailable' using errcode='22023'; end if;
+ select coalesce(max(d.revision),0)+1 into revision from public.agency_fee_rule_drafts d where d.organization_id=p_org and d.unit_code=p_unit;
+ insert into public.agency_fee_rule_drafts(organization_id,unit_code,revision,effective_month,mode,basis,basis_points,fixed_minor,minimum_minor,waive_when_zero,note,created_by)
+ values(p_org,p_unit,revision,p_month,p_mode,p_basis,p_bps,p_fixed,p_minimum,p_waive,btrim(p_note),auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'agency_fee_draft',result,'INSERT',jsonb_build_object('organization_id',p_org,'unit',p_unit,'revision',revision,'draft_only',true));
+ return result;
+end $$;
+revoke all on function public.save_agency_fee_draft(uuid,text,date,text,text,integer,bigint,bigint,boolean,text) from public,anon;
+grant execute on function public.save_agency_fee_draft(uuid,text,date,text,text,integer,bigint,bigint,boolean,text) to authenticated;
+-- END 016_agency_fee_drafts.sql
+
+-- START 017_private_fx.sql
+-- Internal FX confidentiality. Does not change stored rates, reports or money.
+
+drop policy if exists report_fx_quote on public.billing_fx_quotes;
+drop policy if exists finance_rate_sources on public.billing_fx_quotes;
+create policy admin_only_fx on public.billing_fx_quotes for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create or replace function public.prepare_ops_reconciliation(p_packet uuid,p_quote uuid,p_fee_bps integer,p_fee_reference text) returns uuid language plpgsql security definer set search_path='' as $$
+declare packet public.ops_source_packets%rowtype; quote public.billing_fx_quotes%rowtype; result uuid; next_revision integer; converted numeric;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Administrator required for private FX' using errcode='42501'; end if;
+ select * into packet from public.ops_source_packets where id=p_packet;
+ if not found or not public.has_ops_capability('finance.prepare',packet.organization_id) then raise exception 'Forbidden' using errcode='42501'; end if;
+ perform 1 from public.ad_accounts where id=packet.ad_account_id for update;
+ select * into packet from public.ops_source_packets where id=p_packet for update;
+ if exists(select 1 from public.ops_source_packets where ad_account_id=packet.ad_account_id and period=packet.period and version>packet.version) or packet.status not in ('submitted','under_review') then raise exception 'Stale or returned source' using errcode='40001'; end if;
+ if packet.source_currency<>'CAD' then raise exception 'Verified CAD to CNY adapter required' using errcode='22023'; end if;
+ select * into quote from public.billing_fx_quotes where id=p_quote;
+ if not found or quote.is_demo or quote.value_date<>(now() at time zone 'Asia/Shanghai')::date or (quote.quoted_at at time zone 'Asia/Shanghai')::date<>quote.value_date or quote.quoted_at>now() then raise exception 'Current verified quote required' using errcode='22023'; end if;
+ if p_fee_bps is null or p_fee_bps not between 0 and 10000 or (p_fee_bps>0 and char_length(btrim(coalesce(p_fee_reference,'')))<3) then raise exception 'Agreed fee evidence required' using errcode='22023'; end if;
+ if exists(select 1 from public.ops_reconciliations where packet_id=p_packet and status in ('pending','approved')) then raise exception 'Financial review already exists' using errcode='40001'; end if;
+ select coalesce(max(revision),0)+1 into next_revision from public.ops_reconciliations where packet_id=p_packet;
+ converted:=round(packet.source_amount_minor::numeric*quote.cad_cny_rate::numeric,0);
+ insert into public.ops_reconciliations(packet_id,revision,fx_quote_id,settlement_date,ad_spend_cny_minor,fee_minor,fee_basis_points,fee_agreement_reference,prepared_by) values(p_packet,next_revision,p_quote,quote.value_date,converted,round(converted*p_fee_bps/10000,0),p_fee_bps,nullif(btrim(p_fee_reference),''),auth.uid()) returning id into result;
+ update public.ops_source_packets set status='under_review' where id=p_packet;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ops_reconciliation',result,'INSERT',jsonb_build_object('packet_id',p_packet,'revision',next_revision));
+ return result;
+end;
+$$;
+
+-- Authorize and validate the customer's published statement without returning the rate.
+create function public.validate_client_statement(p_report uuid) returns boolean
+language plpgsql stable security definer set search_path='' as $$
+declare r public.monthly_ad_reports%rowtype; q public.billing_fx_quotes%rowtype; principal numeric;
+begin
+ select * into r from public.monthly_ad_reports where id=p_report and published_at is not null and public.has_finance_access(organization_id);
+ if not found then return false; end if;
+ if r.currency<>'CNY' then return true; end if;
+ select * into q from public.billing_fx_quotes where id=r.fx_quote_id;
+ if not found or q.is_demo or r.source_currency is distinct from 'CAD' or r.source_ad_spend_minor is null then return false; end if;
+ if q.value_date is distinct from r.settlement_date or (q.quoted_at at time zone 'Asia/Shanghai')::date is distinct from r.settlement_date or (r.published_at at time zone 'Asia/Shanghai')::date is distinct from r.settlement_date or r.published_at<q.quoted_at then return false; end if;
+ principal:=round(r.source_ad_spend_minor::numeric*q.cad_cny_rate::numeric,0);
+ if r.ad_spend_minor<>principal or r.service_fee_minor<>round(principal*r.fee_basis_points/10000,0) or (r.fee_basis_points>0 and nullif(btrim(r.fee_agreement_reference),'') is null) then return false; end if;
+ if not exists(select 1 from public.monthly_ad_report_lines where report_id=r.id) or exists(select 1 from public.monthly_ad_report_lines where report_id=r.id and source_cad_minor is null) then return false; end if;
+ return (select sum(source_cad_minor)=r.source_ad_spend_minor and sum(spend_minor)=r.ad_spend_minor from public.monthly_ad_report_lines where report_id=r.id);
+end $$;
+revoke all on function public.validate_client_statement(uuid) from public,anon;
+grant execute on function public.validate_client_statement(uuid) to authenticated;
+-- END 017_private_fx.sql
+
+-- START 018_agency_quote_snapshots.sql
+-- Immutable internal quote drafts. Never publishes a report, bills, pays or posts money.
+
+create table public.agency_quote_snapshots (
+ id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations(id),
+ period date not null check(extract(day from period)=1),revision integer not null check(revision>0),
+ request_id uuid not null,request_fingerprint text not null check(request_fingerprint ~ '^[0-9a-f]{64}$'),
+ private_snapshot jsonb not null check(jsonb_typeof(private_snapshot)='object' and octet_length(private_snapshot::text)<=32768),
+ created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),
+ unique(created_by,request_id),unique(organization_id,period,revision)
+);
+alter table public.agency_quote_snapshots enable row level security;
+revoke all on public.agency_quote_snapshots from public,anon,authenticated;
+grant select on public.agency_quote_snapshots to authenticated;
+create policy admin_quote_snapshot on public.agency_quote_snapshots for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create trigger immutable_quote_snapshot before update or delete on public.agency_quote_snapshots for each row execute function public.lock_posted_money();
+create function public.save_agency_quote_snapshot(p_org uuid,p_period date,p_request uuid,p_fingerprint text,p_snapshot jsonb) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare old_record public.agency_quote_snapshots%rowtype; result uuid; version integer;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||p_request::text,0));
+ select * into old_record from public.agency_quote_snapshots where created_by=auth.uid() and request_id=p_request;
+ if found then
+  if old_record.request_fingerprint is distinct from p_fingerprint or old_record.organization_id is distinct from p_org or old_record.period is distinct from p_period or old_record.private_snapshot is distinct from p_snapshot then raise exception 'Request changed; create a new draft' using errcode='40001'; end if;
+  return old_record.id;
+ end if;
+ if p_snapshot->>'status' is distinct from 'draft' or p_snapshot->>'calculationVersion' is distinct from 'two-agency-v1' or coalesce(p_snapshot->>'finalMinor','') !~ '^[0-9]{1,18}$' then raise exception 'Draft calculation required' using errcode='22023'; end if;
+ perform 1 from public.organizations where id=p_org for update;
+ if not found then raise exception 'Company unavailable' using errcode='22023'; end if;
+ select coalesce(max(s.revision),0)+1 into version from public.agency_quote_snapshots s where s.organization_id=p_org and s.period=p_period;
+ insert into public.agency_quote_snapshots(organization_id,period,revision,request_id,request_fingerprint,private_snapshot,created_by)
+ values(p_org,p_period,version,p_request,p_fingerprint,p_snapshot,auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'agency_quote_snapshot',result,'INSERT',jsonb_build_object('organization_id',p_org,'period',p_period,'revision',version,'draft_only',true));
+ return result;
+end $$;
+revoke all on function public.save_agency_quote_snapshot(uuid,date,uuid,text,jsonb) from public,anon;
+grant execute on function public.save_agency_quote_snapshot(uuid,date,uuid,text,jsonb) to authenticated;
+create function public.get_agency_quote_results(p_org uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.created_at desc,x.id desc) from (
+ select s.id,s.created_at,jsonb_build_object('id',s.id,'organization_id',s.organization_id,'period',s.period,'revision',s.revision,'status','draft','total_cny_minor',s.private_snapshot->>'finalMinor','created_at',s.created_at) record
+ from public.agency_quote_snapshots s where s.organization_id=p_org order by s.created_at desc,s.id desc limit 20
+ ) x),'[]'::jsonb);
+end $$;
+revoke all on function public.get_agency_quote_results(uuid) from public,anon;
+grant execute on function public.get_agency_quote_results(uuid) to authenticated;
+-- END 018_agency_quote_snapshots.sql
+
+-- START 019_quote_revision_archive.sql
+-- Lifecycle/provenance are separate from immutable quote amounts. No deletion or ledger changes.
+
+create table public.agency_quote_lifecycle (
+ quote_id uuid primary key references public.agency_quote_snapshots(id),
+ archived boolean not null,revision integer not null check(revision>0),
+ updated_by uuid not null references auth.users(id),updated_at timestamptz not null default now()
+);
+create table public.agency_quote_derivations (
+ quote_id uuid primary key references public.agency_quote_snapshots(id),
+ parent_id uuid not null references public.agency_quote_snapshots(id),check(quote_id<>parent_id)
+);
+alter table public.agency_quote_lifecycle enable row level security;
+alter table public.agency_quote_derivations enable row level security;
+revoke all on public.agency_quote_lifecycle,public.agency_quote_derivations from public,anon,authenticated;
+grant select on public.agency_quote_lifecycle,public.agency_quote_derivations to authenticated;
+create policy admin_quote_lifecycle on public.agency_quote_lifecycle for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create policy admin_quote_derivations on public.agency_quote_derivations for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create trigger immutable_quote_derivation before update or delete on public.agency_quote_derivations for each row execute function public.lock_posted_money();
+create function public.set_agency_quote_archived(p_id uuid,p_archived boolean,p_revision integer,p_note text) returns integer
+language plpgsql security definer set search_path='' as $$
+declare state public.agency_quote_lifecycle%rowtype; current_revision integer; result integer;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_archived is null or p_revision is null or p_revision<0 or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Invalid archive request' using errcode='22023'; end if;
+ perform 1 from public.agency_quote_snapshots where id=p_id for update;
+ if not found then raise exception 'Quote unavailable' using errcode='P0002'; end if;
+ select * into state from public.agency_quote_lifecycle where quote_id=p_id;
+ current_revision:=coalesce(state.revision,0);
+ if coalesce(state.archived,false)=p_archived then return current_revision; end if;
+ if current_revision<>p_revision then raise exception 'Archive state changed; refresh' using errcode='40001'; end if;
+ result:=current_revision+1;
+ insert into public.agency_quote_lifecycle(quote_id,archived,revision,updated_by) values(p_id,p_archived,result,auth.uid())
+ on conflict(quote_id) do update set archived=excluded.archived,revision=excluded.revision,updated_by=auth.uid(),updated_at=now();
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'quote_lifecycle',p_id,'UPDATE',jsonb_build_object('archived',p_archived,'revision',result,'note',btrim(p_note)));
+ return result;
+end $$;
+create function public.save_agency_quote_revision(p_org uuid,p_period date,p_request uuid,p_fingerprint text,p_snapshot jsonb,p_parent uuid default null) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare result uuid; old_parent uuid;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_parent is not null and not exists(select 1 from public.agency_quote_snapshots where id=p_parent and organization_id=p_org) then raise exception 'Parent quote unavailable for company' using errcode='42501'; end if;
+ result:=public.save_agency_quote_snapshot(p_org,p_period,p_request,p_fingerprint,p_snapshot);
+ select parent_id into old_parent from public.agency_quote_derivations where quote_id=result;
+ if old_parent is not null and old_parent is distinct from p_parent then raise exception 'Parent changed' using errcode='40001'; end if;
+ if p_parent is not null then
+  if exists(with recursive ancestors(id) as (select p_parent union select d.parent_id from public.agency_quote_derivations d join ancestors a on d.quote_id=a.id) select 1 from ancestors where id=result) then raise exception 'Quote derivation cycle' using errcode='22023'; end if;
+  insert into public.agency_quote_derivations(quote_id,parent_id) values(result,p_parent) on conflict(quote_id) do nothing;
+ end if;
+ return result;
+end $$;
+create function public.list_agency_quotes(p_org uuid,p_include_archived boolean default false) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.created_at desc,x.id desc) from (
+ select s.id,s.created_at,jsonb_build_object('id',s.id,'organization_id',s.organization_id,'period',s.period,'revision',s.revision,
+ 'status',case when coalesce(l.archived,false) then 'archived' else 'draft' end,'state_revision',coalesce(l.revision,0),
+ 'parent_id',d.parent_id,'total_cny_minor',s.private_snapshot->>'finalMinor','created_at',s.created_at) record
+ from public.agency_quote_snapshots s left join public.agency_quote_lifecycle l on l.quote_id=s.id left join public.agency_quote_derivations d on d.quote_id=s.id
+ where s.organization_id=p_org and (coalesce(p_include_archived,false) or not coalesce(l.archived,false))
+ order by s.created_at desc,s.id desc limit 20
+ ) x),'[]'::jsonb);
+end $$;
+create or replace function public.get_agency_quote_results(p_org uuid) returns jsonb language sql stable security definer set search_path='' as $$ select public.list_agency_quotes(p_org,false); $$;
+revoke all on function public.set_agency_quote_archived(uuid,boolean,integer,text),public.save_agency_quote_revision(uuid,date,uuid,text,jsonb,uuid),public.list_agency_quotes(uuid,boolean) from public,anon;
+grant execute on function public.set_agency_quote_archived(uuid,boolean,integer,text),public.save_agency_quote_revision(uuid,date,uuid,text,jsonb,uuid),public.list_agency_quotes(uuid,boolean) to authenticated;
+-- END 019_quote_revision_archive.sql
+
+-- START 020_ads_readonly_reporting.sql
+-- Internal API acceptance snapshots only. No customer mapping, billing or ledger posting.
+
+create table public.ads_reporting_snapshots (
+ id uuid primary key default gen_random_uuid(),request_id uuid not null,
+ account_id text not null,account_name text not null,currency text not null,timezone text not null,
+ since date not null,until date not null,check_status text not null check(check_status in ('matched','difference','no_data')),
+ daily_spend_micros numeric(18,0) not null check(daily_spend_micros>=0),
+ period_spend_micros numeric(18,0) check(period_spend_micros>=0),
+ report jsonb not null check(jsonb_typeof(report)='object' and octet_length(report::text)<=786432),
+ created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),
+ unique(created_by,request_id),check(until=since+6)
+);
+create index ads_reporting_recent on public.ads_reporting_snapshots(created_at desc);
+alter table public.ads_reporting_snapshots enable row level security;
+revoke all on public.ads_reporting_snapshots from public,anon,authenticated;
+grant select on public.ads_reporting_snapshots to authenticated;
+create policy admin_ads_reporting on public.ads_reporting_snapshots for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create trigger immutable_ads_reporting before update or delete on public.ads_reporting_snapshots for each row execute function public.lock_posted_money();
+create function public.save_ads_reporting_snapshot(p_request uuid,p_report jsonb) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare prior public.ads_reporting_snapshots%rowtype; result uuid;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_request is null or p_report->>'version' is distinct from 'ads-readonly-v1'
+ or coalesce(p_report#>>'{account,id}','') !~ '^adacct_[A-Za-z0-9_-]+$'
+ or coalesce(p_report#>>'{account,currency_code}','') !~ '^[A-Z]{3}$'
+ or coalesce(p_report->>'dailySpendMicros','') !~ '^[0-9]{1,18}$'
+ or coalesce(p_report->>'rawSha256','') !~ '^[a-f0-9]{64}$'
+ or jsonb_typeof(p_report->'daily') is distinct from 'array'
+ or jsonb_typeof(p_report->'rawResponses') is distinct from 'array'
+ then raise exception 'Invalid report' using errcode='22023'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||p_request::text,0));
+ select * into prior from public.ads_reporting_snapshots where created_by=auth.uid() and request_id=p_request;
+ if found then
+  if prior.report is distinct from p_report then raise exception 'Request changed' using errcode='40001'; end if;
+  return prior.id;
+ end if;
+ insert into public.ads_reporting_snapshots(request_id,account_id,account_name,currency,timezone,since,until,check_status,daily_spend_micros,period_spend_micros,report,created_by)
+ values(p_request,p_report#>>'{account,id}',p_report#>>'{account,name}',p_report#>>'{account,currency_code}',p_report#>>'{account,timezone}',(p_report->>'since')::date,(p_report->>'until')::date,p_report->>'check',(p_report->>'dailySpendMicros')::numeric,(p_report->>'periodSpendMicros')::numeric,p_report,auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ads_readonly_snapshot',result,'INSERT',jsonb_build_object('account_id',p_report#>>'{account,id}','internal_only',true,'no_ledger_posting',true));
+ return result;
+end $$;
+revoke all on function public.save_ads_reporting_snapshot(uuid,jsonb) from public,anon;
+grant execute on function public.save_ads_reporting_snapshot(uuid,jsonb) to authenticated;
+-- END 020_ads_readonly_reporting.sql
+
+-- START 021_ads_source_handoff.sql
+-- Explicit advertiser ownership and immutable, scoped internal source handoffs.
+-- No customer publication, role grants, schedule, fee calculation or ledger writes.
+
+create table public.ads_reporting_bindings (
+ id uuid primary key default gen_random_uuid(),account_id text not null unique,
+ ad_account_id uuid not null,organization_id uuid not null references public.organizations(id),
+ ownership_reference text not null check(char_length(btrim(ownership_reference)) between 3 and 1000),
+ active boolean not null default true,revision integer not null default 1 check(revision>0),
+ created_by uuid not null references auth.users(id),created_at timestamptz not null default now(),
+ updated_by uuid not null references auth.users(id),updated_at timestamptz not null default now(),
+ foreign key(ad_account_id,organization_id) references public.ad_accounts(id,organization_id)
+);
+create table public.ads_source_handoffs (
+ id uuid primary key default gen_random_uuid(),snapshot_id uuid not null unique references public.ads_reporting_snapshots(id),
+ binding_id uuid not null references public.ads_reporting_bindings(id),
+ note text not null check(char_length(btrim(note)) between 3 and 1000),
+ shared_by uuid not null references auth.users(id),shared_at timestamptz not null default now()
+);
+alter table public.ads_reporting_bindings enable row level security;
+alter table public.ads_source_handoffs enable row level security;
+revoke all on public.ads_reporting_bindings,public.ads_source_handoffs from public,anon,authenticated;
+grant select on public.ads_reporting_bindings,public.ads_source_handoffs to authenticated;
+create policy admin_ads_bindings on public.ads_reporting_bindings for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create policy admin_ads_handoffs on public.ads_source_handoffs for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+create trigger immutable_ads_handoff before update or delete on public.ads_source_handoffs for each row execute function public.lock_posted_money();
+create function public.protect_ads_binding_identity() returns trigger language plpgsql set search_path='' as $$
+begin
+ if TG_OP='DELETE' then raise exception 'Binding history is immutable; pause access' using errcode='42501'; end if;
+ if NEW.id is distinct from OLD.id or NEW.account_id is distinct from OLD.account_id or NEW.ad_account_id is distinct from OLD.ad_account_id or NEW.organization_id is distinct from OLD.organization_id or NEW.ownership_reference is distinct from OLD.ownership_reference or NEW.created_by is distinct from OLD.created_by or NEW.created_at is distinct from OLD.created_at then raise exception 'Binding destination is immutable' using errcode='42501'; end if;
+ return NEW;
+end $$;
+revoke all on function public.protect_ads_binding_identity() from public,anon,authenticated;
+create trigger protect_ads_binding before update or delete on public.ads_reporting_bindings for each row execute function public.protect_ads_binding_identity();
+create function public.bind_ads_reporting_account(p_snapshot uuid,p_org uuid,p_reference text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare source public.ads_reporting_snapshots%rowtype; prior public.ads_reporting_bindings%rowtype; account public.ad_accounts%rowtype; result uuid;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_reference is null or char_length(btrim(p_reference)) not between 3 and 1000 then raise exception 'Ownership evidence required' using errcode='22023'; end if;
+ select * into source from public.ads_reporting_snapshots where id=p_snapshot;
+ if not found then raise exception 'Source unavailable' using errcode='22023'; end if;
+ perform 1 from public.organizations where id=p_org;if not found then raise exception 'Company unavailable' using errcode='22023'; end if;
+ perform pg_advisory_xact_lock(hashtextextended('ads-binding:'||source.account_id,0));
+ select * into prior from public.ads_reporting_bindings where account_id=source.account_id;
+ if found then
+  if prior.organization_id is distinct from p_org then raise exception 'Account already linked to another company' using errcode='23505'; end if;
+  return prior.id;
+ end if;
+ select * into account from public.ad_accounts where platform='openai_ads' and external_id=source.account_id;
+ if found and account.organization_id is distinct from p_org then raise exception 'Account already linked to another company' using errcode='23505'; end if;
+ if account.id is null then
+  insert into public.ad_accounts(organization_id,platform,external_id,label) values(p_org,'openai_ads',source.account_id,source.account_name) returning * into account;
+ end if;
+ insert into public.ads_reporting_bindings(account_id,ad_account_id,organization_id,ownership_reference,created_by,updated_by)
+ values(source.account_id,account.id,p_org,btrim(p_reference),auth.uid(),auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ads_reporting_binding',result,'INSERT',jsonb_build_object('organization_id',p_org,'account_id',source.account_id,'explicit_ownership_check',true));
+ return result;
+end $$;
+create function public.set_ads_binding_active(p_id uuid,p_active boolean,p_revision integer,p_note text) returns integer
+language plpgsql security definer set search_path='' as $$
+declare binding public.ads_reporting_bindings%rowtype; result integer;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_active is null or p_revision is null or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Invalid access change' using errcode='22023'; end if;
+ select * into binding from public.ads_reporting_bindings where id=p_id for update;
+ if not found then raise exception 'Binding unavailable' using errcode='22023'; end if;
+ if binding.active=p_active then return binding.revision; end if;
+ if binding.revision<>p_revision then raise exception 'State changed; refresh' using errcode='40001'; end if;
+ result:=binding.revision+1;
+ update public.ads_reporting_bindings set active=p_active,revision=result,updated_by=auth.uid(),updated_at=now() where id=p_id;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ads_reporting_binding',p_id,'UPDATE',jsonb_build_object('active',p_active,'revision',result,'note',btrim(p_note)));
+ return result;
+end $$;
+create function public.share_ads_source_snapshot(p_snapshot uuid,p_binding uuid,p_note text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare binding public.ads_reporting_bindings%rowtype; source public.ads_reporting_snapshots%rowtype; prior public.ads_source_handoffs%rowtype; result uuid;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Source review note required' using errcode='22023'; end if;
+ select * into binding from public.ads_reporting_bindings where id=p_binding for update;
+ if not found or not binding.active then raise exception 'Binding inactive' using errcode='42501'; end if;
+ select * into source from public.ads_reporting_snapshots where id=p_snapshot for update;
+ if not found or source.account_id is distinct from binding.account_id then raise exception 'Source account mismatch' using errcode='22023'; end if;
+ select * into prior from public.ads_source_handoffs where snapshot_id=p_snapshot;
+ if found then
+  if prior.binding_id is distinct from p_binding or prior.note is distinct from btrim(p_note) then raise exception 'Handoff already frozen' using errcode='40001'; end if;
+  return prior.id;
+ end if;
+ insert into public.ads_source_handoffs(snapshot_id,binding_id,note,shared_by) values(p_snapshot,p_binding,btrim(p_note),auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ads_source_handoff',result,'INSERT',jsonb_build_object('snapshot_id',p_snapshot,'organization_id',binding.organization_id,'source_check',source.check_status,'not_published',true,'no_ledger_posting',true));
+ return result;
+end $$;
+create function public.list_ads_source_handoffs(p_org uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.shared_at desc,x.id desc) from (
+ select h.id,h.shared_at,jsonb_build_object('id',h.id,'snapshot_id',s.id,'organization_id',b.organization_id,
+ 'account_name',s.account_name,'account_id',s.account_id,'currency',s.currency,'timezone',s.timezone,'since',s.since,'until',s.until,
+ 'source_check',s.check_status,'daily_spend_micros',s.daily_spend_micros::text,'period_spend_micros',s.period_spend_micros::text,
+ 'missing_dates',s.report->'missingDates','end_boundary',s.report->>'endBoundary',
+ 'daily',coalesce((select jsonb_agg(jsonb_build_object('date',d->>'date','spend_micros',d->>'spendMicros','impressions',d->>'impressions','clicks',d->>'clicks') order by d->>'date') from jsonb_array_elements(s.report->'daily') d),'[]'::jsonb),
+ 'source_sha256',s.report->>'rawSha256','retrieved_at',s.created_at,'shared_at',h.shared_at,'note',h.note) record
+ from public.ads_source_handoffs h join public.ads_reporting_bindings b on b.id=h.binding_id
+ join public.ads_reporting_snapshots s on s.id=h.snapshot_id
+ where b.organization_id=p_org and b.active
+ order by h.shared_at desc,h.id desc limit 20
+ ) x),'[]'::jsonb);
+end $$;
+revoke all on function public.bind_ads_reporting_account(uuid,uuid,text),public.set_ads_binding_active(uuid,boolean,integer,text),public.share_ads_source_snapshot(uuid,uuid,text),public.list_ads_source_handoffs(uuid) from public,anon;
+grant execute on function public.bind_ads_reporting_account(uuid,uuid,text),public.set_ads_binding_active(uuid,boolean,integer,text),public.share_ads_source_snapshot(uuid,uuid,text),public.list_ads_source_handoffs(uuid) to authenticated;
+-- END 021_ads_source_handoff.sql
+
+-- START 022_ads_calendar_month.sql
+-- Permit complete natural months in addition to the existing seven-day source snapshots.
+-- This does not approve source data, publish statements or post any wallet entry.
+
+alter table public.ads_reporting_snapshots drop constraint ads_reporting_snapshots_check;
+alter table public.ads_reporting_snapshots add constraint ads_reporting_snapshot_period check(
+ until=since+6 or (
+  extract(day from since)=1
+  and until=(since+interval '1 month'-interval '1 day')::date
+ )
+);
+notify pgrst, 'reload schema';
+-- END 022_ads_calendar_month.sql
+
+-- START 023_ads_operational_periods.sql
+-- Bounded completed-day operational source windows; never a billing authorization.
+
+alter table public.ads_reporting_snapshots drop constraint if exists ads_reporting_snapshot_period;
+alter table public.ads_reporting_snapshots drop constraint if exists ads_reporting_snapshots_check;
+alter table public.ads_reporting_snapshots add constraint ads_reporting_snapshot_period check(until between since and since+30);
+notify pgrst, 'reload schema';
+-- END 023_ads_operational_periods.sql
+
+-- START 024_monthly_settlement_review.sql
+-- Traceable source + quote preparation and independent review. No statement publication or wallet posting.
+
+create table public.monthly_settlement_drafts (
+ id uuid primary key default gen_random_uuid(),organization_id uuid not null references public.organizations(id),
+ binding_id uuid not null references public.ads_reporting_bindings(id),snapshot_id uuid not null references public.ads_reporting_snapshots(id),
+ quote_id uuid not null unique references public.agency_quote_snapshots(id),month date not null,
+ source_cad_minor bigint not null check(source_cad_minor>=0),total_cny_minor bigint not null check(total_cny_minor>=0),
+ agreement_reference text not null check(char_length(btrim(agreement_reference)) between 3 and 1000),
+ note text not null check(char_length(btrim(note)) between 3 and 1000),
+ prepared_by uuid not null references auth.users(id),prepared_at timestamptz not null default now()
+);
+create table public.monthly_settlement_reviews (
+ draft_id uuid primary key references public.monthly_settlement_drafts(id),decision text not null check(decision in ('approved','rejected')),
+ note text not null check(char_length(btrim(note)) between 3 and 1000),reviewed_by uuid not null references auth.users(id),reviewed_at timestamptz not null default now()
+);
+alter table public.monthly_settlement_drafts enable row level security;
+alter table public.monthly_settlement_reviews enable row level security;
+revoke all on public.monthly_settlement_drafts,public.monthly_settlement_reviews from public,anon,authenticated;
+-- Finance reads only the whitelisted, capability-scoped RPC projection below.
+create trigger immutable_monthly_draft before update or delete on public.monthly_settlement_drafts for each row execute function public.lock_posted_money();
+create trigger immutable_monthly_review before update or delete on public.monthly_settlement_reviews for each row execute function public.lock_posted_money();
+create function public.prepare_monthly_settlement(p_snapshot uuid,p_quote uuid,p_agreement text,p_note text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare s public.ads_reporting_snapshots%rowtype;b public.ads_reporting_bindings%rowtype;q public.agency_quote_snapshots%rowtype;prior public.monthly_settlement_drafts%rowtype;result uuid;cad bigint;days integer;
+begin
+ select * into q from public.agency_quote_snapshots where id=p_quote for update;
+ if not found or not public.has_ops_capability('finance.prepare',q.organization_id) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_agreement is null or char_length(btrim(p_agreement)) not between 3 and 1000 or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Agreement and note required' using errcode='22023'; end if;
+ select * into prior from public.monthly_settlement_drafts where quote_id=p_quote;
+ if found then
+  if prior.snapshot_id<>p_snapshot or prior.prepared_by<>auth.uid() or prior.agreement_reference<>btrim(p_agreement) or prior.note<>btrim(p_note) then raise exception 'Draft already exists for quote' using errcode='40001'; end if;
+  return prior.id;
+ end if;
+ select * into s from public.ads_reporting_snapshots where id=p_snapshot;
+ if not found then raise exception 'Source unavailable' using errcode='22023'; end if;
+ select * into b from public.ads_reporting_bindings where account_id=s.account_id for share;
+ if not found or not b.active or b.organization_id<>q.organization_id or not exists(select 1 from public.ads_source_handoffs h where h.snapshot_id=s.id and h.binding_id=b.id) then raise exception 'Source ownership or handoff invalid' using errcode='22023'; end if;
+ if exists(select 1 from public.agency_quote_lifecycle where quote_id=q.id and archived) then raise exception 'Quote archived' using errcode='40001'; end if;
+ if s.currency<>'CAD' or s.since<>q.period or extract(day from s.since)<>1 or s.until<>(s.since+interval '1 month'-interval '1 day')::date or s.until>=(now() at time zone s.timezone)::date then raise exception 'Closed CAD calendar month and matching quote required' using errcode='22023'; end if;
+ days:=s.until-s.since+1;
+ if s.check_status<>'matched' or s.period_spend_micros is null or s.period_spend_micros<>s.daily_spend_micros
+ or s.report->'missingDates' is distinct from '[]'::jsonb
+ or coalesce(s.report->>'endBoundary','') not in ('exclusive','last_day_label_verified')
+ or jsonb_typeof(s.report->'daily') is distinct from 'array'
+ then raise exception 'Source checks incomplete' using errcode='23514'; end if;
+ if jsonb_array_length(s.report->'daily')<>days
+ or (select count(distinct d->>'date') from jsonb_array_elements(s.report->'daily') d)<>days
+ or exists(select 1 from jsonb_array_elements(s.report->'daily') d where coalesce(d->>'date','') !~ '^\d{4}-\d{2}-\d{2}$' or d->>'date'<s.since::text or d->>'date'>s.until::text or coalesce(d->>'spendMicros','') !~ '^[0-9]{1,18}$')
+ then raise exception 'Daily coverage incomplete' using errcode='23514'; end if;
+ if (select sum((d->>'spendMicros')::numeric) from jsonb_array_elements(s.report->'daily') d)<>s.daily_spend_micros then raise exception 'Daily sum mismatch' using errcode='23514'; end if;
+ -- Round the complete month once, half-up, from millionths to CAD cents.
+ cad:=round(s.period_spend_micros/10000,0)::bigint;
+ if q.private_snapshot->>'calculationVersion' is distinct from 'two-agency-v1' or coalesce(q.private_snapshot->>'sourceCadMinor','') !~ '^[0-9]{1,10}$' or coalesce(q.private_snapshot->>'finalMinor','') !~ '^[0-9]{1,18}$' then raise exception 'Quote calculation unavailable' using errcode='22023'; end if;
+ if (q.private_snapshot->>'sourceCadMinor')::bigint<>cad then raise exception 'Quote source amount differs' using errcode='22023'; end if;
+ insert into public.monthly_settlement_drafts(organization_id,binding_id,snapshot_id,quote_id,month,source_cad_minor,total_cny_minor,agreement_reference,note,prepared_by)
+ values(q.organization_id,b.id,s.id,q.id,q.period,cad,(q.private_snapshot->>'finalMinor')::bigint,btrim(p_agreement),btrim(p_note),auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'monthly_settlement_draft',result,'INSERT',jsonb_build_object('snapshot_id',s.id,'quote_id',q.id,'no_ledger_posting',true));
+ return result;
+end $$;
+create function public.review_monthly_settlement(p_draft uuid,p_decision text,p_note text) returns void
+language plpgsql security definer set search_path='' as $$
+declare d public.monthly_settlement_drafts%rowtype;r public.monthly_settlement_reviews%rowtype;
+begin
+ select * into d from public.monthly_settlement_drafts where id=p_draft for update;
+ if not found or not public.has_ops_capability('finance.review',d.organization_id) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if d.prepared_by=auth.uid() then raise exception 'Independent reviewer required' using errcode='42501'; end if;
+ if p_decision is null or p_decision not in ('approved','rejected') or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Review input required' using errcode='22023'; end if;
+ select * into r from public.monthly_settlement_reviews where draft_id=d.id;
+ if found then
+  if r.decision=p_decision and r.note=btrim(p_note) and r.reviewed_by=auth.uid() then return; end if;
+  raise exception 'Review already recorded' using errcode='40001';
+ end if;
+ perform 1 from public.ads_reporting_bindings where id=d.binding_id and active for share;
+ if not found then raise exception 'Source access paused' using errcode='40001'; end if;
+ -- Serialize with quote archival so a stale quote cannot be approved concurrently.
+ perform 1 from public.agency_quote_snapshots where id=d.quote_id for update;
+ if p_decision='approved' and exists(select 1 from public.agency_quote_lifecycle where quote_id=d.quote_id and archived) then raise exception 'Quote archived' using errcode='40001'; end if;
+ insert into public.monthly_settlement_reviews(draft_id,decision,note,reviewed_by) values(d.id,p_decision,btrim(p_note),auth.uid());
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'monthly_settlement_review',d.id,'INSERT',jsonb_build_object('decision',p_decision,'no_ledger_posting',true));
+end $$;
+create function public.list_monthly_settlements(p_org uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.prepared_at desc,x.id desc) from (
+ select d.id,d.prepared_at,jsonb_build_object('id',d.id,'month',d.month,'snapshot_id',d.snapshot_id,'quote_id',d.quote_id,'quote_revision',q.revision,
+ 'source_cad_minor',d.source_cad_minor::text,'total_cny_minor',d.total_cny_minor::text,'agreement_reference',d.agreement_reference,'note',d.note,'prepared_by',d.prepared_by,'prepared_at',d.prepared_at,
+ 'status',coalesce(r.decision,'pending'),'review_note',r.note,'reviewed_at',r.reviewed_at,'quote_archived',coalesce(l.archived,false)) record
+ from public.monthly_settlement_drafts d join public.ads_reporting_bindings b on b.id=d.binding_id and b.active join public.agency_quote_snapshots q on q.id=d.quote_id
+ left join public.monthly_settlement_reviews r on r.draft_id=d.id left join public.agency_quote_lifecycle l on l.quote_id=d.quote_id
+ where d.organization_id=p_org order by d.prepared_at desc,d.id desc limit 50
+ )x),'[]'::jsonb);
+end $$;
+revoke all on function public.prepare_monthly_settlement(uuid,uuid,text,text),public.review_monthly_settlement(uuid,text,text),public.list_monthly_settlements(uuid) from public,anon;
+grant execute on function public.prepare_monthly_settlement(uuid,uuid,text,text),public.review_monthly_settlement(uuid,text,text),public.list_monthly_settlements(uuid) to authenticated;
+notify pgrst,'reload schema';
+-- END 024_monthly_settlement_review.sql
+
+-- START 025_monthly_statement_posting.sql
+-- Publish one reviewed monthly settlement and post its CNY ledger debit atomically.
+-- Does not transfer bank funds, pay upstream agencies or change advertising budgets.
+
+create table public.monthly_client_statements (
+ id uuid primary key default gen_random_uuid(),draft_id uuid not null unique references public.monthly_settlement_drafts(id),
+ organization_id uuid not null references public.organizations(id),binding_id uuid not null references public.ads_reporting_bindings(id),
+ wallet_id uuid not null,month date not null,currency text not null default 'CNY' check(currency='CNY'),
+ upstream_cny_minor bigint not null check(upstream_cny_minor between 0 and 9999999999),
+ service_cny_minor bigint not null check(service_cny_minor between 0 and 9999999999),
+ total_cny_minor bigint not null check(total_cny_minor between 0 and 9999999999),
+ summary_zh text not null check(char_length(btrim(summary_zh)) between 3 and 2000),
+ usage jsonb not null check(jsonb_typeof(usage)='object'),
+ published_by uuid not null references auth.users(id),published_at timestamptz not null default now(),
+ foreign key(wallet_id,organization_id,currency) references public.client_wallets(id,organization_id,currency),
+ unique(binding_id,month),check(total_cny_minor=upstream_cny_minor+service_cny_minor)
+);
+alter table public.monthly_client_statements enable row level security;
+revoke all on public.monthly_client_statements from public,anon,authenticated;
+create trigger immutable_monthly_statement before update or delete on public.monthly_client_statements for each row execute function public.lock_posted_money();
+create function public.verify_monthly_statement_posting() returns trigger language plpgsql security definer set search_path='' as $$
+declare upstream numeric;service numeric;n integer;
+begin
+ select coalesce(-sum(amount_minor) filter(where kind='ad_spend'),0),coalesce(-sum(amount_minor) filter(where kind='service_fee'),0),count(*) into upstream,service,n
+ from public.wallet_entries where wallet_id=NEW.wallet_id and source_reference='monthly-statement:'||NEW.id::text;
+ if upstream<>NEW.upstream_cny_minor or service<>NEW.service_cny_minor or n<>(case when NEW.upstream_cny_minor>0 then 1 else 0 end)+(case when NEW.service_cny_minor>0 then 1 else 0 end) then raise exception 'Statement ledger posting incomplete' using errcode='23514'; end if;
+ return NEW;
+end $$;
+revoke all on function public.verify_monthly_statement_posting() from public,anon,authenticated;
+create constraint trigger complete_monthly_statement_posting after insert on public.monthly_client_statements deferrable initially deferred for each row execute function public.verify_monthly_statement_posting();
+create function public.get_monthly_publication_input(p_draft uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return (select jsonb_build_object('draft_id',d.id,'quote_id',q.id,'organization_id',q.organization_id,'period',q.period,'private_snapshot',q.private_snapshot)
+ from public.monthly_settlement_drafts d join public.agency_quote_snapshots q on q.id=d.quote_id where d.id=p_draft);
+end $$;
+create function public.publish_monthly_statement(p_draft uuid,p_summary text,p_expected jsonb) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare d public.monthly_settlement_drafts%rowtype;b public.ads_reporting_bindings%rowtype;q public.agency_quote_snapshots%rowtype;s public.ads_reporting_snapshots%rowtype;w public.client_wallets%rowtype;
+ prior public.monthly_client_statements%rowtype;result uuid;upstream bigint;service bigint;total bigint;balance numeric;public_usage jsonb;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_summary is null or char_length(btrim(p_summary)) not between 3 and 2000 or p_expected is null then raise exception 'Publication input required' using errcode='22023'; end if;
+ select * into d from public.monthly_settlement_drafts where id=p_draft;
+ if not found then raise exception 'Draft unavailable' using errcode='22023'; end if;
+ -- All app money writers lock the wallet before recording entries.
+ select * into w from public.client_wallets where organization_id=d.organization_id and currency='CNY' for update;
+ if not found then raise exception 'CNY wallet required' using errcode='P0002'; end if;
+ select * into d from public.monthly_settlement_drafts where id=p_draft for update;
+ select * into q from public.agency_quote_snapshots where id=d.quote_id for update;
+ if q.private_snapshot is distinct from p_expected then raise exception 'Quote changed' using errcode='40001'; end if;
+ select * into prior from public.monthly_client_statements where draft_id=d.id;
+ if found then
+  if prior.summary_zh<>btrim(p_summary) then raise exception 'Published statement is immutable' using errcode='40001'; end if;
+  return prior.id;
+ end if;
+ if not exists(select 1 from public.monthly_settlement_reviews where draft_id=d.id and decision='approved' and reviewed_by<>d.prepared_by) then raise exception 'Independent approval required' using errcode='23514'; end if;
+ if exists(select 1 from public.agency_quote_lifecycle where quote_id=q.id and archived) then raise exception 'Quote archived' using errcode='40001'; end if;
+ select * into b from public.ads_reporting_bindings where id=d.binding_id for share;
+ if not found or not b.active or b.organization_id<>d.organization_id then raise exception 'Source access paused or changed' using errcode='40001'; end if;
+ if exists(select 1 from public.monthly_client_statements where binding_id=b.id and month=d.month)
+ or exists(select 1 from public.monthly_ad_reports where ad_account_id=b.ad_account_id and month=d.month and published_at is not null) then raise exception 'Account month already published' using errcode='23505'; end if;
+ select * into s from public.ads_reporting_snapshots where id=d.snapshot_id;
+ if s.account_id<>b.account_id or s.currency<>'CAD' or s.since<>d.month or s.until<>(s.since+interval '1 month'-interval '1 day')::date
+ or s.check_status<>'matched' or s.period_spend_micros is null or s.period_spend_micros<>s.daily_spend_micros
+ or s.report->'missingDates' is distinct from '[]'::jsonb or coalesce(s.report->>'endBoundary','') not in ('exclusive','last_day_label_verified')
+ or not exists(select 1 from public.ads_source_handoffs where snapshot_id=s.id and binding_id=b.id) then raise exception 'Source is not ready' using errcode='23514'; end if;
+ if q.organization_id<>d.organization_id or q.period<>d.month or q.private_snapshot->>'sourceCadMinor' is distinct from d.source_cad_minor::text
+ or round(s.period_spend_micros/10000,0)::bigint<>d.source_cad_minor then raise exception 'Settlement source mismatch' using errcode='23514'; end if;
+ if coalesce(q.private_snapshot->>'upstreamCnyMinor','') !~ '^[0-9]{1,10}$' or coalesce(q.private_snapshot->>'chinaFeeCnyMinor','') !~ '^[0-9]{1,10}$'
+ or coalesce(q.private_snapshot->>'customerCostMinor','') !~ '^[0-9]{1,10}$' or coalesce(q.private_snapshot->>'finalMinor','') !~ '^[0-9]{1,10}$' then raise exception 'Quote totals invalid' using errcode='22023'; end if;
+ upstream:=(q.private_snapshot->>'upstreamCnyMinor')::bigint;
+ service:=(q.private_snapshot->>'chinaFeeCnyMinor')::bigint+(q.private_snapshot->>'customerCostMinor')::bigint;
+ total:=(q.private_snapshot->>'finalMinor')::bigint;
+ if total<>d.total_cny_minor or total<>upstream+service or total>9999999999 or service>9999999999 then raise exception 'Settlement totals invalid' using errcode='23514'; end if;
+ select coalesce(sum(amount_minor),0) into balance from public.wallet_entries where wallet_id=w.id;
+ if balance<total then raise exception 'Insufficient posted balance' using errcode='P0003'; end if;
+ if exists(select 1 from jsonb_array_elements(s.report->'daily') v where coalesce(v->>'impressions','') !~ '^[0-9]{1,16}$' or coalesce(v->>'clicks','') !~ '^[0-9]{1,16}$') then raise exception 'Usage metrics invalid' using errcode='23514'; end if;
+ -- Only public service-usage metrics are copied, never CAD cost, FX or upstream margins.
+ select jsonb_build_object('account_name',s.account_name,'since',s.since,'until',s.until,'timezone',s.timezone,
+ 'impressions',sum((v->>'impressions')::numeric)::text,'clicks',sum((v->>'clicks')::numeric)::text,
+ 'daily',jsonb_agg(jsonb_build_object('date',v->>'date','impressions',v->>'impressions','clicks',v->>'clicks') order by v->>'date')) into public_usage
+ from jsonb_array_elements(s.report->'daily') v;
+ insert into public.monthly_client_statements(draft_id,organization_id,binding_id,wallet_id,month,upstream_cny_minor,service_cny_minor,total_cny_minor,summary_zh,usage,published_by)
+ values(d.id,d.organization_id,b.id,w.id,d.month,upstream,service,total,btrim(p_summary),public_usage,auth.uid()) returning id into result;
+ if upstream>0 then insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference)
+ values(w.id,w.organization_id,'CNY','ad_spend',-upstream,'月度广告及执行服务 / Monthly advertising and execution','monthly-statement:'||result::text); end if;
+ if service>0 then insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference)
+ values(w.id,w.organization_id,'CNY','service_fee',-service,'约定运营服务及其他费用 / Agreed operating and other fees','monthly-statement:'||result::text); end if;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'monthly_client_statement',result,'INSERT',jsonb_build_object('draft_id',d.id,'total_cny_minor',total::text,'atomic_ledger_posting',true));
+ return result;
+end $$;
+create function public.list_monthly_statement_receipts(p_org uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('id',id,'draft_id',draft_id,'month',month,'total_cny_minor',total_cny_minor::text,'published_at',published_at) order by published_at desc)
+ from (select * from public.monthly_client_statements where organization_id=p_org order by published_at desc limit 50)s),'[]'::jsonb);
+end $$;
+create function public.get_client_monthly_statements() returns jsonb language sql stable security definer set search_path='' as $$
+ select coalesce(jsonb_agg(jsonb_build_object('id',s.id,'organization_name',o.name,'month',s.month,'currency',s.currency,
+ 'advertising_service_minor',s.upstream_cny_minor::text,'operating_other_minor',s.service_cny_minor::text,'total_minor',s.total_cny_minor::text,
+ 'summary_zh',s.summary_zh,'usage',s.usage,'published_at',s.published_at) order by s.month desc,s.published_at desc),'[]'::jsonb)
+ from (select * from public.monthly_client_statements where public.has_finance_access(organization_id) order by month desc,published_at desc limit 100)s
+ join public.organizations o on o.id=s.organization_id;
+$$;
+revoke all on function public.get_monthly_publication_input(uuid),public.publish_monthly_statement(uuid,text,jsonb),public.list_monthly_statement_receipts(uuid),public.get_client_monthly_statements() from public,anon;
+grant execute on function public.get_monthly_publication_input(uuid),public.publish_monthly_statement(uuid,text,jsonb),public.list_monthly_statement_receipts(uuid),public.get_client_monthly_statements() to authenticated;
+notify pgrst,'reload schema';
+-- END 025_monthly_statement_posting.sql
+
+-- START 026_monthly_activity_coverage.sql
+-- Whole-month coverage is separate from raw API rows. No missing row is silently rewritten.
+
+create table public.ads_monthly_coverage_checks (
+ id uuid primary key default gen_random_uuid(),snapshot_id uuid not null references public.ads_reporting_snapshots(id),
+ request_id uuid not null,prepared_by uuid not null references auth.users(id),prepared_at timestamptz not null default now(),
+ kind text not null check(kind in ('activity','zero','not_active')),amount_micros numeric(18,0) not null check(amount_micros>=0),
+ impressions numeric(16,0) not null check(impressions>=0),clicks numeric(16,0) not null check(clicks>=0),
+ evidence_reference text not null check(char_length(btrim(evidence_reference)) between 3 and 1000),
+ evidence_sha256 text not null check(evidence_sha256 ~ '^[a-f0-9]{64}$'),active_from date,
+ note text not null check(char_length(btrim(note)) between 3 and 1000),unique(prepared_by,request_id),unique(id,snapshot_id)
+);
+create table public.ads_monthly_coverage_reviews (
+ check_id uuid primary key,snapshot_id uuid not null,decision text not null check(decision in ('approved','rejected')),
+ reviewed_by uuid not null references auth.users(id),reviewed_at timestamptz not null default now(),note text not null check(char_length(btrim(note)) between 3 and 1000),
+ foreign key(check_id,snapshot_id) references public.ads_monthly_coverage_checks(id,snapshot_id)
+);
+create unique index one_approved_ads_month_coverage on public.ads_monthly_coverage_reviews(snapshot_id) where decision='approved';
+alter table public.ads_monthly_coverage_checks enable row level security;
+alter table public.ads_monthly_coverage_reviews enable row level security;
+revoke all on public.ads_monthly_coverage_checks,public.ads_monthly_coverage_reviews from public,anon,authenticated;
+create trigger immutable_coverage_check before update or delete on public.ads_monthly_coverage_checks for each row execute function public.lock_posted_money();
+create trigger immutable_coverage_review before update or delete on public.ads_monthly_coverage_reviews for each row execute function public.lock_posted_money();
+alter table public.monthly_settlement_drafts add column coverage_kind text not null default 'complete_rows';
+alter table public.monthly_settlement_drafts add column coverage_check_id uuid references public.ads_monthly_coverage_checks(id);
+create function public.resolve_ads_month(p_snapshot uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare s public.ads_reporting_snapshots%rowtype;proof public.ads_monthly_coverage_checks%rowtype;n integer;amount numeric;imps numeric;clicks numeric;kind text;normalized jsonb;base jsonb;full_bounds boolean;has_counts boolean;
+begin
+ select * into s from public.ads_reporting_snapshots where id=p_snapshot;
+ if not found or s.currency<>'CAD' or extract(day from s.since)<>1 or s.until<>(s.since+interval '1 month'-interval '1 day')::date or s.until>=(now() at time zone s.timezone)::date then return jsonb_build_object('ready',false,'valid',false,'reason','not_closed_cad_month');end if;
+ if jsonb_typeof(s.report->'daily') is distinct from 'array' then return jsonb_build_object('ready',false,'valid',false,'reason','invalid_daily');end if;
+ if exists(select 1 from jsonb_array_elements(s.report->'daily') d where coalesce(d->>'date','') !~ '^\d{4}-\d{2}-\d{2}$' or d->>'date'<s.since::text or d->>'date'>s.until::text or coalesce(d->>'spendMicros','') !~ '^[0-9]{1,18}$' or coalesce(d->>'impressions','') !~ '^[0-9]{1,16}$' or coalesce(d->>'clicks','') !~ '^[0-9]{1,16}$')
+ or (select count(distinct d->>'date') from jsonb_array_elements(s.report->'daily')d)<>jsonb_array_length(s.report->'daily') then return jsonb_build_object('ready',false,'valid',false,'reason','invalid_daily');end if;
+ select count(*),coalesce(sum((d->>'spendMicros')::numeric),0),coalesce(sum((d->>'impressions')::numeric),0),coalesce(sum((d->>'clicks')::numeric),0) into n,amount,imps,clicks from jsonb_array_elements(s.report->'daily')d;
+ if jsonb_typeof(s.report->'missingDates') is distinct from 'array' or s.report->'missingDates' is distinct from
+ (select coalesce(jsonb_agg(g.day::date::text order by g.day),'[]'::jsonb) from generate_series(s.since::timestamp,s.until::timestamp,interval '1 day')g(day) where not exists(select 1 from jsonb_array_elements(s.report->'daily')d where d->>'date'=g.day::date::text))
+ then return jsonb_build_object('ready',false,'valid',false,'reason','invalid_missing_dates');end if;
+ base:=jsonb_build_object('valid',true,'observed_amount_micros',amount::text,'observed_impressions',imps::text,'observed_clicks',clicks::text);
+ if amount<>s.daily_spend_micros or (s.period_spend_micros is not null and amount<>s.period_spend_micros) then return base||jsonb_build_object('valid',false,'ready',false,'reason','amount_difference');end if;
+ has_counts:=coalesce(s.report->>'periodImpressions','') ~ '^[0-9]{1,16}$' and coalesce(s.report->>'periodClicks','') ~ '^[0-9]{1,16}$';
+ if ((s.report->>'periodImpressions' is not null or s.report->>'periodClicks' is not null) and not has_counts) then return jsonb_build_object('valid',false,'ready',false,'reason','invalid_period_metrics');end if;
+ if has_counts and ((s.report->>'periodImpressions')::numeric<>imps or (s.report->>'periodClicks')::numeric<>clicks) then return base||jsonb_build_object('valid',false,'ready',false,'reason','metric_difference');end if;
+ full_bounds:=coalesce(s.report->>'startBoundary','requested')='requested' and coalesce(s.report->>'endBoundary','') in ('exclusive','last_day_label_verified')
+ and ((s.report#>>'{periodRange,since}'=s.since::text) or (s.report->'periodRange' is null and n=s.until-s.since+1))
+ and (s.report->'periodRange' is null or s.report#>>'{periodRange,until}'=case when s.report->>'endBoundary'='exclusive' then (s.until+1)::text else s.until::text end);
+ if full_bounds and s.period_spend_micros is not null and ((n=s.until-s.since+1 and s.check_status='matched') or has_counts) then kind:=case when n=s.until-s.since+1 then 'complete_rows' else 'aggregate_verified' end;
+ else
+  select c.* into proof from public.ads_monthly_coverage_checks c join public.ads_monthly_coverage_reviews r on r.check_id=c.id and r.decision='approved' where c.snapshot_id=s.id order by r.reviewed_at desc limit 1;
+  if not found then return base||jsonb_build_object('ready',false,'reason','external_confirmation_required');end if;
+  if proof.amount_micros<>amount or proof.impressions<>imps or proof.clicks<>clicks then return base||jsonb_build_object('valid',false,'ready',false,'reason','proof_difference');end if;
+  kind:=case proof.kind when 'activity' then 'reviewed_activity' when 'zero' then 'reviewed_zero' else 'not_active' end;
+ end if;
+ select jsonb_agg(jsonb_build_object('date',g.day::date::text,'spendMicros',coalesce(d->>'spendMicros','0'),'impressions',coalesce(d->>'impressions','0'),'clicks',coalesce(d->>'clicks','0'),
+ 'origin',case when d is not null then 'api' when kind='aggregate_verified' then 'aggregate_zero' when kind='not_active' then 'not_active' else 'reviewed_no_activity' end) order by g.day)
+ into normalized from generate_series(s.since::timestamp,s.until::timestamp,interval '1 day')g(day)
+ left join lateral(select value d from jsonb_array_elements(s.report->'daily') where value->>'date'=g.day::date::text)x on true;
+ return base||jsonb_build_object('ready',true,'reason','verified','coverage_kind',kind,'coverage_check_id',proof.id,'amount_micros',amount::text,'impressions',imps::text,'clicks',clicks::text,'daily',normalized);
+end $$;
+revoke all on function public.resolve_ads_month(uuid) from public,anon,authenticated;
+create function public.submit_ads_month_coverage(p_snapshot uuid,p_request uuid,p_kind text,p_amount text,p_impressions text,p_clicks text,p_evidence text,p_hash text,p_active_from date,p_note text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare s public.ads_reporting_snapshots%rowtype;b public.ads_reporting_bindings%rowtype;resolved jsonb;prior public.ads_monthly_coverage_checks%rowtype;result uuid;
+begin
+ select * into s from public.ads_reporting_snapshots where id=p_snapshot;
+ select * into b from public.ads_reporting_bindings where account_id=s.account_id for share;
+ if not found or not b.active or not public.has_ops_capability('finance.prepare',b.organization_id) then raise exception 'Forbidden' using errcode='42501';end if;
+ if not exists(select 1 from public.ads_source_handoffs where snapshot_id=s.id and binding_id=b.id) then raise exception 'Source handoff required' using errcode='22023';end if;
+ if p_request is null or p_kind is null or p_kind not in ('activity','zero','not_active') or coalesce(p_amount,'') !~ '^[0-9]{1,18}$' or coalesce(p_impressions,'') !~ '^[0-9]{1,16}$' or coalesce(p_clicks,'') !~ '^[0-9]{1,16}$'
+ or p_evidence is null or char_length(btrim(p_evidence)) not between 3 and 1000 or coalesce(p_hash,'') !~ '^[a-f0-9]{64}$' or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Coverage evidence required' using errcode='22023';end if;
+ resolved:=public.resolve_ads_month(s.id);
+ if coalesce((resolved->>'valid')::boolean,false) is not true or (resolved->>'observed_amount_micros')::numeric<>p_amount::numeric or (resolved->>'observed_impressions')::numeric<>p_impressions::numeric or (resolved->>'observed_clicks')::numeric<>p_clicks::numeric then raise exception 'Source and official evidence totals must agree' using errcode='23514';end if;
+ if (p_kind in ('zero','not_active') and (p_amount::numeric<>0 or p_impressions::numeric<>0 or p_clicks::numeric<>0)) or (p_kind='activity' and p_amount::numeric=0 and p_impressions::numeric=0 and p_clicks::numeric=0)
+ or (p_kind='not_active' and (p_active_from is null or p_active_from<=s.until or p_active_from>(now() at time zone s.timezone)::date)) or (p_kind<>'not_active' and p_active_from is not null) then raise exception 'Coverage classification invalid' using errcode='22023';end if;
+ perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||p_request::text,0));
+ select * into prior from public.ads_monthly_coverage_checks where prepared_by=auth.uid() and request_id=p_request;
+ if found then
+  if prior.snapshot_id<>s.id or prior.kind<>p_kind or prior.amount_micros<>p_amount::numeric or prior.impressions<>p_impressions::numeric or prior.clicks<>p_clicks::numeric or prior.evidence_reference<>btrim(p_evidence) or prior.evidence_sha256<>p_hash or prior.active_from is distinct from p_active_from or prior.note<>btrim(p_note) then raise exception 'Coverage request changed' using errcode='40001';end if;
+  return prior.id;
+ end if;
+ insert into public.ads_monthly_coverage_checks(snapshot_id,request_id,prepared_by,kind,amount_micros,impressions,clicks,evidence_reference,evidence_sha256,active_from,note)
+ values(s.id,p_request,auth.uid(),p_kind,p_amount::numeric,p_impressions::numeric,p_clicks::numeric,btrim(p_evidence),p_hash,p_active_from,btrim(p_note)) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ads_month_coverage',result,'INSERT',jsonb_build_object('snapshot_id',s.id,'kind',p_kind));
+ return result;
+end $$;
+create function public.review_ads_month_coverage(p_check uuid,p_decision text,p_note text) returns void language plpgsql security definer set search_path='' as $$
+declare c public.ads_monthly_coverage_checks%rowtype;b public.ads_reporting_bindings%rowtype;prior public.ads_monthly_coverage_reviews%rowtype;
+begin
+ select * into c from public.ads_monthly_coverage_checks where id=p_check;
+ select b1.* into b from public.ads_reporting_bindings b1 join public.ads_reporting_snapshots s on s.account_id=b1.account_id where s.id=c.snapshot_id for share of b1;
+ if not found or not b.active or not public.has_ops_capability('finance.review',b.organization_id) or c.prepared_by=auth.uid() then raise exception 'Independent authorized reviewer required' using errcode='42501';end if;
+ if p_decision is null or p_decision not in ('approved','rejected') or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Review required' using errcode='22023';end if;
+ perform pg_advisory_xact_lock(hashtextextended(c.snapshot_id::text,260026));
+ select * into prior from public.ads_monthly_coverage_reviews where check_id=c.id;
+ if found then if prior.decision=p_decision and prior.note=btrim(p_note) and prior.reviewed_by=auth.uid() then return;end if;raise exception 'Review changed' using errcode='40001';end if;
+ if p_decision='approved' and exists(select 1 from public.ads_monthly_coverage_checks c2 join public.ads_monthly_coverage_reviews r on r.check_id=c2.id and r.decision='approved' where c2.snapshot_id=c.snapshot_id) then raise exception 'Snapshot coverage already approved' using errcode='40001';end if;
+ insert into public.ads_monthly_coverage_reviews(check_id,snapshot_id,decision,reviewed_by,note) values(c.id,c.snapshot_id,p_decision,auth.uid(),btrim(p_note));
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'ads_month_coverage_review',c.id,'INSERT',jsonb_build_object('decision',p_decision));
+end $$;
+create function public.list_ads_month_coverage(p_org uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ return coalesce((select jsonb_agg(x.record order by x.prepared_at desc,x.id desc) from (
+ select c.id,c.prepared_at,jsonb_build_object('id',c.id,'snapshot_id',c.snapshot_id,'account_name',s.account_name,'currency',s.currency,'since',s.since,'until',s.until,'timezone',s.timezone,'kind',c.kind,'amount_micros',c.amount_micros::text,'impressions',c.impressions::text,'clicks',c.clicks::text,'evidence_reference',c.evidence_reference,'evidence_sha256',c.evidence_sha256,'active_from',c.active_from,'note',c.note,'prepared_by',c.prepared_by,'status',coalesce(r.decision,'pending'),'review_note',r.note) record
+ from public.ads_monthly_coverage_checks c join public.ads_reporting_snapshots s on s.id=c.snapshot_id join public.ads_reporting_bindings b on b.account_id=s.account_id and b.active and b.organization_id=p_org
+ left join public.ads_monthly_coverage_reviews r on r.check_id=c.id order by c.prepared_at desc,c.id desc limit 50)x),'[]'::jsonb);
+end $$;
+revoke all on function public.submit_ads_month_coverage(uuid,uuid,text,text,text,text,text,text,date,text),public.review_ads_month_coverage(uuid,text,text),public.list_ads_month_coverage(uuid) from public,anon;
+grant execute on function public.submit_ads_month_coverage(uuid,uuid,text,text,text,text,text,text,date,text),public.review_ads_month_coverage(uuid,text,text),public.list_ads_month_coverage(uuid) to authenticated;
+
+create or replace function public.prepare_monthly_settlement(p_snapshot uuid,p_quote uuid,p_agreement text,p_note text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare s public.ads_reporting_snapshots%rowtype;b public.ads_reporting_bindings%rowtype;q public.agency_quote_snapshots%rowtype;prior public.monthly_settlement_drafts%rowtype;result uuid;cad bigint;days integer;effective jsonb;
+begin
+ select * into q from public.agency_quote_snapshots where id=p_quote for update;
+ if not found or not public.has_ops_capability('finance.prepare',q.organization_id) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_agreement is null or char_length(btrim(p_agreement)) not between 3 and 1000 or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Agreement and note required' using errcode='22023'; end if;
+ select * into prior from public.monthly_settlement_drafts where quote_id=p_quote;
+ if found then
+  if prior.snapshot_id<>p_snapshot or prior.prepared_by<>auth.uid() or prior.agreement_reference<>btrim(p_agreement) or prior.note<>btrim(p_note) then raise exception 'Draft already exists for quote' using errcode='40001'; end if;
+  return prior.id;
+ end if;
+ select * into s from public.ads_reporting_snapshots where id=p_snapshot;
+ if not found then raise exception 'Source unavailable' using errcode='22023'; end if;
+ select * into b from public.ads_reporting_bindings where account_id=s.account_id for share;
+ if not found or not b.active or b.organization_id<>q.organization_id or not exists(select 1 from public.ads_source_handoffs h where h.snapshot_id=s.id and h.binding_id=b.id) then raise exception 'Source ownership or handoff invalid' using errcode='22023'; end if;
+ if exists(select 1 from public.agency_quote_lifecycle where quote_id=q.id and archived) then raise exception 'Quote archived' using errcode='40001'; end if;
+ if s.currency<>'CAD' or s.since<>q.period or extract(day from s.since)<>1 or s.until<>(s.since+interval '1 month'-interval '1 day')::date or s.until>=(now() at time zone s.timezone)::date then raise exception 'Closed CAD calendar month and matching quote required' using errcode='22023'; end if;
+ days:=s.until-s.since+1;
+ effective:=public.resolve_ads_month(s.id);
+ if coalesce((effective->>'ready')::boolean,false) is not true then raise exception 'Monthly coverage incomplete or not verified' using errcode='23514';end if;
+ s.check_status:='matched';s.daily_spend_micros:=(effective->>'amount_micros')::numeric;s.period_spend_micros:=s.daily_spend_micros;
+ s.report:=s.report||jsonb_build_object('daily',effective->'daily','missingDates','[]'::jsonb,'endBoundary','exclusive');
+
+ if s.check_status<>'matched' or s.period_spend_micros is null or s.period_spend_micros<>s.daily_spend_micros
+ or s.report->'missingDates' is distinct from '[]'::jsonb
+ or coalesce(s.report->>'endBoundary','') not in ('exclusive','last_day_label_verified')
+ or jsonb_typeof(s.report->'daily') is distinct from 'array'
+ then raise exception 'Source checks incomplete' using errcode='23514'; end if;
+ if jsonb_array_length(s.report->'daily')<>days
+ or (select count(distinct d->>'date') from jsonb_array_elements(s.report->'daily') d)<>days
+ or exists(select 1 from jsonb_array_elements(s.report->'daily') d where coalesce(d->>'date','') !~ '^\d{4}-\d{2}-\d{2}$' or d->>'date'<s.since::text or d->>'date'>s.until::text or coalesce(d->>'spendMicros','') !~ '^[0-9]{1,18}$')
+ then raise exception 'Daily coverage incomplete' using errcode='23514'; end if;
+ if (select sum((d->>'spendMicros')::numeric) from jsonb_array_elements(s.report->'daily') d)<>s.daily_spend_micros then raise exception 'Daily sum mismatch' using errcode='23514'; end if;
+ -- Round the complete month once, half-up, from millionths to CAD cents.
+ cad:=round(s.period_spend_micros/10000,0)::bigint;
+ if q.private_snapshot->>'calculationVersion' is distinct from 'two-agency-v1' or coalesce(q.private_snapshot->>'sourceCadMinor','') !~ '^[0-9]{1,10}$' or coalesce(q.private_snapshot->>'finalMinor','') !~ '^[0-9]{1,18}$' then raise exception 'Quote calculation unavailable' using errcode='22023'; end if;
+ if (q.private_snapshot->>'sourceCadMinor')::bigint<>cad then raise exception 'Quote source amount differs' using errcode='22023'; end if;
+ insert into public.monthly_settlement_drafts(organization_id,binding_id,snapshot_id,quote_id,month,source_cad_minor,total_cny_minor,agreement_reference,note,prepared_by,coverage_kind,coverage_check_id)
+ values(q.organization_id,b.id,s.id,q.id,q.period,cad,(q.private_snapshot->>'finalMinor')::bigint,btrim(p_agreement),btrim(p_note),auth.uid(),effective->>'coverage_kind',(effective->>'coverage_check_id')::uuid) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'monthly_settlement_draft',result,'INSERT',jsonb_build_object('snapshot_id',s.id,'quote_id',q.id,'no_ledger_posting',true));
+ return result;
+end $$;
+create or replace function public.publish_monthly_statement(p_draft uuid,p_summary text,p_expected jsonb) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare d public.monthly_settlement_drafts%rowtype;b public.ads_reporting_bindings%rowtype;q public.agency_quote_snapshots%rowtype;s public.ads_reporting_snapshots%rowtype;w public.client_wallets%rowtype;
+ prior public.monthly_client_statements%rowtype;result uuid;upstream bigint;service bigint;total bigint;balance numeric;public_usage jsonb;effective jsonb;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501'; end if;
+ if p_summary is null or char_length(btrim(p_summary)) not between 3 and 2000 or p_expected is null then raise exception 'Publication input required' using errcode='22023'; end if;
+ select * into d from public.monthly_settlement_drafts where id=p_draft;
+ if not found then raise exception 'Draft unavailable' using errcode='22023'; end if;
+ -- All app money writers lock the wallet before recording entries.
+ select * into w from public.client_wallets where organization_id=d.organization_id and currency='CNY' for update;
+ if not found then raise exception 'CNY wallet required' using errcode='P0002'; end if;
+ select * into d from public.monthly_settlement_drafts where id=p_draft for update;
+ select * into q from public.agency_quote_snapshots where id=d.quote_id for update;
+ if q.private_snapshot is distinct from p_expected then raise exception 'Quote changed' using errcode='40001'; end if;
+ select * into prior from public.monthly_client_statements where draft_id=d.id;
+ if found then
+  if prior.summary_zh<>btrim(p_summary) then raise exception 'Published statement is immutable' using errcode='40001'; end if;
+  return prior.id;
+ end if;
+ if not exists(select 1 from public.monthly_settlement_reviews where draft_id=d.id and decision='approved' and reviewed_by<>d.prepared_by) then raise exception 'Independent approval required' using errcode='23514'; end if;
+ if exists(select 1 from public.agency_quote_lifecycle where quote_id=q.id and archived) then raise exception 'Quote archived' using errcode='40001'; end if;
+ select * into b from public.ads_reporting_bindings where id=d.binding_id for share;
+ if not found or not b.active or b.organization_id<>d.organization_id then raise exception 'Source access paused or changed' using errcode='40001'; end if;
+ if exists(select 1 from public.monthly_client_statements where binding_id=b.id and month=d.month)
+ or exists(select 1 from public.monthly_ad_reports where ad_account_id=b.ad_account_id and month=d.month and published_at is not null) then raise exception 'Account month already published' using errcode='23505'; end if;
+ select * into s from public.ads_reporting_snapshots where id=d.snapshot_id;
+ effective:=public.resolve_ads_month(s.id);
+ if coalesce((effective->>'ready')::boolean,false) is not true then raise exception 'Monthly coverage incomplete or not verified' using errcode='23514';end if;
+ s.check_status:='matched';s.daily_spend_micros:=(effective->>'amount_micros')::numeric;s.period_spend_micros:=s.daily_spend_micros;
+ s.report:=s.report||jsonb_build_object('daily',effective->'daily','missingDates','[]'::jsonb,'endBoundary','exclusive');
+
+ if d.coverage_check_id is distinct from (effective->>'coverage_check_id')::uuid then raise exception 'Coverage proof differs from preparation' using errcode='40001';end if;
+ if s.account_id<>b.account_id or s.currency<>'CAD' or s.since<>d.month or s.until<>(s.since+interval '1 month'-interval '1 day')::date
+ or s.check_status<>'matched' or s.period_spend_micros is null or s.period_spend_micros<>s.daily_spend_micros
+ or s.report->'missingDates' is distinct from '[]'::jsonb or coalesce(s.report->>'endBoundary','') not in ('exclusive','last_day_label_verified')
+ or not exists(select 1 from public.ads_source_handoffs where snapshot_id=s.id and binding_id=b.id) then raise exception 'Source is not ready' using errcode='23514'; end if;
+ if q.organization_id<>d.organization_id or q.period<>d.month or q.private_snapshot->>'sourceCadMinor' is distinct from d.source_cad_minor::text
+ or round(s.period_spend_micros/10000,0)::bigint<>d.source_cad_minor then raise exception 'Settlement source mismatch' using errcode='23514'; end if;
+ if coalesce(q.private_snapshot->>'upstreamCnyMinor','') !~ '^[0-9]{1,10}$' or coalesce(q.private_snapshot->>'chinaFeeCnyMinor','') !~ '^[0-9]{1,10}$'
+ or coalesce(q.private_snapshot->>'customerCostMinor','') !~ '^[0-9]{1,10}$' or coalesce(q.private_snapshot->>'finalMinor','') !~ '^[0-9]{1,10}$' then raise exception 'Quote totals invalid' using errcode='22023'; end if;
+ upstream:=(q.private_snapshot->>'upstreamCnyMinor')::bigint;
+ service:=(q.private_snapshot->>'chinaFeeCnyMinor')::bigint+(q.private_snapshot->>'customerCostMinor')::bigint;
+ total:=(q.private_snapshot->>'finalMinor')::bigint;
+ if total<>d.total_cny_minor or total<>upstream+service or total>9999999999 or service>9999999999 then raise exception 'Settlement totals invalid' using errcode='23514'; end if;
+ select coalesce(sum(amount_minor),0) into balance from public.wallet_entries where wallet_id=w.id;
+ if balance<total then raise exception 'Insufficient posted balance' using errcode='P0003'; end if;
+ if exists(select 1 from jsonb_array_elements(s.report->'daily') v where coalesce(v->>'impressions','') !~ '^[0-9]{1,16}$' or coalesce(v->>'clicks','') !~ '^[0-9]{1,16}$') then raise exception 'Usage metrics invalid' using errcode='23514'; end if;
+ -- Only public service-usage metrics are copied, never CAD cost, FX or upstream margins.
+ select jsonb_build_object('account_name',s.account_name,'since',s.since,'until',s.until,'timezone',s.timezone,'coverage_kind',effective->>'coverage_kind',
+ 'impressions',sum((v->>'impressions')::numeric)::text,'clicks',sum((v->>'clicks')::numeric)::text,
+ 'daily',jsonb_agg(jsonb_build_object('date',v->>'date','impressions',v->>'impressions','clicks',v->>'clicks','origin',v->>'origin') order by v->>'date')) into public_usage
+ from jsonb_array_elements(s.report->'daily') v;
+ insert into public.monthly_client_statements(draft_id,organization_id,binding_id,wallet_id,month,upstream_cny_minor,service_cny_minor,total_cny_minor,summary_zh,usage,published_by)
+ values(d.id,d.organization_id,b.id,w.id,d.month,upstream,service,total,btrim(p_summary),public_usage,auth.uid()) returning id into result;
+ if upstream>0 then insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference)
+ values(w.id,w.organization_id,'CNY','ad_spend',-upstream,'月度广告及执行服务 / Monthly advertising and execution','monthly-statement:'||result::text); end if;
+ if service>0 then insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference)
+ values(w.id,w.organization_id,'CNY','service_fee',-service,'约定运营服务及其他费用 / Agreed operating and other fees','monthly-statement:'||result::text); end if;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'monthly_client_statement',result,'INSERT',jsonb_build_object('draft_id',d.id,'total_cny_minor',total::text,'atomic_ledger_posting',true));
+ return result;
+end $$;
+create or replace function public.list_ads_source_handoffs(p_org uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.shared_at desc,x.id desc) from (
+ select h.id,h.shared_at,jsonb_build_object('id',h.id,'snapshot_id',s.id,'organization_id',b.organization_id,
+ 'account_name',s.account_name,'account_id',s.account_id,'currency',s.currency,'timezone',s.timezone,'since',s.since,'until',s.until,
+ 'source_check',s.check_status,'daily_spend_micros',s.daily_spend_micros::text,'period_spend_micros',s.period_spend_micros::text,
+ 'settlement_ready',(resolved.value->>'ready')::boolean,'coverage_kind',resolved.value->>'coverage_kind','coverage_reason',resolved.value->>'reason','coverage_valid',(resolved.value->>'valid')::boolean,'effective_amount_micros',resolved.value->>'amount_micros','observed_impressions',resolved.value->>'observed_impressions','observed_clicks',resolved.value->>'observed_clicks','effective_daily',resolved.value->'daily','coverage_check_id',resolved.value->>'coverage_check_id','missing_dates',s.report->'missingDates','end_boundary',s.report->>'endBoundary',
+ 'daily',coalesce((select jsonb_agg(jsonb_build_object('date',d->>'date','spend_micros',d->>'spendMicros','impressions',d->>'impressions','clicks',d->>'clicks') order by d->>'date') from jsonb_array_elements(s.report->'daily') d),'[]'::jsonb),
+ 'source_sha256',s.report->>'rawSha256','retrieved_at',s.created_at,'shared_at',h.shared_at,'note',h.note) record
+ from public.ads_source_handoffs h join public.ads_reporting_bindings b on b.id=h.binding_id
+ join public.ads_reporting_snapshots s on s.id=h.snapshot_id
+ cross join lateral(select public.resolve_ads_month(s.id) value offset 0)resolved
+ where b.organization_id=p_org and b.active
+ order by h.shared_at desc,h.id desc limit 20
+ ) x),'[]'::jsonb);
+end $$;
+notify pgrst,'reload schema';
+-- END 026_monthly_activity_coverage.sql
+
+-- START 027_month_close_workbench.sql
+-- Read-only, month-scoped internal workflow overview. No source collection or money writes.
+
+create function public.get_month_close_overview(p_org uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare b record;s public.ads_reporting_snapshots%rowtype;latest_source public.ads_reporting_snapshots%rowtype;d public.monthly_settlement_drafts%rowtype;r public.monthly_settlement_reviews%rowtype;posted public.monthly_client_statements%rowtype;
+ wallet public.client_wallets%rowtype;resolved jsonb;accounts jsonb:='[]'::jsonb;stage text;balance numeric:=0;pending_count integer;pending_amount numeric;quote_count integer;operational_count integer;month_end date;tz text;owner boolean;coverage_author uuid;coverage_status text;archived boolean;
+begin
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ month_end:=(p_month+interval '1 month'-interval '1 day')::date;owner:=public.has_staff_access(array['admin']::text[]);
+ select * into wallet from public.client_wallets where organization_id=p_org and currency='CNY';
+ select coalesce(sum(amount_minor),0) into balance from public.wallet_entries where wallet_id=wallet.id;
+ select count(*),coalesce(sum(amount_minor),0) into pending_count,pending_amount from public.bank_receipts where wallet_id=wallet.id and status='pending';
+ for b in select x.*,coalesce(a.label,x.account_id) account_label from public.ads_reporting_bindings x join public.ad_accounts a on a.id=x.ad_account_id where x.organization_id=p_org order by x.account_id loop
+  s:=null;d:=null;r:=null;posted:=null;latest_source:=null;coverage_author:=null;coverage_status:=null;resolved:=null;quote_count:=0;archived:=false;
+  select timezone into tz from public.ads_reporting_snapshots where account_id=b.account_id order by created_at desc,id desc limit 1;
+  select * into posted from public.monthly_client_statements where binding_id=b.id and month=p_month;
+  if posted.id is not null then select * into d from public.monthly_settlement_drafts where id=posted.draft_id;else select * into d from public.monthly_settlement_drafts where binding_id=b.id and month=p_month order by prepared_at desc,id desc limit 1;end if;
+  if d.id is not null then
+   select * into r from public.monthly_settlement_reviews where draft_id=d.id;
+   select coalesce(l.archived,false) into archived from public.agency_quote_snapshots q left join public.agency_quote_lifecycle l on l.quote_id=q.id where q.id=d.quote_id;
+   select * into s from public.ads_reporting_snapshots where id=d.snapshot_id;
+  else
+   select source.* into s from public.ads_reporting_snapshots source join public.ads_source_handoffs h on h.snapshot_id=source.id and h.binding_id=b.id
+   where source.account_id=b.account_id and source.since=p_month and source.until=month_end order by source.created_at desc,source.id desc limit 1;
+  end if;
+  select source.* into latest_source from public.ads_reporting_snapshots source join public.ads_source_handoffs h on h.snapshot_id=source.id and h.binding_id=b.id
+  where source.account_id=b.account_id and source.since=p_month and source.until=month_end order by source.created_at desc,source.id desc limit 1;
+  select count(*) into operational_count from public.ads_reporting_snapshots source join public.ads_source_handoffs h on h.snapshot_id=source.id and h.binding_id=b.id
+  where source.account_id=b.account_id and source.since<=month_end and source.until>=p_month and (source.since<>p_month or source.until<>month_end);
+  if s.id is not null then
+   resolved:=public.resolve_ads_month(s.id);
+   select c.prepared_by,coalesce(v.decision,'pending') into coverage_author,coverage_status from public.ads_monthly_coverage_checks c left join public.ads_monthly_coverage_reviews v on v.check_id=c.id
+   where c.snapshot_id=s.id order by c.prepared_at desc,c.id desc limit 1;
+  end if;
+  if posted.id is not null then stage:='published';
+  elsif not b.active then stage:='access_paused';
+  elsif tz is null then stage:='account_metadata_needed';
+  elsif month_end>=(now() at time zone tz)::date then stage:='month_open';
+  elsif s.id is null then
+   if exists(select 1 from public.ads_reporting_snapshots source where source.account_id=b.account_id and source.since=p_month and source.until=month_end) then stage:='handoff_needed';elsif p_month<((now() at time zone tz)::date-365) then stage:='source_history_needed';else stage:='source_needed';end if;
+  elsif coalesce((resolved->>'ready')::boolean,false) is not true then
+   if coalesce((resolved->>'valid')::boolean,false) is not true then stage:='source_invalid';
+   elsif coverage_status='pending' then stage:='coverage_review_needed';else stage:='coverage_needed';end if;
+  elsif d.id is not null then
+   if archived then stage:='quote_archived';
+   elsif r.decision='rejected' then stage:='settlement_rejected';
+   elsif r.decision is null then stage:='settlement_review_needed';
+   elsif wallet.id is null then stage:='wallet_needed';
+   elsif balance<d.total_cny_minor then stage:='funding_needed';else stage:='publication_ready';end if;
+  else
+   select count(*) into quote_count from public.agency_quote_snapshots q left join public.agency_quote_lifecycle l on l.quote_id=q.id
+   where q.organization_id=p_org and q.period=p_month and not coalesce(l.archived,false)
+   and case when coalesce(q.private_snapshot->>'sourceCadMinor','') ~ '^[0-9]{1,10}$' then (q.private_snapshot->>'sourceCadMinor')::numeric else null end=round((resolved->>'amount_micros')::numeric/10000,0)
+   and not exists(select 1 from public.monthly_settlement_drafts used where used.quote_id=q.id);
+   if quote_count=0 then stage:='quote_needed';else stage:='preparation_needed';end if;
+  end if;
+  accounts:=accounts||jsonb_build_array(jsonb_build_object('binding_id',b.id,'account_id',b.account_id,'account_label',b.account_label,'active',b.active,'timezone',tz,'stage',stage,
+   'source_id',case when b.active then s.id end,'source_ready',case when b.active then coalesce((resolved->>'ready')::boolean,false) else false end,
+   'coverage_reason',case when b.active then resolved->>'reason' end,'coverage_kind',case when b.active then resolved->>'coverage_kind' end,
+   'source_cad_minor',case when b.active and coalesce((resolved->>'ready')::boolean,false) then round((resolved->>'amount_micros')::numeric/10000,0)::text end,
+   'operational_source_count',case when b.active then operational_count else 0 end,'quote_match_count',quote_count,'coverage_prepared_by_me',coalesce(coverage_author=auth.uid(),false),
+   'draft_id',case when b.active or posted.id is not null then d.id end,'draft_status',case when b.active or posted.id is not null then r.decision end,'draft_prepared_by_me',coalesce(d.prepared_by=auth.uid(),false),'draft_total_cny_minor',case when b.active or posted.id is not null then d.total_cny_minor::text end,
+   'newer_shared_source',coalesce(d.id is not null and latest_source.id is not null and latest_source.id<>d.snapshot_id and latest_source.created_at>s.created_at,false),
+   'statement_id',posted.id,'published_at',posted.published_at,'posted_total_cny_minor',posted.total_cny_minor::text));
+ end loop;
+ return jsonb_build_object('organization_id',p_org,'month',p_month,'accounts',accounts,'wallet_id',wallet.id,'balance_minor',balance::text,'pending_receipt_count',pending_count,'pending_receipt_minor',pending_amount::text);
+end $$;
+revoke all on function public.get_month_close_overview(uuid,date) from public,anon;
+grant execute on function public.get_month_close_overview(uuid,date) to authenticated;
+
+create function public.list_ads_source_handoffs(p_org uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.shared_at desc,x.id desc) from (
+ select h.id,h.shared_at,jsonb_build_object('id',h.id,'snapshot_id',s.id,'organization_id',b.organization_id,
+ 'account_name',s.account_name,'account_id',s.account_id,'currency',s.currency,'timezone',s.timezone,'since',s.since,'until',s.until,
+ 'source_check',s.check_status,'daily_spend_micros',s.daily_spend_micros::text,'period_spend_micros',s.period_spend_micros::text,
+ 'settlement_ready',(resolved.value->>'ready')::boolean,'coverage_kind',resolved.value->>'coverage_kind','coverage_reason',resolved.value->>'reason','coverage_valid',(resolved.value->>'valid')::boolean,'effective_amount_micros',resolved.value->>'amount_micros','observed_impressions',resolved.value->>'observed_impressions','observed_clicks',resolved.value->>'observed_clicks','effective_daily',resolved.value->'daily','coverage_check_id',resolved.value->>'coverage_check_id','missing_dates',s.report->'missingDates','end_boundary',s.report->>'endBoundary',
+ 'daily',coalesce((select jsonb_agg(jsonb_build_object('date',d->>'date','spend_micros',d->>'spendMicros','impressions',d->>'impressions','clicks',d->>'clicks') order by d->>'date') from jsonb_array_elements(s.report->'daily') d),'[]'::jsonb),
+ 'source_sha256',s.report->>'rawSha256','retrieved_at',s.created_at,'shared_at',h.shared_at,'note',h.note) record
+ from public.ads_source_handoffs h join public.ads_reporting_bindings b on b.id=h.binding_id
+ join public.ads_reporting_snapshots s on s.id=h.snapshot_id
+ cross join lateral(select public.resolve_ads_month(s.id) value offset 0)resolved
+ where b.organization_id=p_org and b.active and s.since=p_month and s.until=(p_month+interval '1 month'-interval '1 day')::date
+ order by h.shared_at desc,h.id desc limit 20
+ ) x),'[]'::jsonb);
+end $$;
+
+create function public.list_ads_month_coverage(p_org uuid,p_month date) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ return coalesce((select jsonb_agg(x.record order by x.prepared_at desc,x.id desc) from (
+ select c.id,c.prepared_at,jsonb_build_object('id',c.id,'snapshot_id',c.snapshot_id,'account_name',s.account_name,'currency',s.currency,'since',s.since,'until',s.until,'timezone',s.timezone,'kind',c.kind,'amount_micros',c.amount_micros::text,'impressions',c.impressions::text,'clicks',c.clicks::text,'evidence_reference',c.evidence_reference,'evidence_sha256',c.evidence_sha256,'active_from',c.active_from,'note',c.note,'prepared_by',c.prepared_by,'status',coalesce(r.decision,'pending'),'review_note',r.note) record
+ from public.ads_monthly_coverage_checks c join public.ads_reporting_snapshots s on s.id=c.snapshot_id join public.ads_reporting_bindings b on b.account_id=s.account_id and b.active and b.organization_id=p_org
+ left join public.ads_monthly_coverage_reviews r on r.check_id=c.id where s.since=p_month and s.until=(p_month+interval '1 month'-interval '1 day')::date order by c.prepared_at desc,c.id desc limit 50)x),'[]'::jsonb);
+end $$;
+
+create function public.list_agency_quotes(p_org uuid,p_include_archived boolean,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.created_at desc,x.id desc) from (
+ select s.id,s.created_at,jsonb_build_object('id',s.id,'organization_id',s.organization_id,'period',s.period,'revision',s.revision,
+ 'status',case when coalesce(l.archived,false) then 'archived' else 'draft' end,'state_revision',coalesce(l.revision,0),
+ 'parent_id',d.parent_id,'total_cny_minor',s.private_snapshot->>'finalMinor','created_at',s.created_at) record
+ from public.agency_quote_snapshots s left join public.agency_quote_lifecycle l on l.quote_id=s.id left join public.agency_quote_derivations d on d.quote_id=s.id
+ where s.organization_id=p_org and s.period=p_month and (coalesce(p_include_archived,false) or not coalesce(l.archived,false))
+ order by s.created_at desc,s.id desc limit 20
+ ) x),'[]'::jsonb);
+end $$;
+
+create function public.list_monthly_settlements(p_org uuid,p_month date) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(x.record order by x.prepared_at desc,x.id desc) from (
+ select d.id,d.prepared_at,jsonb_build_object('id',d.id,'month',d.month,'snapshot_id',d.snapshot_id,'quote_id',d.quote_id,'quote_revision',q.revision,
+ 'coverage_kind',d.coverage_kind,'coverage_check_id',d.coverage_check_id,'source_cad_minor',d.source_cad_minor::text,'total_cny_minor',d.total_cny_minor::text,'agreement_reference',d.agreement_reference,'note',d.note,'prepared_by',d.prepared_by,'prepared_at',d.prepared_at,
+ 'status',coalesce(r.decision,'pending'),'review_note',r.note,'reviewed_at',r.reviewed_at,'quote_archived',coalesce(l.archived,false)) record
+ from public.monthly_settlement_drafts d join public.ads_reporting_bindings b on b.id=d.binding_id and b.active join public.agency_quote_snapshots q on q.id=d.quote_id
+ left join public.monthly_settlement_reviews r on r.draft_id=d.id left join public.agency_quote_lifecycle l on l.quote_id=d.quote_id
+ where d.organization_id=p_org and d.month=p_month order by d.prepared_at desc,d.id desc limit 50
+ )x),'[]'::jsonb);
+end $$;
+
+create function public.list_monthly_statement_receipts(p_org uuid,p_month date) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501'; end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('id',id,'draft_id',draft_id,'month',month,'total_cny_minor',total_cny_minor::text,'published_at',published_at) order by published_at desc)
+ from (select * from public.monthly_client_statements where organization_id=p_org and month=p_month order by published_at desc limit 50)s),'[]'::jsonb);
+end $$;
+revoke all on function public.list_ads_source_handoffs(uuid,date),public.list_ads_month_coverage(uuid,date),public.list_agency_quotes(uuid,boolean,date),public.list_monthly_settlements(uuid,date),public.list_monthly_statement_receipts(uuid,date) from public,anon;
+grant execute on function public.list_ads_source_handoffs(uuid,date),public.list_ads_month_coverage(uuid,date),public.list_agency_quotes(uuid,boolean,date),public.list_monthly_settlements(uuid,date),public.list_monthly_statement_receipts(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 027_month_close_workbench.sql
+
+-- START 028_upstream_reconciliation.sql
+-- Read-only procurement reconciliation from posted statements and pinned quotes.
+-- No payable recognition, payment registration or customer wallet mutation.
+
+create function public.get_upstream_reconciliation(p_month date,p_org uuid default null) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare rows jsonb;totals jsonb;n bigint;
+begin
+ if not public.has_staff_access(array['admin']::text[]) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if p_org is not null and not exists(select 1 from public.organizations where id=p_org) then raise exception 'Unknown organization' using errcode='22023';end if;
+ -- Never silently omit or treat an invalid historical monetary value as zero.
+ if exists(select 1 from public.monthly_client_statements s join public.monthly_settlement_drafts d on d.id=s.draft_id join public.agency_quote_snapshots q on q.id=d.quote_id
+ where s.month=p_month and (p_org is null or s.organization_id=p_org) and (
+ exists(select 1 from unnest(array['sourceCadMinor','canadaFeeCadMinor','upstreamCadMinor','upstreamCnyMinor','chinaFeeCnyMinor','customerCostMinor','agencyCostMinor','finalMinor']) k where coalesce(q.private_snapshot->>k,'') !~ '^[0-9]{1,20}$')
+ )) then raise exception 'Procurement quote invalid' using errcode='23514';end if;
+ if exists(select 1 from public.monthly_client_statements s join public.monthly_settlement_drafts d on d.id=s.draft_id join public.agency_quote_snapshots q on q.id=d.quote_id
+ where s.month=p_month and (p_org is null or s.organization_id=p_org) and (
+ (q.private_snapshot->>'sourceCadMinor')::numeric+(q.private_snapshot->>'canadaFeeCadMinor')::numeric<>(q.private_snapshot->>'upstreamCadMinor')::numeric
+ or (q.private_snapshot->>'upstreamCnyMinor')::numeric<>s.upstream_cny_minor
+ or (q.private_snapshot->>'chinaFeeCnyMinor')::numeric+(q.private_snapshot->>'customerCostMinor')::numeric<>s.service_cny_minor
+ or (q.private_snapshot->>'finalMinor')::numeric<>s.total_cny_minor
+ )) then raise exception 'Procurement quote differs from posted statement' using errcode='23514';end if;
+ with source as (
+ select s.id statement_id,s.organization_id,o.name organization_name,s.month,s.published_at,s.usage->>'account_name' account_name,q.id quote_id,q.revision quote_revision,
+ (q.private_snapshot->>'sourceCadMinor')::numeric source_cad_minor,(q.private_snapshot->>'canadaFeeCadMinor')::numeric canada_fee_cad_minor,(q.private_snapshot->>'upstreamCadMinor')::numeric procurement_cad_minor,
+ s.upstream_cny_minor procurement_cny_minor,(q.private_snapshot->>'chinaFeeCnyMinor')::numeric china_fee_cny_minor,(q.private_snapshot->>'customerCostMinor')::numeric customer_transfer_cny_minor,(q.private_snapshot->>'agencyCostMinor')::numeric agency_transfer_cny_minor,
+ s.total_cny_minor customer_charged_cny_minor
+ from public.monthly_client_statements s join public.organizations o on o.id=s.organization_id join public.monthly_settlement_drafts d on d.id=s.draft_id join public.agency_quote_snapshots q on q.id=d.quote_id
+ where s.month=p_month and (p_org is null or s.organization_id=p_org)
+ ),limited as (select * from source order by published_at desc,statement_id desc limit 200)
+ select (select count(*) from source),
+ (select jsonb_build_object('source_cad_minor',coalesce(sum(source_cad_minor),0)::text,'canada_fee_cad_minor',coalesce(sum(canada_fee_cad_minor),0)::text,'procurement_cad_minor',coalesce(sum(procurement_cad_minor),0)::text,
+ 'procurement_cny_minor',coalesce(sum(procurement_cny_minor),0)::text,'china_fee_cny_minor',coalesce(sum(china_fee_cny_minor),0)::text,'customer_transfer_cny_minor',coalesce(sum(customer_transfer_cny_minor),0)::text,'agency_transfer_cny_minor',coalesce(sum(agency_transfer_cny_minor),0)::text,'customer_charged_cny_minor',coalesce(sum(customer_charged_cny_minor),0)::text) from source),
+ coalesce((select jsonb_agg(jsonb_build_object('statement_id',statement_id,'organization_id',organization_id,'organization_name',organization_name,'month',month,'published_at',published_at,'account_name',account_name,'quote_id',quote_id,'quote_revision',quote_revision,
+ 'source_cad_minor',source_cad_minor::text,'canada_fee_cad_minor',canada_fee_cad_minor::text,'procurement_cad_minor',procurement_cad_minor::text,'procurement_cny_minor',procurement_cny_minor::text,'china_fee_cny_minor',china_fee_cny_minor::text,'customer_transfer_cny_minor',customer_transfer_cny_minor::text,'agency_transfer_cny_minor',agency_transfer_cny_minor::text,'customer_charged_cny_minor',customer_charged_cny_minor::text) order by published_at desc,statement_id desc) from limited),'[]'::jsonb)
+ into n,totals,rows;
+ return jsonb_build_object('month',p_month,'organization_id',p_org,'row_count',n,'truncated',n>200,'totals',totals,'rows',rows,'payment_status','not_tracked');
+end $$;
+revoke all on function public.get_upstream_reconciliation(date,uuid) from public,anon;
+grant execute on function public.get_upstream_reconciliation(date,uuid) to authenticated;
+notify pgrst,'reload schema';
+-- END 028_upstream_reconciliation.sql
+
+-- START 029_upstream_payment_verification.sql
+-- Verify offline CAD receipts and allocate them to posted procurement; never debit wallets.
+
+create table public.upstream_payment_records(
+ id uuid primary key default gen_random_uuid(),request_id uuid not null unique,organization_id uuid not null references public.organizations(id),
+ revision integer not null check(revision>0),bank_reference text not null check(bank_reference=upper(bank_reference) and bank_reference ~ '^[A-Z0-9][A-Z0-9._:/-]{2,159}$'),
+ received_on date not null check(isfinite(received_on)),received_cad_minor bigint not null check(received_cad_minor between 1 and 9999999999),
+ evidence_reference text not null check(char_length(btrim(evidence_reference)) between 3 and 1000),evidence_sha256 text not null check(evidence_sha256 ~ '^[a-f0-9]{64}$'),
+ note text not null check(char_length(btrim(note)) between 3 and 1000),allocations jsonb not null check(jsonb_typeof(allocations)='array'),
+ prepared_by uuid not null references auth.users(id),prepared_at timestamptz not null default now(),unique(bank_reference,revision)
+);
+create table public.upstream_payment_allocations(
+ payment_id uuid not null references public.upstream_payment_records(id),statement_id uuid not null references public.monthly_client_statements(id),
+ amount_cad_minor bigint not null check(amount_cad_minor between 1 and 9999999999),primary key(payment_id,statement_id)
+);
+create index upstream_allocations_statement on public.upstream_payment_allocations(statement_id);
+create table public.upstream_payment_reviews(
+ payment_id uuid primary key references public.upstream_payment_records(id),decision text not null check(decision in ('approved','rejected')),
+ reviewed_by uuid not null references auth.users(id),note text not null check(char_length(btrim(note)) between 3 and 1000),reviewed_at timestamptz not null default now()
+);
+alter table public.upstream_payment_records enable row level security;
+alter table public.upstream_payment_allocations enable row level security;
+alter table public.upstream_payment_reviews enable row level security;
+revoke all on public.upstream_payment_records,public.upstream_payment_allocations,public.upstream_payment_reviews from public,anon,authenticated;
+create trigger immutable_upstream_payment before update or delete on public.upstream_payment_records for each row execute function public.lock_posted_money();
+create trigger immutable_upstream_allocation before update or delete on public.upstream_payment_allocations for each row execute function public.lock_posted_money();
+create trigger immutable_upstream_review before update or delete on public.upstream_payment_reviews for each row execute function public.lock_posted_money();
+create function public.verify_upstream_allocations() returns trigger language plpgsql security definer set search_path='' as $$
+declare p uuid;expected bigint;actual numeric;
+begin
+ if TG_TABLE_NAME='upstream_payment_records' then p:=NEW.id;else p:=NEW.payment_id;end if;
+ select received_cad_minor into expected from public.upstream_payment_records where id=p;
+ select coalesce(sum(amount_cad_minor),0) into actual from public.upstream_payment_allocations where payment_id=p;
+ if exists(select 1 from public.upstream_payment_allocations a join public.upstream_payment_records h on h.id=a.payment_id join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p and h.organization_id<>s.organization_id) then raise exception 'Receipt organization mismatch' using errcode='23514';end if;
+ if actual<>expected then raise exception 'Receipt allocation incomplete' using errcode='23514';end if;
+ return NEW;
+end $$;
+revoke all on function public.verify_upstream_allocations() from public,anon,authenticated;
+create constraint trigger complete_upstream_payment after insert on public.upstream_payment_records deferrable initially deferred for each row execute function public.verify_upstream_allocations();
+create constraint trigger complete_upstream_allocation after insert on public.upstream_payment_allocations deferrable initially deferred for each row execute function public.verify_upstream_allocations();
+create function public.upstream_statement_amount(p_statement uuid) returns bigint language plpgsql stable security definer set search_path='' as $$
+declare v jsonb;
+begin
+ select q.private_snapshot into v from public.monthly_client_statements s join public.monthly_settlement_drafts d on d.id=s.draft_id join public.agency_quote_snapshots q on q.id=d.quote_id where s.id=p_statement;
+ if not found or exists(select 1 from unnest(array['sourceCadMinor','canadaFeeCadMinor','upstreamCadMinor']) k where coalesce(v->>k,'') !~ '^[0-9]{1,20}$') then raise exception 'Procurement quote invalid' using errcode='23514';end if;
+ if (v->>'sourceCadMinor')::numeric+(v->>'canadaFeeCadMinor')::numeric<>(v->>'upstreamCadMinor')::numeric then raise exception 'Procurement amount mismatch' using errcode='23514';end if;
+ return (v->>'upstreamCadMinor')::bigint;
+end $$;
+revoke all on function public.upstream_statement_amount(uuid) from public,anon,authenticated;
+create function public.submit_upstream_payment(p_request uuid,p_org uuid,p_reference text,p_received_on date,p_received text,p_evidence text,p_hash text,p_note text,p_allocations jsonb) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare prior public.upstream_payment_records%rowtype;item jsonb;s public.monthly_client_statements%rowtype;result uuid;total numeric:=0;ref text;latest public.upstream_payment_records%rowtype;rev integer:=1;
+begin
+ if p_org is null or not public.has_ops_capability('finance.prepare',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ ref:=upper(btrim(p_reference));
+ if p_request is null or ref is null or ref !~ '^[A-Z0-9][A-Z0-9._:/-]{2,159}$' or p_received_on is null or not isfinite(p_received_on) or p_received_on>(now() at time zone 'America/Vancouver')::date
+ or p_received is null or p_received !~ '^[0-9]{1,10}$' or p_received::numeric not between 1 and 9999999999
+ or p_evidence is null or char_length(btrim(p_evidence)) not between 3 and 1000 or p_hash is null or p_hash !~ '^[a-f0-9]{64}$' or p_note is null or char_length(btrim(p_note)) not between 3 and 1000
+ or p_allocations is null or jsonb_typeof(p_allocations) is distinct from 'array' then raise exception 'Payment input invalid' using errcode='22023';end if;
+ if jsonb_array_length(p_allocations) not between 1 and 20 then raise exception 'Allocation limit' using errcode='22023';end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_request::text,290029));
+ select * into prior from public.upstream_payment_records where request_id=p_request;
+ if found then
+ if prior.organization_id<>p_org or prior.bank_reference<>ref or prior.received_on<>p_received_on or prior.received_cad_minor<>p_received::bigint or prior.evidence_reference<>btrim(p_evidence) or prior.evidence_sha256<>p_hash or prior.note<>btrim(p_note) or prior.allocations<>p_allocations or prior.prepared_by<>auth.uid() then raise exception 'Payment request changed' using errcode='40001';end if;
+ return prior.id;end if;
+ perform pg_advisory_xact_lock(hashtextextended(ref,290030));
+ select * into latest from public.upstream_payment_records where bank_reference=ref order by revision desc limit 1;
+ if found then
+ if latest.organization_id<>p_org or not exists(select 1 from public.upstream_payment_reviews where payment_id=latest.id and decision='rejected') then raise exception 'Bank reference already registered' using errcode='23505';end if;
+ rev:=latest.revision+1;end if;
+ for item in select value from jsonb_array_elements(p_allocations) loop
+ if coalesce(item->>'statementId','') !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' or coalesce(item->>'amountMinor','') !~ '^[0-9]{1,10}$' then raise exception 'Allocation invalid' using errcode='22023';end if;
+ select * into s from public.monthly_client_statements where id=(item->>'statementId')::uuid;
+ if not found or s.organization_id<>p_org then raise exception 'Statement organization mismatch' using errcode='22023';end if;
+ if (item->>'amountMinor')::numeric not between 1 and public.upstream_statement_amount(s.id) then raise exception 'Allocation exceeds procurement' using errcode='23514';end if;
+ total:=total+(item->>'amountMinor')::numeric;
+ end loop;
+ if total<>p_received::numeric or (select count(distinct (v->>'statementId')::uuid) from jsonb_array_elements(p_allocations) v)<>jsonb_array_length(p_allocations) then raise exception 'Allocation total or duplicate invalid' using errcode='23514';end if;
+ insert into public.upstream_payment_records(request_id,organization_id,revision,bank_reference,received_on,received_cad_minor,evidence_reference,evidence_sha256,note,allocations,prepared_by)
+ values(p_request,p_org,rev,ref,p_received_on,p_received::bigint,btrim(p_evidence),p_hash,btrim(p_note),p_allocations,auth.uid()) returning id into result;
+ insert into public.upstream_payment_allocations(payment_id,statement_id,amount_cad_minor) select result,(v->>'statementId')::uuid,(v->>'amountMinor')::bigint from jsonb_array_elements(p_allocations) v;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'upstream_payment',result,'INSERT',jsonb_build_object('organization_id',p_org));
+ return result;
+end $$;
+create function public.review_upstream_payment(p_payment uuid,p_decision text,p_note text) returns void
+language plpgsql security definer set search_path='' as $$
+declare p public.upstream_payment_records%rowtype;prior public.upstream_payment_reviews%rowtype;a record;paid numeric;
+begin
+ select * into p from public.upstream_payment_records where id=p_payment for update;
+ if not found or not public.has_ops_capability('finance.review',p.organization_id) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p.prepared_by=auth.uid() then raise exception 'Independent reviewer required' using errcode='42501';end if;
+ if p_decision is null or p_decision not in ('approved','rejected') or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Review required' using errcode='22023';end if;
+ select * into prior from public.upstream_payment_reviews where payment_id=p.id;
+ if found then if prior.decision=p_decision and prior.note=btrim(p_note) and prior.reviewed_by=auth.uid() then return;end if;raise exception 'Review already recorded' using errcode='40001';end if;
+ if p_decision='approved' then
+ -- Shared statement locks serialize overlapping batches in deterministic order.
+ for a in select statement_id,amount_cad_minor from public.upstream_payment_allocations where payment_id=p.id order by statement_id loop
+ perform 1 from public.monthly_client_statements where id=a.statement_id for update;
+ select coalesce(sum(x.amount_cad_minor),0) into paid from public.upstream_payment_allocations x join public.upstream_payment_reviews r on r.payment_id=x.payment_id and r.decision='approved' where x.statement_id=a.statement_id;
+ if paid+a.amount_cad_minor>public.upstream_statement_amount(a.statement_id) then raise exception 'Allocation exceeds unreconciled procurement' using errcode='23514';end if;
+ end loop;
+ end if;
+ insert into public.upstream_payment_reviews(payment_id,decision,reviewed_by,note) values(p.id,p_decision,auth.uid(),btrim(p_note));
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'upstream_payment_review',p.id,'INSERT',jsonb_build_object('decision',p_decision));
+end $$;
+create function public.get_upstream_payment_workbench(p_org uuid,p_month date) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare statements jsonb;payments jsonb;n integer;pn integer;
+begin
+ if p_org is null or not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ select count(*) into n from public.monthly_client_statements where organization_id=p_org and month=p_month;
+ select coalesce(jsonb_agg(x.row order by x.published_at desc,x.id desc),'[]'::jsonb) into statements from (
+ select s.id,s.published_at,jsonb_build_object('id',s.id,'account_name',s.usage->>'account_name','month',s.month,'procurement_cad_minor',public.upstream_statement_amount(s.id)::text,
+ 'verified_cad_minor',coalesce((select sum(a.amount_cad_minor) from public.upstream_payment_allocations a join public.upstream_payment_reviews r on r.payment_id=a.payment_id and r.decision='approved' where a.statement_id=s.id),0)::text,
+ 'pending_cad_minor',coalesce((select sum(a.amount_cad_minor) from public.upstream_payment_allocations a left join public.upstream_payment_reviews r on r.payment_id=a.payment_id where a.statement_id=s.id and r.payment_id is null),0)::text) row
+ from public.monthly_client_statements s where s.organization_id=p_org and s.month=p_month order by s.published_at desc,s.id desc limit 200)x;
+ select count(*) into pn from public.upstream_payment_records p where p.organization_id=p_org and exists(select 1 from public.upstream_payment_allocations a join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p.id and s.month=p_month);
+ select coalesce(jsonb_agg(x.row order by x.pending desc,x.prepared_at desc,x.id desc),'[]'::jsonb) into payments from (
+ select p.id,p.prepared_at,(r.payment_id is null) pending,jsonb_build_object('id',p.id,'revision',p.revision,'bank_reference',p.bank_reference,'received_on',p.received_on,'received_cad_minor',p.received_cad_minor::text,'evidence_reference',p.evidence_reference,'evidence_sha256',p.evidence_sha256,'note',p.note,'prepared_by',p.prepared_by,'prepared_at',p.prepared_at,'status',coalesce(r.decision,'pending'),'review_note',r.note,'reviewed_at',r.reviewed_at,
+ 'allocations',(select jsonb_agg(jsonb_build_object('statement_id',a.statement_id,'amount_cad_minor',a.amount_cad_minor::text,'month',s.month,'account_name',s.usage->>'account_name') order by a.statement_id) from public.upstream_payment_allocations a join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p.id)) row
+ from public.upstream_payment_records p left join public.upstream_payment_reviews r on r.payment_id=p.id where p.organization_id=p_org and exists(select 1 from public.upstream_payment_allocations a join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p.id and s.month=p_month)
+ order by (r.payment_id is null) desc,p.prepared_at desc,p.id desc limit 100)x;
+ return jsonb_build_object('statements',statements,'statement_count',n,'payments',payments,'payment_count',pn);
+end $$;
+revoke all on function public.submit_upstream_payment(uuid,uuid,text,date,text,text,text,text,jsonb),public.review_upstream_payment(uuid,text,text),public.get_upstream_payment_workbench(uuid,date) from public,anon;
+grant execute on function public.submit_upstream_payment(uuid,uuid,text,date,text,text,text,text,jsonb),public.review_upstream_payment(uuid,text,text),public.get_upstream_payment_workbench(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 029_upstream_payment_verification.sql
+
+-- START 030_upstream_payment_reversals.sql
+-- Append-only reversal of receipt allocations, not a bank refund or client-wallet adjustment.
+
+create table public.upstream_payment_reversals(
+ id uuid primary key default gen_random_uuid(),request_id uuid not null unique,payment_id uuid not null references public.upstream_payment_records(id),
+ revision integer not null check(revision>0),reason text not null check(char_length(btrim(reason)) between 3 and 1000),
+ evidence_reference text not null check(char_length(btrim(evidence_reference)) between 3 and 1000),evidence_sha256 text not null check(evidence_sha256 ~ '^[a-f0-9]{64}$'),
+ prepared_by uuid not null references auth.users(id),prepared_at timestamptz not null default now(),unique(payment_id,revision),unique(id,payment_id)
+);
+create table public.upstream_reversal_reviews(
+ reversal_id uuid primary key,payment_id uuid not null,decision text not null check(decision in ('approved','rejected')),
+ reviewed_by uuid not null references auth.users(id),note text not null check(char_length(btrim(note)) between 3 and 1000),reviewed_at timestamptz not null default now(),
+ foreign key(reversal_id,payment_id) references public.upstream_payment_reversals(id,payment_id)
+);
+create unique index one_approved_upstream_reversal on public.upstream_reversal_reviews(payment_id) where decision='approved';
+alter table public.upstream_payment_reversals enable row level security;
+alter table public.upstream_reversal_reviews enable row level security;
+revoke all on public.upstream_payment_reversals,public.upstream_reversal_reviews from public,anon,authenticated;
+create trigger immutable_upstream_reversal before update or delete on public.upstream_payment_reversals for each row execute function public.lock_posted_money();
+create trigger immutable_upstream_reversal_review before update or delete on public.upstream_reversal_reviews for each row execute function public.lock_posted_money();
+create function public.submit_upstream_reversal(p_payment uuid,p_request uuid,p_reason text,p_evidence text,p_hash text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare p public.upstream_payment_records%rowtype;prior public.upstream_payment_reversals%rowtype;latest public.upstream_payment_reversals%rowtype;result uuid;rev integer:=1;
+begin
+ select * into p from public.upstream_payment_records where id=p_payment for update;
+ if not found or not public.has_ops_capability('finance.prepare',p.organization_id) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_request is null or p_reason is null or char_length(btrim(p_reason)) not between 3 and 1000 or p_evidence is null or char_length(btrim(p_evidence)) not between 3 and 1000 or p_hash is null or p_hash !~ '^[a-f0-9]{64}$' then raise exception 'Reversal evidence required' using errcode='22023';end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_request::text,300030));
+ select * into prior from public.upstream_payment_reversals where request_id=p_request;
+ if found then if prior.payment_id=p.id and prior.reason=btrim(p_reason) and prior.evidence_reference=btrim(p_evidence) and prior.evidence_sha256=p_hash and prior.prepared_by=auth.uid() then return prior.id;end if;raise exception 'Reversal request changed' using errcode='40001';end if;
+ if not exists(select 1 from public.upstream_payment_reviews where payment_id=p.id and decision='approved') then raise exception 'Approved receipt required' using errcode='23514';end if;
+ select * into latest from public.upstream_payment_reversals where payment_id=p.id order by revision desc limit 1;
+ if found then
+ if not exists(select 1 from public.upstream_reversal_reviews where reversal_id=latest.id and decision='rejected') then raise exception 'Reversal already pending or approved' using errcode='40001';end if;
+ rev:=latest.revision+1;end if;
+ insert into public.upstream_payment_reversals(request_id,payment_id,revision,reason,evidence_reference,evidence_sha256,prepared_by) values(p_request,p.id,rev,btrim(p_reason),btrim(p_evidence),p_hash,auth.uid()) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'upstream_reversal',result,'INSERT',jsonb_build_object('payment_id',p.id));
+ return result;
+end $$;
+create function public.review_upstream_reversal(p_reversal uuid,p_decision text,p_note text) returns void
+language plpgsql security definer set search_path='' as $$
+declare c public.upstream_payment_reversals%rowtype;p public.upstream_payment_records%rowtype;prior public.upstream_reversal_reviews%rowtype;a record;
+begin
+ select * into c from public.upstream_payment_reversals where id=p_reversal;
+ if not found then raise exception 'Forbidden' using errcode='42501';end if;
+ select * into p from public.upstream_payment_records where id=c.payment_id for update;
+ if not public.has_ops_capability('finance.review',p.organization_id) then raise exception 'Forbidden' using errcode='42501';end if;
+ if c.prepared_by=auth.uid() then raise exception 'Independent reviewer required' using errcode='42501';end if;
+ if p_decision is null or p_decision not in ('approved','rejected') or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Review required' using errcode='22023';end if;
+ select * into prior from public.upstream_reversal_reviews where reversal_id=c.id;
+ if found then if prior.decision=p_decision and prior.note=btrim(p_note) and prior.reviewed_by=auth.uid() then return;end if;raise exception 'Reversal review already recorded' using errcode='40001';end if;
+ if p_decision='approved' then
+ if not exists(select 1 from public.upstream_payment_reviews where payment_id=p.id and decision='approved') then raise exception 'Approved receipt required' using errcode='23514';end if;
+ if exists(select 1 from public.upstream_reversal_reviews where payment_id=p.id and decision='approved') then raise exception 'Receipt already reversed' using errcode='40001';end if;
+ for a in select statement_id from public.upstream_payment_allocations where payment_id=p.id order by statement_id loop
+ perform 1 from public.monthly_client_statements where id=a.statement_id for update;
+ end loop;
+ end if;
+ insert into public.upstream_reversal_reviews(reversal_id,payment_id,decision,reviewed_by,note) values(c.id,p.id,p_decision,auth.uid(),btrim(p_note));
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'upstream_reversal_review',c.id,'INSERT',jsonb_build_object('payment_id',p.id,'decision',p_decision));
+end $$;
+revoke all on function public.submit_upstream_reversal(uuid,uuid,text,text,text),public.review_upstream_reversal(uuid,text,text) from public,anon;
+grant execute on function public.submit_upstream_reversal(uuid,uuid,text,text,text),public.review_upstream_reversal(uuid,text,text) to authenticated;
+
+
+create or replace function public.submit_upstream_payment(p_request uuid,p_org uuid,p_reference text,p_received_on date,p_received text,p_evidence text,p_hash text,p_note text,p_allocations jsonb) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare prior public.upstream_payment_records%rowtype;item jsonb;s public.monthly_client_statements%rowtype;result uuid;total numeric:=0;ref text;latest public.upstream_payment_records%rowtype;rev integer:=1;
+begin
+ if p_org is null or not public.has_ops_capability('finance.prepare',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ ref:=upper(btrim(p_reference));
+ if p_request is null or ref is null or ref !~ '^[A-Z0-9][A-Z0-9._:/-]{2,159}$' or p_received_on is null or not isfinite(p_received_on) or p_received_on>(now() at time zone 'America/Vancouver')::date
+ or p_received is null or p_received !~ '^[0-9]{1,10}$' or p_received::numeric not between 1 and 9999999999
+ or p_evidence is null or char_length(btrim(p_evidence)) not between 3 and 1000 or p_hash is null or p_hash !~ '^[a-f0-9]{64}$' or p_note is null or char_length(btrim(p_note)) not between 3 and 1000
+ or p_allocations is null or jsonb_typeof(p_allocations) is distinct from 'array' then raise exception 'Payment input invalid' using errcode='22023';end if;
+ if jsonb_array_length(p_allocations) not between 1 and 20 then raise exception 'Allocation limit' using errcode='22023';end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_request::text,290029));
+ select * into prior from public.upstream_payment_records where request_id=p_request;
+ if found then
+ if prior.organization_id<>p_org or prior.bank_reference<>ref or prior.received_on<>p_received_on or prior.received_cad_minor<>p_received::bigint or prior.evidence_reference<>btrim(p_evidence) or prior.evidence_sha256<>p_hash or prior.note<>btrim(p_note) or prior.allocations<>p_allocations or prior.prepared_by<>auth.uid() then raise exception 'Payment request changed' using errcode='40001';end if;
+ return prior.id;end if;
+ perform pg_advisory_xact_lock(hashtextextended(ref,290030));
+ select * into latest from public.upstream_payment_records where bank_reference=ref order by revision desc limit 1;
+ if found then
+ if latest.organization_id<>p_org or not (exists(select 1 from public.upstream_payment_reviews where payment_id=latest.id and decision='rejected') or exists(select 1 from public.upstream_reversal_reviews where payment_id=latest.id and decision='approved')) then raise exception 'Bank reference already registered' using errcode='23505';end if;
+ rev:=latest.revision+1;end if;
+ for item in select value from jsonb_array_elements(p_allocations) loop
+ if coalesce(item->>'statementId','') !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' or coalesce(item->>'amountMinor','') !~ '^[0-9]{1,10}$' then raise exception 'Allocation invalid' using errcode='22023';end if;
+ select * into s from public.monthly_client_statements where id=(item->>'statementId')::uuid;
+ if not found or s.organization_id<>p_org then raise exception 'Statement organization mismatch' using errcode='22023';end if;
+ if (item->>'amountMinor')::numeric not between 1 and public.upstream_statement_amount(s.id) then raise exception 'Allocation exceeds procurement' using errcode='23514';end if;
+ total:=total+(item->>'amountMinor')::numeric;
+ end loop;
+ if total<>p_received::numeric or (select count(distinct (v->>'statementId')::uuid) from jsonb_array_elements(p_allocations) v)<>jsonb_array_length(p_allocations) then raise exception 'Allocation total or duplicate invalid' using errcode='23514';end if;
+ insert into public.upstream_payment_records(request_id,organization_id,revision,bank_reference,received_on,received_cad_minor,evidence_reference,evidence_sha256,note,allocations,prepared_by)
+ values(p_request,p_org,rev,ref,p_received_on,p_received::bigint,btrim(p_evidence),p_hash,btrim(p_note),p_allocations,auth.uid()) returning id into result;
+ insert into public.upstream_payment_allocations(payment_id,statement_id,amount_cad_minor) select result,(v->>'statementId')::uuid,(v->>'amountMinor')::bigint from jsonb_array_elements(p_allocations) v;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'upstream_payment',result,'INSERT',jsonb_build_object('organization_id',p_org));
+ return result;
+end $$;
+
+create or replace function public.review_upstream_payment(p_payment uuid,p_decision text,p_note text) returns void
+language plpgsql security definer set search_path='' as $$
+declare p public.upstream_payment_records%rowtype;prior public.upstream_payment_reviews%rowtype;a record;paid numeric;
+begin
+ select * into p from public.upstream_payment_records where id=p_payment for update;
+ if not found or not public.has_ops_capability('finance.review',p.organization_id) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p.prepared_by=auth.uid() then raise exception 'Independent reviewer required' using errcode='42501';end if;
+ if p_decision is null or p_decision not in ('approved','rejected') or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Review required' using errcode='22023';end if;
+ select * into prior from public.upstream_payment_reviews where payment_id=p.id;
+ if found then if prior.decision=p_decision and prior.note=btrim(p_note) and prior.reviewed_by=auth.uid() then return;end if;raise exception 'Review already recorded' using errcode='40001';end if;
+ if p_decision='approved' then
+ -- Shared statement locks serialize overlapping batches in deterministic order.
+ for a in select statement_id,amount_cad_minor from public.upstream_payment_allocations where payment_id=p.id order by statement_id loop
+ perform 1 from public.monthly_client_statements where id=a.statement_id for update;
+ select coalesce(sum(x.amount_cad_minor),0) into paid from public.upstream_payment_allocations x join public.upstream_payment_reviews r on r.payment_id=x.payment_id and r.decision='approved' where x.statement_id=a.statement_id and not exists(select 1 from public.upstream_reversal_reviews rr where rr.payment_id=x.payment_id and rr.decision='approved');
+ if paid+a.amount_cad_minor>public.upstream_statement_amount(a.statement_id) then raise exception 'Allocation exceeds unreconciled procurement' using errcode='23514';end if;
+ end loop;
+ end if;
+ insert into public.upstream_payment_reviews(payment_id,decision,reviewed_by,note) values(p.id,p_decision,auth.uid(),btrim(p_note));
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'upstream_payment_review',p.id,'INSERT',jsonb_build_object('decision',p_decision));
+end $$;
+
+create or replace function public.get_upstream_payment_workbench(p_org uuid,p_month date) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare statements jsonb;payments jsonb;n integer;pn integer;
+begin
+ if p_org is null or not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ select count(*) into n from public.monthly_client_statements where organization_id=p_org and month=p_month;
+ select coalesce(jsonb_agg(x.row order by x.published_at desc,x.id desc),'[]'::jsonb) into statements from (
+ select s.id,s.published_at,jsonb_build_object('id',s.id,'account_name',s.usage->>'account_name','month',s.month,'procurement_cad_minor',public.upstream_statement_amount(s.id)::text,
+ 'verified_cad_minor',coalesce((select sum(a.amount_cad_minor) from public.upstream_payment_allocations a join public.upstream_payment_reviews r on r.payment_id=a.payment_id and r.decision='approved' where a.statement_id=s.id and not exists(select 1 from public.upstream_reversal_reviews rr where rr.payment_id=a.payment_id and rr.decision='approved')),0)::text,
+ 'pending_cad_minor',coalesce((select sum(a.amount_cad_minor) from public.upstream_payment_allocations a left join public.upstream_payment_reviews r on r.payment_id=a.payment_id where a.statement_id=s.id and r.payment_id is null),0)::text) row
+ from public.monthly_client_statements s where s.organization_id=p_org and s.month=p_month order by s.published_at desc,s.id desc limit 200)x;
+ select count(*) into pn from public.upstream_payment_records p where p.organization_id=p_org and exists(select 1 from public.upstream_payment_allocations a join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p.id and s.month=p_month);
+ select coalesce(jsonb_agg(x.row order by x.pending desc,x.prepared_at desc,x.id desc),'[]'::jsonb) into payments from (
+ select p.id,p.prepared_at,(r.payment_id is null or exists(select 1 from public.upstream_payment_reversals c left join public.upstream_reversal_reviews rr on rr.reversal_id=c.id where c.payment_id=p.id and rr.reversal_id is null)) pending,jsonb_build_object('id',p.id,'revision',p.revision,'bank_reference',p.bank_reference,'received_on',p.received_on,'received_cad_minor',p.received_cad_minor::text,'evidence_reference',p.evidence_reference,'evidence_sha256',p.evidence_sha256,'note',p.note,'prepared_by',p.prepared_by,'prepared_at',p.prepared_at,'status',coalesce(r.decision,'pending'),'review_note',r.note,'reviewed_at',r.reviewed_at,
+ 'reversed',exists(select 1 from public.upstream_reversal_reviews rr where rr.payment_id=p.id and rr.decision='approved'),
+ 'reversal_pending',exists(select 1 from public.upstream_payment_reversals c left join public.upstream_reversal_reviews rr on rr.reversal_id=c.id where c.payment_id=p.id and rr.reversal_id is null),
+ 'reversal_count',(select count(*) from public.upstream_payment_reversals where payment_id=p.id),
+ 'reversals',coalesce((select jsonb_agg(h.row order by h.revision desc) from (select c.revision,jsonb_build_object('id',c.id,'revision',c.revision,'reason',c.reason,'evidence_reference',c.evidence_reference,'evidence_sha256',c.evidence_sha256,'prepared_by',c.prepared_by,'prepared_at',c.prepared_at,'status',coalesce(rr.decision,'pending'),'review_note',rr.note,'reviewed_at',rr.reviewed_at) row from public.upstream_payment_reversals c left join public.upstream_reversal_reviews rr on rr.reversal_id=c.id where c.payment_id=p.id order by c.revision desc limit 10)h),'[]'::jsonb),
+ 'allocations',(select jsonb_agg(jsonb_build_object('statement_id',a.statement_id,'amount_cad_minor',a.amount_cad_minor::text,'month',s.month,'account_name',s.usage->>'account_name') order by a.statement_id) from public.upstream_payment_allocations a join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p.id)) row
+ from public.upstream_payment_records p left join public.upstream_payment_reviews r on r.payment_id=p.id where p.organization_id=p_org and exists(select 1 from public.upstream_payment_allocations a join public.monthly_client_statements s on s.id=a.statement_id where a.payment_id=p.id and s.month=p_month)
+ order by (r.payment_id is null or exists(select 1 from public.upstream_payment_reversals c left join public.upstream_reversal_reviews rr on rr.reversal_id=c.id where c.payment_id=p.id and rr.reversal_id is null)) desc,p.prepared_at desc,p.id desc limit 100)x;
+ return jsonb_build_object('reversal_enabled',true,'statements',statements,'statement_count',n,'payments',payments,'payment_count',pn);
+end $$;
+notify pgrst,'reload schema';
+-- END 030_upstream_payment_reversals.sql
+
+-- START 031_client_statement_read_receipts.sql
+-- Client-declared reading acknowledgement only; never accepts pricing or posts money.
+
+create table public.client_statement_read_receipts(
+ statement_id uuid not null references public.monthly_client_statements(id),user_id uuid not null references auth.users(id),
+ confirmed_at timestamptz not null default now(),primary key(statement_id,user_id)
+);
+alter table public.client_statement_read_receipts enable row level security;
+revoke all on public.client_statement_read_receipts from public,anon,authenticated;
+create trigger immutable_client_statement_read before update or delete on public.client_statement_read_receipts for each row execute function public.lock_posted_money();
+create function public.confirm_client_statement_read(p_statement uuid) returns jsonb language plpgsql security definer set search_path='' as $$
+declare result timestamptz;org uuid;
+begin
+ if auth.uid() is null or exists(select 1 from public.staff_members where user_id=auth.uid()) then raise exception 'Client account required' using errcode='42501';end if;
+ select organization_id into org from public.monthly_client_statements where id=p_statement;
+ if not found or not public.has_finance_access(org) then raise exception 'Forbidden' using errcode='42501';end if;
+ insert into public.client_statement_read_receipts(statement_id,user_id) values(p_statement,auth.uid()) on conflict do nothing returning confirmed_at into result;
+ if found then
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'client_statement_read',p_statement,'INSERT',jsonb_build_object('statement_id',p_statement));
+ else select confirmed_at into result from public.client_statement_read_receipts where statement_id=p_statement and user_id=auth.uid();end if;
+ return jsonb_build_object('statement_id',p_statement,'confirmed_at',result);
+end $$;
+create function public.get_client_statement_read_receipts(p_ids uuid[]) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if auth.uid() is null or exists(select 1 from public.staff_members where user_id=auth.uid()) then raise exception 'Client account required' using errcode='42501';end if;
+ if p_ids is null or cardinality(p_ids)>100 then raise exception 'Statement limit' using errcode='22023';end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('statement_id',r.statement_id,'confirmed_at',r.confirmed_at) order by r.confirmed_at desc)
+ from public.client_statement_read_receipts r join public.monthly_client_statements s on s.id=r.statement_id where r.user_id=auth.uid() and r.statement_id=any(p_ids) and public.has_finance_access(s.organization_id)),'[]'::jsonb);
+end $$;
+create function public.get_statement_read_status(p_org uuid,p_month date) returns jsonb language plpgsql stable security definer set search_path='' as $$
+declare n integer;rows jsonb;
+begin
+ if p_org is null or not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 then raise exception 'Month must start on day one' using errcode='22023';end if;
+ select count(*) into n from public.monthly_client_statements where organization_id=p_org and month=p_month;
+ select coalesce(jsonb_agg(jsonb_build_object('statement_id',s.id,'confirmation_count',(select count(*) from public.client_statement_read_receipts r where r.statement_id=s.id),'last_confirmed_at',(select max(confirmed_at) from public.client_statement_read_receipts r where r.statement_id=s.id)) order by s.published_at desc,s.id desc),'[]'::jsonb) into rows
+ from (select id,published_at from public.monthly_client_statements where organization_id=p_org and month=p_month order by published_at desc,id desc limit 200)s;
+ return jsonb_build_object('statement_count',n,'statements',rows);
+end $$;
+revoke all on function public.confirm_client_statement_read(uuid),public.get_client_statement_read_receipts(uuid[]),public.get_statement_read_status(uuid,date) from public,anon;
+grant execute on function public.confirm_client_statement_read(uuid),public.get_client_statement_read_receipts(uuid[]),public.get_statement_read_status(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 031_client_statement_read_receipts.sql
+
+-- START 032_client_statement_navigation.sql
+-- Read-only statement navigation and complete latest-month totals per authorized wallet.
+
+create function public.get_client_monthly_statements(p_wallet uuid,p_month date,p_statement uuid) returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_month is not null and (not isfinite(p_month) or extract(day from p_month)<>1) then raise exception 'Month must start on day one' using errcode='22023';end if;
+ return coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'wallet_id',s.wallet_id,'organization_id',s.organization_id,'organization_name',o.name,'month',s.month,'currency',s.currency,
+ 'advertising_service_minor',s.upstream_cny_minor::text,'operating_other_minor',s.service_cny_minor::text,'total_minor',s.total_cny_minor::text,'summary_zh',s.summary_zh,'usage',s.usage,'published_at',s.published_at) order by s.month desc,s.published_at desc,s.id desc)
+ from (select * from public.monthly_client_statements where public.has_finance_access(organization_id) and (p_wallet is null or wallet_id=p_wallet) and (p_month is null or month=p_month) and (p_statement is null or id=p_statement) order by month desc,published_at desc,id desc limit 100)s join public.organizations o on o.id=s.organization_id),'[]'::jsonb);
+end $$;
+create or replace function public.get_client_monthly_statements() returns jsonb language sql stable security definer set search_path='' as $$
+ select public.get_client_monthly_statements(null::uuid,null::date,null::uuid);
+$$;
+create function public.get_client_statement_summaries() returns jsonb language sql stable security definer set search_path='' as $$
+ select coalesce(jsonb_agg(x.row order by x.wallet_id),'[]'::jsonb) from (
+ select w.id wallet_id,jsonb_build_object('wallet_id',w.id,'month',latest.month,'statement_count',count(*),'advertising_service_minor',sum(s.upstream_cny_minor)::text,'operating_other_minor',sum(s.service_cny_minor)::text,'total_minor',sum(s.total_cny_minor)::text) row
+ from public.client_wallets w join lateral (select month from public.monthly_client_statements where wallet_id=w.id order by month desc limit 1)latest on true
+ join public.monthly_client_statements s on s.wallet_id=w.id and s.month=latest.month
+ where w.currency='CNY' and public.has_finance_access(w.organization_id) group by w.id,latest.month
+ )x;
+$$;
+revoke all on function public.get_client_monthly_statements(uuid,date,uuid),public.get_client_statement_summaries() from public,anon;
+grant execute on function public.get_client_monthly_statements(uuid,date,uuid),public.get_client_statement_summaries() to authenticated;
+notify pgrst,'reload schema';
+-- END 032_client_statement_navigation.sql
+
+-- START 033_client_monthly_funds.sql
+-- Read-only monthly posted-funds reconciliation; no balance changes.
+
+create function public.get_client_monthly_funds(p_wallet uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare w public.client_wallets%rowtype; a timestamptz; b timestamptz; result jsonb;
+begin
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 or p_month<date '2000-01-01' or p_month>=date_trunc('month',now() at time zone 'America/Vancouver')::date then
+ raise exception 'Select an ended calendar month' using errcode='22023';end if;
+ select * into w from public.client_wallets where id=p_wallet and public.has_finance_access(organization_id);
+ if not found then raise exception 'Forbidden' using errcode='42501';end if;
+ a:=p_month::timestamp at time zone 'America/Vancouver';
+ b:=(p_month+interval '1 month')::timestamp at time zone 'America/Vancouver';
+ select jsonb_build_object('wallet_id',w.id,'organization_name',(select name from public.organizations where id=w.organization_id),'currency',w.currency,'month',p_month,'timezone','America/Vancouver','generated_at',now(),
+ 'opening_minor',coalesce(sum(e.amount_minor) filter(where e.posted_at<a),0)::text,
+ 'credits_minor',coalesce(sum(e.amount_minor) filter(where e.posted_at>=a and e.amount_minor>0),0)::text,
+ 'debits_minor',(-coalesce(sum(e.amount_minor) filter(where e.posted_at>=a and e.amount_minor<0),0))::text,
+ 'closing_minor',coalesce(sum(e.amount_minor),0)::text,
+ 'entry_count',count(*) filter(where e.posted_at>=a),
+ 'complete',count(*) filter(where e.posted_at>=a)<=1000,
+ 'entries',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'kind',x.kind,'amount_minor',x.amount_minor::text,'description',x.description,'posted_at',x.posted_at,
+ 'statement_id',(select s.id from public.monthly_client_statements s where s.wallet_id=w.id and x.source_reference='monthly-statement:'||s.id::text and x.kind in ('ad_spend','service_fee') and x.amount_minor<0)) order by x.posted_at,x.id)
+ from (select * from public.wallet_entries where wallet_id=w.id and posted_at>=a and posted_at<b order by posted_at,id limit 1000)x),'[]'::jsonb)) into result
+ from public.wallet_entries e where e.wallet_id=w.id and e.posted_at<b;
+ return result;
+end $$;
+revoke all on function public.get_client_monthly_funds(uuid,date) from public,anon;
+grant execute on function public.get_client_monthly_funds(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 033_client_monthly_funds.sql
+
+-- START 034_ops_monthly_funds.sql
+-- Same read-only funds calculation for client and scoped staff; no new money writes.
+
+create function public.build_monthly_funds_report(p_wallet uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare w public.client_wallets%rowtype; a timestamptz; b timestamptz; result jsonb;
+begin
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 or p_month<date '2000-01-01' or p_month>=date_trunc('month',now() at time zone 'America/Vancouver')::date then
+ raise exception 'Select an ended calendar month' using errcode='22023';end if;
+ select * into w from public.client_wallets where id=p_wallet;
+ if not found then raise exception 'Forbidden' using errcode='42501';end if;
+ a:=p_month::timestamp at time zone 'America/Vancouver';
+ b:=(p_month+interval '1 month')::timestamp at time zone 'America/Vancouver';
+ select jsonb_build_object('wallet_id',w.id,'organization_name',(select name from public.organizations where id=w.organization_id),'currency',w.currency,'month',p_month,'timezone','America/Vancouver','generated_at',now(),
+ 'opening_minor',coalesce(sum(e.amount_minor) filter(where e.posted_at<a),0)::text,
+ 'credits_minor',coalesce(sum(e.amount_minor) filter(where e.posted_at>=a and e.amount_minor>0),0)::text,
+ 'debits_minor',(-coalesce(sum(e.amount_minor) filter(where e.posted_at>=a and e.amount_minor<0),0))::text,
+ 'closing_minor',coalesce(sum(e.amount_minor),0)::text,
+ 'entry_count',count(*) filter(where e.posted_at>=a),
+ 'complete',count(*) filter(where e.posted_at>=a)<=1000,
+ 'entries',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'kind',x.kind,'amount_minor',x.amount_minor::text,'description',x.description,'posted_at',x.posted_at,
+ 'statement_id',(select s.id from public.monthly_client_statements s where s.wallet_id=w.id and x.source_reference='monthly-statement:'||s.id::text and x.kind in ('ad_spend','service_fee') and x.amount_minor<0),'statement_month',(select s.month from public.monthly_client_statements s where s.wallet_id=w.id and x.source_reference='monthly-statement:'||s.id::text and x.kind in ('ad_spend','service_fee') and x.amount_minor<0)) order by x.posted_at,x.id)
+ from (select * from public.wallet_entries where wallet_id=w.id and posted_at>=a and posted_at<b order by posted_at,id limit 1000)x),'[]'::jsonb)) into result
+ from public.wallet_entries e where e.wallet_id=w.id and e.posted_at<b;
+ return result;
+end $$;
+-- Only checked SECURITY DEFINER entry points may call the shared builder.
+revoke all on function public.build_monthly_funds_report(uuid,date) from public,anon,authenticated,service_role;
+create or replace function public.get_client_monthly_funds(p_wallet uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not exists(select 1 from public.client_wallets where id=p_wallet and public.has_finance_access(organization_id)) then raise exception 'Forbidden' using errcode='42501';end if;
+ return public.build_monthly_funds_report(p_wallet,p_month);
+end $$;
+create function public.get_ops_monthly_funds(p_org uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare wallet uuid;
+begin
+ if p_org is null or not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 or p_month<date '2000-01-01' or p_month>=date_trunc('month',now() at time zone 'America/Vancouver')::date then raise exception 'Select an ended calendar month' using errcode='22023';end if;
+ if not exists(select 1 from public.organizations where id=p_org) then raise exception 'Unknown organization' using errcode='22023';end if;
+ select id into wallet from public.client_wallets where organization_id=p_org and currency='CNY';
+ if wallet is null then return null;end if;
+ return public.build_monthly_funds_report(wallet,p_month);
+end $$;
+revoke all on function public.get_ops_monthly_funds(uuid,date) from public,anon;
+grant execute on function public.get_ops_monthly_funds(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 034_ops_monthly_funds.sql
+
+-- START 035_statement_service_questions.sql
+-- Connect client billing questions to immutable posted statements, reusing service threads.
+
+alter table public.service_requests add column statement_id uuid references public.monthly_client_statements(id),add column statement_month date,add column statement_request_key uuid,add column statement_input_sha256 text;
+alter table public.service_requests add constraint statement_question_fields check(
+ (statement_id is null and statement_month is null and statement_request_key is null and statement_input_sha256 is null)
+ or (statement_id is not null and statement_month is not null and extract(day from statement_month)=1 and statement_request_key is not null and statement_input_sha256 is not null and statement_input_sha256 ~ '^[0-9a-f]{64}$' and category='billing'));
+create unique index service_statement_request_key on public.service_requests(created_by,statement_request_key) where statement_request_key is not null;
+create index service_statement_questions on public.service_requests(statement_id,updated_at desc) where statement_id is not null;
+create function public.guard_statement_question() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if TG_OP='UPDATE' and (NEW.statement_id,NEW.statement_month,NEW.statement_request_key,NEW.statement_input_sha256) is distinct from (OLD.statement_id,OLD.statement_month,OLD.statement_request_key,OLD.statement_input_sha256) then raise exception 'Statement association is immutable' using errcode='23514';end if;
+ if NEW.statement_id is not null and not exists(select 1 from public.monthly_client_statements s where s.id=NEW.statement_id and s.organization_id=NEW.organization_id and s.month=NEW.statement_month) then raise exception 'Statement organization or month mismatch' using errcode='23514';end if;
+ return NEW;
+end $$;
+revoke all on function public.guard_statement_question() from public,anon,authenticated;
+create trigger statement_question_guard before insert or update on public.service_requests for each row execute function public.guard_statement_question();
+grant select(statement_id,statement_month) on public.service_requests to authenticated;
+create function public.create_statement_question(p_statement uuid,p_request uuid,p_subject text,p_body text) returns uuid
+language plpgsql security definer set search_path='' as $$
+declare s public.monthly_client_statements%rowtype;r public.service_requests%rowtype;fingerprint text;result uuid;
+begin
+ select * into s from public.monthly_client_statements where id=p_statement;
+ if not found or auth.uid() is null or exists(select 1 from public.staff_members where user_id=auth.uid()) or not public.has_finance_access(s.organization_id) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_request is null or p_subject is null or char_length(btrim(p_subject)) not between 3 and 160 or p_body is null or char_length(btrim(p_body)) not between 3 and 1500 then raise exception 'Invalid billing question' using errcode='22023';end if;
+ fingerprint:=encode(sha256(convert_to(jsonb_build_array(btrim(p_subject),btrim(p_body))::text,'UTF8')),'hex');
+ perform 1 from public.organizations where id=s.organization_id for update;
+ select * into r from public.service_requests where created_by=auth.uid() and statement_request_key=p_request;
+ if found then
+ if r.statement_id<>s.id or r.statement_input_sha256<>fingerprint then raise exception 'Request key conflict' using errcode='22023';end if;
+ return r.id;
+ end if;
+ if (select count(*) from public.service_requests where organization_id=s.organization_id and status<>'resolved')>=20 then raise exception 'Open request limit' using errcode='54000';end if;
+ insert into public.service_requests(organization_id,category,subject,created_by,statement_id,statement_month,statement_request_key,statement_input_sha256)
+ values(s.organization_id,'billing',btrim(p_subject),auth.uid(),s.id,s.month,p_request,fingerprint) returning id into result;
+ insert into public.service_request_messages(request_id,body,author_id,author_role) values(result,btrim(p_body),auth.uid(),'client');
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'service_request',result,'INSERT',jsonb_build_object('organization_id',s.organization_id,'category','billing','statement_id',s.id));
+ return result;
+end $$;
+revoke all on function public.create_statement_question(uuid,uuid,text,text) from public,anon;
+grant execute on function public.create_statement_question(uuid,uuid,text,text) to authenticated;
+notify pgrst,'reload schema';
+-- END 035_statement_service_questions.sql
+
+-- START 036_statement_question_workbench.sql
+-- Read-only monthly billing-question queue. Existing reply/status workflow is unchanged.
+
+create function public.get_statement_question_workbench(p_org uuid,p_month date) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare result jsonb;
+begin
+ if p_org is null or not public.has_ops_capability('finance.read',p_org) then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_month is null or not isfinite(p_month) or extract(day from p_month)<>1 or p_month<date '2000-01-01' then raise exception 'Month must start on day one' using errcode='22023';end if;
+ if not exists(select 1 from public.organizations where id=p_org) then raise exception 'Unknown organization' using errcode='22023';end if;
+ with scoped as (
+ select r.id,r.organization_id,r.category,r.subject,r.status,r.created_at,r.updated_at,r.statement_id,r.statement_month
+ from public.service_requests r join public.monthly_client_statements s on s.id=r.statement_id and s.organization_id=r.organization_id and s.month=r.statement_month
+ where r.organization_id=p_org and r.statement_month=p_month and r.category='billing'
+ ), limited as (select * from scoped order by (status='resolved'),updated_at desc,id desc limit 100)
+ select jsonb_build_object('organization_id',p_org,'month',p_month,'total_count',count(*),'open_count',count(*) filter(where status='open'),'in_progress_count',count(*) filter(where status='in_progress'),'resolved_count',count(*) filter(where status='resolved'),'truncated',count(*)>100,
+ 'rows',coalesce((select jsonb_agg(to_jsonb(l) order by (l.status='resolved'),l.updated_at desc,l.id desc) from limited l),'[]'::jsonb)) into result from scoped;
+ return result;
+end $$;
+revoke all on function public.get_statement_question_workbench(uuid,date) from public,anon;
+grant execute on function public.get_statement_question_workbench(uuid,date) to authenticated;
+notify pgrst,'reload schema';
+-- END 036_statement_question_workbench.sql
+
+-- START 037_service_reply_receipts.sql
+-- Reply receipts protect retries; they do not change billing or money.
+
+alter table public.service_request_messages
+ add column reply_request_key uuid,
+ add column reply_input_sha256 text,
+ add column reply_result_status text;
+alter table public.service_request_messages add constraint service_reply_receipt_fields check(
+ (reply_request_key is null and reply_input_sha256 is null and reply_result_status is null)
+ or (reply_request_key is not null and reply_input_sha256 is not null and reply_input_sha256 ~ '^[0-9a-f]{64}$'
+ and reply_result_status is not null and reply_result_status in ('open','in_progress','resolved')));
+create unique index service_reply_actor_key on public.service_request_messages(author_id,reply_request_key) where reply_request_key is not null;
+-- Existing authenticated column grants deliberately exclude the key, digest and receipt status.
+create function public.guard_service_reply_receipt() returns trigger language plpgsql set search_path='' as $$
+begin raise exception 'Confirmed service replies are immutable' using errcode='23514';end $$;
+revoke all on function public.guard_service_reply_receipt() from public,anon,authenticated;
+create trigger immutable_service_reply before update or delete on public.service_request_messages
+ for each row when (OLD.reply_request_key is not null) execute function public.guard_service_reply_receipt();
+create function public.reply_service_request_once(p_id uuid,p_request uuid,p_body text,p_status text) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare r public.service_requests%rowtype;m public.service_request_messages%rowtype;staff boolean;fingerprint text;next_status text;
+begin
+ if auth.uid() is null then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_request is null or p_body is null or char_length(btrim(p_body)) not between 3 and 1500 then raise exception 'Invalid reply' using errcode='22023';end if;
+ -- Serialize reuse of an actor's key, including attempts to reuse it on another thread.
+ perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||':'||p_request::text,370037));
+ select * into r from public.service_requests where id=p_id for update;
+ if not found or not public.can_read_service_request(r.organization_id,r.category) then raise exception 'Forbidden' using errcode='42501';end if;
+ staff:=exists(select 1 from public.staff_members where user_id=auth.uid());
+ if staff and (p_status is null or p_status not in ('open','in_progress','resolved')) then raise exception 'Invalid status' using errcode='22023';end if;
+ fingerprint:=encode(sha256(convert_to(jsonb_build_array(btrim(p_body),case when staff then p_status else null end)::text,'UTF8')),'hex');
+ select * into m from public.service_request_messages where author_id=auth.uid() and reply_request_key=p_request;
+ if found then
+  if m.request_id<>p_id or m.reply_input_sha256<>fingerprint then raise exception 'Reply key conflict' using errcode='40001';end if;
+  return jsonb_build_object('message_id',m.id,'request_id',m.request_id,'status',m.reply_result_status,'created_at',m.created_at,'replayed',true);
+ end if;
+ if (select count(*) from public.service_request_messages where request_id=p_id)>=200 then raise exception 'Message limit' using errcode='54000';end if;
+ next_status:=case when staff then p_status when r.status='resolved' then 'open' else r.status end;
+ insert into public.service_request_messages(request_id,body,author_id,author_role,reply_request_key,reply_input_sha256,reply_result_status)
+ values(p_id,btrim(p_body),auth.uid(),case when staff then 'staff' else 'client' end,p_request,fingerprint,next_status) returning * into m;
+ update public.service_requests set status=next_status,updated_at=now() where id=p_id;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'service_request',p_id,'UPDATE',jsonb_build_object('status',case when staff then next_status else 'client_reply' end,'message_id',m.id,'idempotent_reply',true));
+ return jsonb_build_object('message_id',m.id,'request_id',m.request_id,'status',m.reply_result_status,'created_at',m.created_at,'replayed',false);
+end $$;
+revoke all on function public.reply_service_request_once(uuid,uuid,text,text) from public,anon;
+grant execute on function public.reply_service_request_once(uuid,uuid,text,text) to authenticated;
+notify pgrst,'reload schema';
+-- END 037_service_reply_receipts.sql
+
+-- START 038_scoped_live_accounts.sql
+-- Real authenticated, organization-scoped accounts. No users, grants or money are seeded.
+
+create table public.live_access_accounts(
+ user_id uuid primary key references auth.users(id),organization_id uuid not null references public.organizations(id),
+ role text not null check(role in ('investor','client','sales')),label text not null check(char_length(label) between 3 and 80),
+ expected_email text not null check(char_length(expected_email) between 3 and 254),active boolean not null default false,
+ revision integer not null default 1 check(revision>0),session_after timestamptz not null default clock_timestamp(),
+ changed_by uuid not null references auth.users(id),changed_at timestamptz not null default now(),note text not null check(char_length(btrim(note)) between 3 and 1000)
+);
+create table public.live_sales_updates(
+ id uuid primary key default gen_random_uuid(),user_id uuid not null references public.live_access_accounts(user_id),organization_id uuid not null references public.organizations(id),request_id uuid not null,
+ input_hash text not null,note text not null check(char_length(btrim(note)) between 3 and 1000),created_at timestamptz not null default now(),unique(user_id,request_id)
+);
+alter table public.live_access_accounts enable row level security;
+alter table public.live_sales_updates enable row level security;
+revoke all on public.live_access_accounts,public.live_sales_updates from public,anon,authenticated;
+grant select on public.live_access_accounts to authenticated;
+create policy admin_live_accounts on public.live_access_accounts for select to authenticated using(public.has_staff_access(array['admin']::text[]));
+-- Keep these dedicated identities out of legacy broad employee/member grants.
+create function public.guard_live_account_grants() returns trigger language plpgsql security definer set search_path='' as $$
+begin if exists(select 1 from public.live_access_accounts where user_id=NEW.user_id) then raise exception 'Scoped account cannot receive legacy grants' using errcode='42501';end if;return NEW;end $$;
+revoke all on function public.guard_live_account_grants() from public,anon,authenticated;
+create trigger live_no_staff before insert or update on public.staff_members for each row execute function public.guard_live_account_grants();
+create trigger live_no_membership before insert or update on public.memberships for each row execute function public.guard_live_account_grants();
+create function public.set_live_account_access(p_user uuid,p_org uuid,p_role text,p_label text,p_email text,p_active boolean,p_revision integer,p_note text) returns integer language plpgsql security definer set search_path='' as $$
+declare prior public.live_access_accounts%rowtype;u jsonb;r integer;
+begin
+ if not public.has_staff_access(array['admin']::text[]) or p_user=auth.uid() then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_role is null or p_role not in ('investor','client','sales') or p_label is null or char_length(btrim(p_label)) not between 3 and 80 or p_email is null or p_active is null or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 then raise exception 'Invalid account' using errcode='22023';end if;
+ perform pg_advisory_xact_lock(hashtextextended('live-access:'||p_user::text,0));
+ select to_jsonb(a) into u from auth.users a where a.id=p_user;
+ if u is null or lower(u->>'email') is distinct from lower(btrim(p_email)) or nullif(u->>'email_confirmed_at','') is null or nullif(u->>'deleted_at','') is not null then raise exception 'Verified email user required' using errcode='22023';end if;
+ if not exists(select 1 from public.organizations where id=p_org) or exists(select 1 from public.staff_members where user_id=p_user) or exists(select 1 from public.memberships where user_id=p_user) then raise exception 'Dedicated scoped identity required' using errcode='22023';end if;
+ select * into prior from public.live_access_accounts where user_id=p_user for update;
+ if found then
+  if prior.organization_id<>p_org or prior.role<>p_role or prior.expected_email<>lower(btrim(p_email)) then raise exception 'Account scope is immutable' using errcode='22023';end if;
+  if p_revision is distinct from prior.revision then raise exception 'Stale account revision' using errcode='40001';end if;
+  update public.live_access_accounts set active=p_active,label=btrim(p_label),note=btrim(p_note),revision=revision+1,session_after=clock_timestamp(),changed_by=auth.uid(),changed_at=now() where user_id=p_user returning revision into r;
+ else
+  if p_revision is distinct from 0 then raise exception 'Stale account revision' using errcode='40001';end if;
+  insert into public.live_access_accounts(user_id,organization_id,role,label,expected_email,active,changed_by,note) values(p_user,p_org,p_role,btrim(p_label),lower(btrim(p_email)),p_active,auth.uid(),btrim(p_note)) returning revision into r;
+ end if;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'live_account_access',p_user,'UPDATE',jsonb_build_object('organization_id',p_org,'role',p_role,'active',p_active,'revision',r));return r;
+end $$;
+revoke all on function public.set_live_account_access(uuid,uuid,text,text,text,boolean,integer,text) from public,anon;
+grant execute on function public.set_live_account_access(uuid,uuid,text,text,text,boolean,integer,text) to authenticated;
+create function public.require_live_account(p_mfa boolean default true) returns public.live_access_accounts language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;u jsonb;sid uuid;started timestamptz;
+begin
+ select * into a from public.live_access_accounts where user_id=auth.uid();
+ if not found or not a.active or (p_mfa and coalesce(auth.jwt()->>'aal','')<>'aal2') then raise exception 'Account unavailable or verification required' using errcode='42501';end if;
+ select to_jsonb(v) into u from auth.users v where v.id=a.user_id;
+ if lower(u->>'email') is distinct from a.expected_email or nullif(u->>'email_confirmed_at','') is null or nullif(u->>'deleted_at','') is not null or coalesce(nullif(u->>'banned_until','')::timestamptz,'-infinity')>now() then raise exception 'Account unavailable' using errcode='42501';end if;
+ if exists(select 1 from public.staff_members where user_id=a.user_id) or exists(select 1 from public.memberships where user_id=a.user_id) then raise exception 'Conflicting account grants' using errcode='42501';end if;
+ begin sid:=(auth.jwt()->>'session_id')::uuid;exception when others then raise exception 'Fresh sign-in required' using errcode='42501';end;
+ select s.created_at into started from auth.sessions s where s.id=sid and s.user_id=a.user_id;
+ if started is null or started<a.session_after then raise exception 'Fresh sign-in required' using errcode='42501';end if;
+ return a;
+end $$;
+revoke all on function public.require_live_account(boolean) from public,anon,authenticated;
+create function public.get_live_account_context(p_mfa boolean default true) returns jsonb language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;begin a:=public.require_live_account(p_mfa);return jsonb_build_object('user_id',a.user_id,'organization_id',a.organization_id,'organization_name',(select name from public.organizations where id=a.organization_id),'role',a.role,'label',a.label,'revision',a.revision);end $$;
+revoke all on function public.get_live_account_context(boolean) from public,anon;
+grant execute on function public.get_live_account_context(boolean) to authenticated;
+create function public.has_live_client_access(p_org uuid) returns boolean language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;begin a:=public.require_live_account(true);return a.role='client' and a.organization_id=p_org;exception when others then return false;end $$;
+revoke all on function public.has_live_client_access(uuid) from public,anon;
+grant execute on function public.has_live_client_access(uuid) to authenticated;
+create or replace function public.has_finance_access(p_org uuid,p_write boolean default false) returns boolean language sql stable security definer set search_path='' as $$
+ select case when exists(select 1 from public.live_access_accounts where user_id=auth.uid()) then public.has_live_client_access(p_org) else exists(select 1 from public.finance_access f join public.memberships m using(organization_id,user_id) where f.organization_id=p_org and f.user_id=auth.uid() and (not p_write or f.role='manager')) end;
+$$;
+-- Client questions/replies use the original audited service workflow; investor/sales cannot use it.
+create or replace function public.can_read_service_request(p_org uuid,p_category text) returns boolean language sql stable security definer set search_path='' as $$
+ select public.has_ops_capability(case when p_category='billing' then 'finance.read' else 'support.handle' end,p_org)
+ or (not exists(select 1 from public.staff_members where user_id=auth.uid()) and ((exists(select 1 from public.memberships where organization_id=p_org and user_id=auth.uid()) and (p_category<>'billing' or public.has_finance_access(p_org))) or public.has_live_client_access(p_org)));
+$$;
+create function public.get_live_workspace() returns jsonb language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;wallets jsonb;statements jsonb;sources jsonb;profile jsonb;tickets jsonb;
+begin
+ a:=public.require_live_account(true);
+ select jsonb_build_object('industry',industry,'country',country,'website',website,'status',status,'revision',revision,'notes',case when a.role='sales' then internal_notes else null end) into profile from public.client_profiles where organization_id=a.organization_id;
+ if a.role<>'sales' then
+ select coalesce(jsonb_agg(v),'[]') into wallets from (select w.id,w.currency,coalesce(sum(e.amount_minor),0)::text balance_minor from public.client_wallets w left join public.wallet_entries e on e.wallet_id=w.id where w.organization_id=a.organization_id group by w.id) v;
+ select coalesce(jsonb_agg(v),'[]') into statements from (select id,wallet_id,month,total_cny_minor::text,upstream_cny_minor::text,service_cny_minor::text,summary_zh,usage,published_at from public.monthly_client_statements where organization_id=a.organization_id order by month desc,published_at desc limit 20) v;
+ end if;
+ if a.role='investor' then
+ select coalesce(jsonb_agg(v),'[]') into sources from (select s.id,s.account_name,s.currency,s.since,s.until,s.check_status,s.period_spend_micros::text from public.ads_source_handoffs h join public.ads_reporting_bindings b on b.id=h.binding_id join public.ads_reporting_snapshots s on s.id=h.snapshot_id where b.organization_id=a.organization_id and b.active order by h.shared_at desc limit 10) v;
+ end if;
+ if a.role='sales' then select coalesce(jsonb_agg(v),'[]') into tickets from (select r.id,r.subject,r.status,r.category,r.updated_at,(select coalesce(jsonb_agg(m),'[]') from (select body,author_role,created_at from public.service_request_messages where request_id=r.id order by created_at desc limit 10)m) messages from public.service_requests r where r.organization_id=a.organization_id and r.category<>'billing' order by r.updated_at desc limit 20)v;end if;
+ return jsonb_build_object('context',public.get_live_account_context(),'profile',profile,'wallets',coalesce(wallets,'[]'),'statements',coalesce(statements,'[]'),'sources',coalesce(sources,'[]'),'tickets',coalesce(tickets,'[]'));
+end $$;
+revoke all on function public.get_live_workspace() from public,anon;
+grant execute on function public.get_live_workspace() to authenticated;
+create function public.save_live_sales_followup(p_request uuid,p_revision integer,p_status text,p_note text) returns uuid language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;prior public.live_sales_updates%rowtype;digest text;result uuid;
+begin
+ perform 1 from public.live_access_accounts where user_id=auth.uid() for share;a:=public.require_live_account(true);
+ if a.role<>'sales' then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_request is null or p_note is null or char_length(btrim(p_note)) not between 3 and 1000 or p_status is null or p_status not in ('prospect','onboarding','active','paused','closed') then raise exception 'Invalid follow-up' using errcode='22023';end if;
+ digest:=encode(sha256(convert_to(jsonb_build_array(p_revision,p_status,btrim(p_note))::text,'UTF8')),'hex');
+ perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text||p_request::text,0));select * into prior from public.live_sales_updates where user_id=auth.uid() and request_id=p_request;
+ if found then if prior.input_hash<>digest then raise exception 'Request conflict' using errcode='40001';end if;return prior.id;end if;
+ update public.client_profiles set status=p_status,internal_notes=case when internal_notes='' then btrim(p_note) else internal_notes||E'\n'||btrim(p_note) end,revision=revision+1,updated_at=now() where organization_id=a.organization_id and revision=p_revision;
+ if not found then raise exception 'Stale client revision or missing profile' using errcode='40001';end if;
+ insert into public.live_sales_updates(user_id,organization_id,request_id,input_hash,note) values(a.user_id,a.organization_id,p_request,digest,btrim(p_note)) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'live_sales_followup',result,'INSERT',jsonb_build_object('organization_id',a.organization_id,'status',p_status));return result;
+end $$;
+revoke all on function public.save_live_sales_followup(uuid,integer,text,text) from public,anon;
+grant execute on function public.save_live_sales_followup(uuid,integer,text,text) to authenticated;
+create function public.reply_live_customer_service(p_ticket uuid,p_request uuid,p_status text,p_body text) returns uuid language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;r public.service_requests%rowtype;prior public.service_request_messages%rowtype;digest text;result uuid;
+begin
+ perform 1 from public.live_access_accounts where user_id=auth.uid() for share;a:=public.require_live_account(true);
+ if a.role<>'sales' then raise exception 'Forbidden' using errcode='42501';end if;
+ if p_request is null or p_body is null or char_length(btrim(p_body)) not between 3 and 1500 or p_status is null or p_status not in ('open','in_progress','resolved') then raise exception 'Invalid reply' using errcode='22023';end if;
+ select * into r from public.service_requests where id=p_ticket and organization_id=a.organization_id and category<>'billing' for update;
+ if not found then raise exception 'Forbidden' using errcode='42501';end if;
+ digest:=encode(sha256(convert_to(jsonb_build_array(btrim(p_body),p_status)::text,'UTF8')),'hex');
+ select * into prior from public.service_request_messages where author_id=auth.uid() and reply_request_key=p_request;
+ if found then if prior.request_id<>p_ticket or prior.reply_input_sha256<>digest then raise exception 'Request conflict' using errcode='40001';end if;return prior.id;end if;
+ if (select count(*) from public.service_request_messages where request_id=p_ticket)>=100 then raise exception 'Reply limit' using errcode='54000';end if;
+ update public.service_requests set status=p_status,updated_at=now() where id=p_ticket;
+ insert into public.service_request_messages(request_id,body,author_id,author_role,reply_request_key,reply_input_sha256,reply_result_status) values(p_ticket,btrim(p_body),auth.uid(),'staff',p_request,digest,p_status) returning id into result;
+ insert into public.audit_events(actor_id,entity_type,entity_id,operation,changes) values(auth.uid(),'live_service_reply',result,'INSERT',jsonb_build_object('organization_id',a.organization_id,'request_id',p_ticket,'status',p_status));return result;
+end $$;
+revoke all on function public.reply_live_customer_service(uuid,uuid,text,text) from public,anon;
+grant execute on function public.reply_live_customer_service(uuid,uuid,text,text) to authenticated;
+notify pgrst,'reload schema';
+-- END 038_scoped_live_accounts.sql
+
+-- START 039_investor_business_readonly.sql
+-- Global investor business read access. No staff grants or direct table access.
+
+create function public.read_investor_business(p_section text,p_offset integer default 0,p_limit integer default 25) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;relation_name text;query_text text;records jsonb;total bigint;
+begin
+ a:=public.require_live_account(true);
+ if a.role<>'investor' then raise exception 'Investor read access required' using errcode='42501';end if;
+ if p_offset is null or p_offset<0 or p_offset>2147483600 or p_limit is null or p_limit<1 or p_limit>50 then raise exception 'Invalid page' using errcode='22023';end if;
+ case p_section
+when 'organizations' then relation_name:='organizations'; query_text:='select jsonb_build_object(''id'',t."id"::text,''name'',t."name"::text,''created_at'',t."created_at"::text) as record from public."organizations" t order by t."id",t."name" limit $1 offset $2';
+when 'client_profiles' then relation_name:='client_profiles'; query_text:='select jsonb_build_object(''organization_id'',t."organization_id"::text,''legal_name'',t."legal_name"::text,''registration_number'',t."registration_number"::text,''country'',t."country"::text,''website'',t."website"::text,''industry'',t."industry"::text,''status'',t."status"::text,''internal_notes'',t."internal_notes"::text,''revision'',t."revision"::text,''created_at'',t."created_at"::text,''updated_at'',t."updated_at"::text) as record from public."client_profiles" t order by t."organization_id",t."legal_name" limit $1 offset $2';
+when 'crm_contacts' then relation_name:='crm_contacts'; query_text:='select jsonb_build_object(''id'',t."id"::text,''inquiry_id'',t."inquiry_id"::text,''organization_id'',t."organization_id"::text,''name'',t."name"::text,''email'',t."email"::text,''notes'',t."notes"::text,''created_at'',t."created_at"::text,''phone_e164'',t."phone_e164"::text,''title'',t."title"::text,''contact_kind'',t."contact_kind"::text,''archived'',t."archived"::text) as record from public."crm_contacts" t order by t."id",t."inquiry_id" limit $1 offset $2';
+when 'crm_opportunities' then relation_name:='crm_opportunities'; query_text:='select jsonb_build_object(''id'',t."id"::text,''contact_id'',t."contact_id"::text,''stage'',t."stage"::text,''estimated_value'',t."estimated_value"::text,''currency'',t."currency"::text,''created_at'',t."created_at"::text) as record from public."crm_opportunities" t order by t."id",t."contact_id" limit $1 offset $2';
+when 'inquiries' then relation_name:='inquiries'; query_text:='select jsonb_build_object(''id'',t."id"::text,''company'',t."company"::text,''email'',t."email"::text,''message'',t."message"::text,''locale'',t."locale"::text,''status'',t."status"::text,''consent_at'',t."consent_at"::text,''consent_version'',t."consent_version"::text,''created_at'',t."created_at"::text,''phone_e164'',t."phone_e164"::text,''target_market'',t."target_market"::text,''converted_organization_id'',t."converted_organization_id"::text) as record from public."inquiries" t order by t."id",t."company" limit $1 offset $2';
+when 'inquiry_notes' then relation_name:='inquiry_notes'; query_text:='select jsonb_build_object(''id'',t."id"::text,''inquiry_id'',t."inquiry_id"::text,''author_id'',t."author_id"::text,''body'',t."body"::text,''created_at'',t."created_at"::text) as record from public."inquiry_notes" t order by t."id",t."inquiry_id" limit $1 offset $2';
+when 'customer_applications' then relation_name:='customer_applications'; query_text:='select jsonb_build_object(''id'',t."id"::text,''applicant_id'',t."applicant_id"::text,''legal_name'',t."legal_name"::text,''contact_name'',t."contact_name"::text,''phone_e164'',t."phone_e164"::text,''email'',t."email"::text,''website'',t."website"::text,''industry'',t."industry"::text,''target_market'',t."target_market"::text,''goals'',t."goals"::text,''locale'',t."locale"::text,''consent_at'',t."consent_at"::text,''consent_version'',t."consent_version"::text,''status'',t."status"::text,''revision'',t."revision"::text,''feedback'',t."feedback"::text,''organization_id'',t."organization_id"::text,''reviewed_by'',t."reviewed_by"::text,''reviewed_at'',t."reviewed_at"::text,''created_at'',t."created_at"::text,''updated_at'',t."updated_at"::text) as record from public."customer_applications" t order by t."id",t."applicant_id" limit $1 offset $2';
+when 'customer_application_history' then relation_name:='customer_application_history'; query_text:='select jsonb_build_object(''id'',t."id"::text,''application_id'',t."application_id"::text,''revision'',t."revision"::text,''event'',t."event"::text,''actor_id'',t."actor_id"::text,''created_at'',t."created_at"::text) as record from public."customer_application_history" t order by t."id",t."application_id" limit $1 offset $2';
+when 'client_contracts' then relation_name:='client_contracts'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''template_version'',t."template_version"::text,''template_body'',t."template_body"::text,''title'',t."title"::text,''client_legal_name'',t."client_legal_name"::text,''provider_legal_name'',t."provider_legal_name"::text,''service_scope'',t."service_scope"::text,''pricing_terms'',t."pricing_terms"::text,''refund_terms'',t."refund_terms"::text,''starts_on'',t."starts_on"::text,''ends_on'',t."ends_on"::text,''status'',t."status"::text,''client_visible'',t."client_visible"::text,''signature_reference'',t."signature_reference"::text,''signed_on'',t."signed_on"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text,''updated_at'',t."updated_at"::text) as record from public."client_contracts" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'projects' then relation_name:='projects'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''ad_account_id'',t."ad_account_id"::text,''name'',t."name"::text,''target_market'',t."target_market"::text,''status'',t."status"::text,''budget_amount'',t."budget_amount"::text,''currency'',t."currency"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text,''updated_at'',t."updated_at"::text) as record from public."projects" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'project_submissions' then relation_name:='project_submissions'; query_text:='select jsonb_build_object(''id'',t."id"::text,''project_id'',t."project_id"::text,''kind'',t."kind"::text,''version'',t."version"::text,''title'',t."title"::text,''body'',t."body"::text,''reference_url'',t."reference_url"::text,''author_id'',t."author_id"::text,''author_role'',t."author_role"::text,''created_at'',t."created_at"::text) as record from public."project_submissions" t order by t."id",t."project_id" limit $1 offset $2';
+when 'project_reviews' then relation_name:='project_reviews'; query_text:='select jsonb_build_object(''id'',t."id"::text,''submission_id'',t."submission_id"::text,''decision'',t."decision"::text,''feedback'',t."feedback"::text,''reviewer_id'',t."reviewer_id"::text,''reviewer_role'',t."reviewer_role"::text,''created_at'',t."created_at"::text) as record from public."project_reviews" t order by t."id",t."submission_id" limit $1 offset $2';
+when 'project_activity' then relation_name:='project_activity'; query_text:='select jsonb_build_object(''id'',t."id"::text,''project_id'',t."project_id"::text,''event_type'',t."event_type"::text,''detail'',t."detail"::text,''actor_id'',t."actor_id"::text,''actor_role'',t."actor_role"::text,''created_at'',t."created_at"::text) as record from public."project_activity" t order by t."id",t."project_id" limit $1 offset $2';
+when 'ad_accounts' then relation_name:='ad_accounts'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''platform'',t."platform"::text,''external_id'',t."external_id"::text,''label'',t."label"::text,''connection_status'',t."connection_status"::text,''source_type'',t."source_type"::text,''last_synced_at'',t."last_synced_at"::text) as record from public."ad_accounts" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'campaigns' then relation_name:='campaigns'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''ad_account_id'',t."ad_account_id"::text,''external_id'',t."external_id"::text,''name'',t."name"::text) as record from public."campaigns" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'campaign_metrics_daily' then relation_name:='campaign_metrics_daily'; query_text:='select jsonb_build_object(''organization_id'',t."organization_id"::text,''campaign_id'',t."campaign_id"::text,''day'',t."day"::text,''currency'',t."currency"::text,''impressions'',t."impressions"::text,''clicks'',t."clicks"::text,''spend'',t."spend"::text,''conversions'',t."conversions"::text) as record from public."campaign_metrics_daily" t order by t."organization_id",t."campaign_id",t."day" limit $1 offset $2';
+when 'ad_sync_runs' then relation_name:='ad_sync_runs'; query_text:='select jsonb_build_object(''id'',t."id"::text,''ad_account_id'',t."ad_account_id"::text,''source_type'',t."source_type"::text,''status'',t."status"::text,''started_at'',t."started_at"::text,''finished_at'',t."finished_at"::text,''imported_records'',t."imported_records"::text,''error_code'',t."error_code"::text) as record from public."ad_sync_runs" t order by t."id",t."ad_account_id" limit $1 offset $2';
+when 'ads_reporting_snapshots' then relation_name:='ads_reporting_snapshots'; query_text:='select jsonb_build_object(''id'',t."id"::text,''account_id'',t."account_id"::text,''account_name'',t."account_name"::text,''currency'',t."currency"::text,''timezone'',t."timezone"::text,''since'',t."since"::text,''until'',t."until"::text,''check_status'',t."check_status"::text,''daily_spend_micros'',t."daily_spend_micros"::text,''period_spend_micros'',t."period_spend_micros"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text,''daily_ad_data'',(select jsonb_agg(jsonb_build_object(''date'',d->>''date'',''spendMicros'',d->>''spendMicros'',''impressions'',d->>''impressions'',''clicks'',d->>''clicks''))::text from jsonb_array_elements(coalesce(t.report->''daily'',''[]''::jsonb))d)) as record from public."ads_reporting_snapshots" t order by t."id",t."account_id" limit $1 offset $2';
+when 'ads_reporting_bindings' then relation_name:='ads_reporting_bindings'; query_text:='select jsonb_build_object(''id'',t."id"::text,''account_id'',t."account_id"::text,''ad_account_id'',t."ad_account_id"::text,''organization_id'',t."organization_id"::text,''ownership_reference'',t."ownership_reference"::text,''active'',t."active"::text,''revision'',t."revision"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text,''updated_by'',t."updated_by"::text,''updated_at'',t."updated_at"::text) as record from public."ads_reporting_bindings" t order by t."id",t."account_id" limit $1 offset $2';
+when 'ads_source_handoffs' then relation_name:='ads_source_handoffs'; query_text:='select jsonb_build_object(''id'',t."id"::text,''snapshot_id'',t."snapshot_id"::text,''binding_id'',t."binding_id"::text,''note'',t."note"::text,''shared_by'',t."shared_by"::text,''shared_at'',t."shared_at"::text) as record from public."ads_source_handoffs" t order by t."id",t."snapshot_id" limit $1 offset $2';
+when 'ads_monthly_coverage_checks' then relation_name:='ads_monthly_coverage_checks'; query_text:='select jsonb_build_object(''id'',t."id"::text,''snapshot_id'',t."snapshot_id"::text,''prepared_by'',t."prepared_by"::text,''prepared_at'',t."prepared_at"::text,''kind'',t."kind"::text,''amount_micros'',t."amount_micros"::text,''impressions'',t."impressions"::text,''clicks'',t."clicks"::text,''evidence_reference'',t."evidence_reference"::text,''active_from'',t."active_from"::text,''note'',t."note"::text) as record from public."ads_monthly_coverage_checks" t order by t."id",t."snapshot_id" limit $1 offset $2';
+when 'ads_monthly_coverage_reviews' then relation_name:='ads_monthly_coverage_reviews'; query_text:='select jsonb_build_object(''check_id'',t."check_id"::text,''snapshot_id'',t."snapshot_id"::text,''decision'',t."decision"::text,''reviewed_by'',t."reviewed_by"::text,''reviewed_at'',t."reviewed_at"::text,''note'',t."note"::text) as record from public."ads_monthly_coverage_reviews" t order by t."check_id",t."snapshot_id" limit $1 offset $2';
+when 'agency_fee_rule_drafts' then relation_name:='agency_fee_rule_drafts'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''unit_code'',t."unit_code"::text,''currency'',t."currency"::text,''revision'',t."revision"::text,''effective_month'',t."effective_month"::text,''mode'',t."mode"::text,''basis'',t."basis"::text,''basis_points'',t."basis_points"::text,''fixed_minor'',t."fixed_minor"::text,''minimum_minor'',t."minimum_minor"::text,''waive_when_zero'',t."waive_when_zero"::text,''note'',t."note"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text) as record from public."agency_fee_rule_drafts" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'agency_quote_snapshots' then relation_name:='agency_quote_snapshots'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''period'',t."period"::text,''revision'',t."revision"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text,''sourceCadMinor'',t.private_snapshot->>''sourceCadMinor'',''rate'',t.private_snapshot->>''rate'',''upstreamCnyMinor'',t.private_snapshot->>''upstreamCnyMinor'',''totalCnyMinor'',t.private_snapshot->>''totalCnyMinor'',''finalMinor'',t.private_snapshot->>''finalMinor'',''customerCostMinor'',t.private_snapshot->>''customerCostMinor'',''costUnit'',t.private_snapshot->>''costUnit'',''note'',t.private_snapshot->>''note'') as record from public."agency_quote_snapshots" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'agency_quote_lifecycle' then relation_name:='agency_quote_lifecycle'; query_text:='select jsonb_build_object(''quote_id'',t."quote_id"::text,''archived'',t."archived"::text,''revision'',t."revision"::text,''updated_by'',t."updated_by"::text,''updated_at'',t."updated_at"::text) as record from public."agency_quote_lifecycle" t order by t."quote_id",t."archived" limit $1 offset $2';
+when 'agency_quote_derivations' then relation_name:='agency_quote_derivations'; query_text:='select jsonb_build_object(''quote_id'',t."quote_id"::text,''parent_id'',t."parent_id"::text) as record from public."agency_quote_derivations" t order by t."quote_id",t."parent_id" limit $1 offset $2';
+when 'billing_fx_quotes' then relation_name:='billing_fx_quotes'; query_text:='select jsonb_build_object(''id'',t."id"::text,''cad_cny_rate'',t."cad_cny_rate"::text,''value_date'',t."value_date"::text,''quoted_at'',t."quoted_at"::text,''source_name'',t."source_name"::text,''is_demo'',t."is_demo"::text) as record from public."billing_fx_quotes" t order by t."id",t."cad_cny_rate" limit $1 offset $2';
+when 'client_wallets' then relation_name:='client_wallets'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''currency'',t."currency"::text,''created_at'',t."created_at"::text) as record from public."client_wallets" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'wallet_entries' then relation_name:='wallet_entries'; query_text:='select jsonb_build_object(''id'',t."id"::text,''wallet_id'',t."wallet_id"::text,''organization_id'',t."organization_id"::text,''currency'',t."currency"::text,''kind'',t."kind"::text,''amount_minor'',t."amount_minor"::text,''description'',t."description"::text,''source_reference'',t."source_reference"::text,''posted_at'',t."posted_at"::text) as record from public."wallet_entries" t order by t."id",t."wallet_id" limit $1 offset $2';
+when 'client_topups' then relation_name:='client_topups'; query_text:='select jsonb_build_object(''id'',t."id"::text,''wallet_id'',t."wallet_id"::text,''organization_id'',t."organization_id"::text,''currency'',t."currency"::text,''amount_minor'',t."amount_minor"::text,''reference'',t."reference"::text,''status'',t."status"::text,''requested_by'',t."requested_by"::text,''created_at'',t."created_at"::text) as record from public."client_topups" t order by t."id",t."wallet_id" limit $1 offset $2';
+when 'bank_receipts' then relation_name:='bank_receipts'; query_text:='select jsonb_build_object(''id'',t."id"::text,''wallet_id'',t."wallet_id"::text,''organization_id'',t."organization_id"::text,''currency'',t."currency"::text,''collection_account_id'',t."collection_account_id"::text,''topup_id'',t."topup_id"::text,''amount_minor'',t."amount_minor"::text,''payer_name'',t."payer_name"::text,''bank_reference'',t."bank_reference"::text,''booked_date'',t."booked_date"::text,''evidence_reference'',t."evidence_reference"::text,''status'',t."status"::text,''prepared_by'',t."prepared_by"::text,''prepared_at'',t."prepared_at"::text,''reviewed_by'',t."reviewed_by"::text,''reviewed_at'',t."reviewed_at"::text,''review_note'',t."review_note"::text) as record from public."bank_receipts" t order by t."id",t."wallet_id" limit $1 offset $2';
+when 'monthly_ad_reports' then relation_name:='monthly_ad_reports'; query_text:='select jsonb_build_object(''id'',t."id"::text,''wallet_id'',t."wallet_id"::text,''organization_id'',t."organization_id"::text,''currency'',t."currency"::text,''ad_account_id'',t."ad_account_id"::text,''source_account_name'',t."source_account_name"::text,''month'',t."month"::text,''version'',t."version"::text,''ad_spend_minor'',t."ad_spend_minor"::text,''service_fee_minor'',t."service_fee_minor"::text,''source_language'',t."source_language"::text,''translation_status'',t."translation_status"::text,''source_filename'',t."source_filename"::text,''source_timezone'',t."source_timezone"::text,''summary_zh'',t."summary_zh"::text,''summary_en'',t."summary_en"::text,''reviewed_by'',t."reviewed_by"::text,''published_at'',t."published_at"::text,''source_currency'',t."source_currency"::text,''source_ad_spend_minor'',t."source_ad_spend_minor"::text,''fx_quote_id'',t."fx_quote_id"::text,''settlement_date'',t."settlement_date"::text,''fee_basis_points'',t."fee_basis_points"::text,''fee_agreement_reference'',t."fee_agreement_reference"::text) as record from public."monthly_ad_reports" t order by t."id",t."wallet_id" limit $1 offset $2';
+when 'monthly_ad_report_lines' then relation_name:='monthly_ad_report_lines'; query_text:='select jsonb_build_object(''id'',t."id"::text,''report_id'',t."report_id"::text,''campaign'',t."campaign"::text,''market'',t."market"::text,''impressions'',t."impressions"::text,''clicks'',t."clicks"::text,''spend_minor'',t."spend_minor"::text,''source_cad_minor'',t."source_cad_minor"::text) as record from public."monthly_ad_report_lines" t order by t."id",t."report_id" limit $1 offset $2';
+when 'monthly_settlement_drafts' then relation_name:='monthly_settlement_drafts'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''binding_id'',t."binding_id"::text,''snapshot_id'',t."snapshot_id"::text,''quote_id'',t."quote_id"::text,''month'',t."month"::text,''source_cad_minor'',t."source_cad_minor"::text,''total_cny_minor'',t."total_cny_minor"::text,''agreement_reference'',t."agreement_reference"::text,''note'',t."note"::text,''prepared_by'',t."prepared_by"::text,''prepared_at'',t."prepared_at"::text,''coverage_kind'',t."coverage_kind"::text,''coverage_check_id'',t."coverage_check_id"::text) as record from public."monthly_settlement_drafts" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'monthly_settlement_reviews' then relation_name:='monthly_settlement_reviews'; query_text:='select jsonb_build_object(''draft_id'',t."draft_id"::text,''decision'',t."decision"::text,''note'',t."note"::text,''reviewed_by'',t."reviewed_by"::text,''reviewed_at'',t."reviewed_at"::text) as record from public."monthly_settlement_reviews" t order by t."draft_id",t."decision" limit $1 offset $2';
+when 'monthly_client_statements' then relation_name:='monthly_client_statements'; query_text:='select jsonb_build_object(''id'',t."id"::text,''draft_id'',t."draft_id"::text,''organization_id'',t."organization_id"::text,''binding_id'',t."binding_id"::text,''wallet_id'',t."wallet_id"::text,''month'',t."month"::text,''currency'',t."currency"::text,''upstream_cny_minor'',t."upstream_cny_minor"::text,''service_cny_minor'',t."service_cny_minor"::text,''total_cny_minor'',t."total_cny_minor"::text,''summary_zh'',t."summary_zh"::text,''published_by'',t."published_by"::text,''published_at'',t."published_at"::text) as record from public."monthly_client_statements" t order by t."id",t."draft_id" limit $1 offset $2';
+when 'client_statement_read_receipts' then relation_name:='client_statement_read_receipts'; query_text:='select jsonb_build_object(''statement_id'',t."statement_id"::text,''user_id'',t."user_id"::text,''confirmed_at'',t."confirmed_at"::text) as record from public."client_statement_read_receipts" t order by t."statement_id",t."user_id" limit $1 offset $2';
+when 'ops_source_packets' then relation_name:='ops_source_packets'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''ad_account_id'',t."ad_account_id"::text,''period'',t."period"::text,''version'',t."version"::text,''source_currency'',t."source_currency"::text,''source_timezone'',t."source_timezone"::text,''source_language'',t."source_language"::text,''source_amount_minor'',t."source_amount_minor"::text,''source_reference'',t."source_reference"::text,''status'',t."status"::text,''source_feedback'',t."source_feedback"::text,''submitted_by'',t."submitted_by"::text,''submitted_at'',t."submitted_at"::text) as record from public."ops_source_packets" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'ops_reconciliations' then relation_name:='ops_reconciliations'; query_text:='select jsonb_build_object(''id'',t."id"::text,''packet_id'',t."packet_id"::text,''revision'',t."revision"::text,''fx_quote_id'',t."fx_quote_id"::text,''settlement_date'',t."settlement_date"::text,''ad_spend_cny_minor'',t."ad_spend_cny_minor"::text,''fee_minor'',t."fee_minor"::text,''fee_basis_points'',t."fee_basis_points"::text,''fee_agreement_reference'',t."fee_agreement_reference"::text,''status'',t."status"::text,''prepared_by'',t."prepared_by"::text,''prepared_at'',t."prepared_at"::text,''reviewed_by'',t."reviewed_by"::text,''reviewed_at'',t."reviewed_at"::text,''review_note'',t."review_note"::text) as record from public."ops_reconciliations" t order by t."id",t."packet_id" limit $1 offset $2';
+when 'upstream_payment_records' then relation_name:='upstream_payment_records'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''revision'',t."revision"::text,''bank_reference'',t."bank_reference"::text,''received_on'',t."received_on"::text,''received_cad_minor'',t."received_cad_minor"::text,''evidence_reference'',t."evidence_reference"::text,''note'',t."note"::text,''prepared_by'',t."prepared_by"::text,''prepared_at'',t."prepared_at"::text) as record from public."upstream_payment_records" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'upstream_payment_allocations' then relation_name:='upstream_payment_allocations'; query_text:='select jsonb_build_object(''payment_id'',t."payment_id"::text,''statement_id'',t."statement_id"::text,''amount_cad_minor'',t."amount_cad_minor"::text) as record from public."upstream_payment_allocations" t order by t."payment_id",t."statement_id" limit $1 offset $2';
+when 'upstream_payment_reviews' then relation_name:='upstream_payment_reviews'; query_text:='select jsonb_build_object(''payment_id'',t."payment_id"::text,''decision'',t."decision"::text,''reviewed_by'',t."reviewed_by"::text,''note'',t."note"::text,''reviewed_at'',t."reviewed_at"::text) as record from public."upstream_payment_reviews" t order by t."payment_id",t."decision" limit $1 offset $2';
+when 'upstream_payment_reversals' then relation_name:='upstream_payment_reversals'; query_text:='select jsonb_build_object(''id'',t."id"::text,''payment_id'',t."payment_id"::text,''revision'',t."revision"::text,''reason'',t."reason"::text,''evidence_reference'',t."evidence_reference"::text,''prepared_by'',t."prepared_by"::text,''prepared_at'',t."prepared_at"::text) as record from public."upstream_payment_reversals" t order by t."id",t."payment_id" limit $1 offset $2';
+when 'upstream_reversal_reviews' then relation_name:='upstream_reversal_reviews'; query_text:='select jsonb_build_object(''reversal_id'',t."reversal_id"::text,''payment_id'',t."payment_id"::text,''decision'',t."decision"::text,''reviewed_by'',t."reviewed_by"::text,''note'',t."note"::text,''reviewed_at'',t."reviewed_at"::text) as record from public."upstream_reversal_reviews" t order by t."reversal_id",t."payment_id" limit $1 offset $2';
+when 'service_requests' then relation_name:='service_requests'; query_text:='select jsonb_build_object(''id'',t."id"::text,''organization_id'',t."organization_id"::text,''category'',t."category"::text,''subject'',t."subject"::text,''status'',t."status"::text,''created_by'',t."created_by"::text,''created_at'',t."created_at"::text,''updated_at'',t."updated_at"::text,''statement_id'',t."statement_id"::text,''statement_month'',t."statement_month"::text) as record from public."service_requests" t order by t."id",t."organization_id" limit $1 offset $2';
+when 'service_request_messages' then relation_name:='service_request_messages'; query_text:='select jsonb_build_object(''id'',t."id"::text,''body'',t."body"::text,''author_id'',t."author_id"::text,''author_role'',t."author_role"::text,''created_at'',t."created_at"::text,''reply_result_status'',t."reply_result_status"::text) as record from public."service_request_messages" t order by t."id",t."body" limit $1 offset $2';
+when 'live_sales_updates' then relation_name:='live_sales_updates'; query_text:='select jsonb_build_object(''id'',t."id"::text,''user_id'',t."user_id"::text,''organization_id'',t."organization_id"::text,''note'',t."note"::text,''created_at'',t."created_at"::text) as record from public."live_sales_updates" t order by t."id",t."user_id" limit $1 offset $2';
+when 'operating_units' then relation_name:='operating_units'; query_text:='select jsonb_build_object(''code'',t."code"::text,''label'',t."label"::text,''country'',t."country"::text,''kind'',t."kind"::text,''active'',t."active"::text) as record from public."operating_units" t order by t."code",t."label" limit $1 offset $2';
+when 'client_operating_links' then relation_name:='client_operating_links'; query_text:='select jsonb_build_object(''organization_id'',t."organization_id"::text,''fulfilment_unit'',t."fulfilment_unit"::text,''market_unit'',t."market_unit"::text) as record from public."client_operating_links" t order by t."organization_id",t."fulfilment_unit" limit $1 offset $2';
+ else raise exception 'Business section unavailable' using errcode='22023';end case;
+ execute format('select count(*) from public.%I',relation_name) into total;
+ execute 'select coalesce(jsonb_agg(record),''[]''::jsonb) from ('||query_text||') page' into records using p_limit,p_offset;
+ return jsonb_build_object('section',p_section,'offset',p_offset,'limit',p_limit,'total',total,'rows',records);
+end $$;
+revoke all on function public.read_investor_business(text,integer,integer) from public,anon;
+grant execute on function public.read_investor_business(text,integer,integer) to authenticated;
+notify pgrst,'reload schema';
+-- END 039_investor_business_readonly.sql
+
+-- START 040_business_analytics.sql
+-- Read-only analytics. Publication and financial workflows are unchanged.
+
+create function public.get_business_analytics(p_from date,p_until date,p_org uuid default null) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;scope_id uuid;companies jsonb;daily jsonb;statements jsonb;cash jsonb;balances jsonb;pipeline jsonb;projects jsonb;service jsonb;followups jsonb;result jsonb;
+begin
+ a:=public.require_live_account(true);
+ if p_from is null or p_until is null or p_until<p_from or p_until-p_from>365 then raise exception 'Invalid analytics range' using errcode='22023';end if;
+ if a.role<>'investor' and p_org is not null and p_org<>a.organization_id then raise exception 'Forbidden company' using errcode='42501';end if;
+ scope_id:=case when a.role='investor' then p_org else a.organization_id end;
+ if scope_id is not null and not exists(select 1 from public.organizations where id=scope_id) then raise exception 'Unknown company' using errcode='22023';end if;
+ select coalesce(jsonb_agg(jsonb_build_object('id',o.id,'name',o.name,'createdAt',o.created_at) order by o.name,o.id),'[]') into companies from public.organizations o where a.role='investor' or o.id=scope_id;
+ if a.role='investor' then
+  with rows as (
+   select distinct on(s.account_id,d->>'date') s.account_id,s.account_name,s.currency,s.timezone,b.organization_id,d,s.id,s.created_at,s.check_status,coalesce(s.report->>'coverageKind','pending') coverage
+   from public.ads_reporting_snapshots s left join public.ads_reporting_bindings b on b.account_id=s.account_id
+   cross join lateral jsonb_array_elements(s.report->'daily') d
+   where (scope_id is null or b.organization_id=scope_id) and s.since<=p_until and s.until>=p_from
+    and d->>'date' between p_from::text and p_until::text
+    and d->>'impressions' ~ '^[0-9]{1,20}$' and d->>'clicks' ~ '^[0-9]{1,20}$' and d->>'spendMicros' ~ '^[0-9]{1,20}$'
+   order by s.account_id,d->>'date',s.created_at desc,s.id desc
+  ) select coalesce(jsonb_agg(jsonb_build_object('date',d->>'date','accountId',account_id,'accountName',account_name,'companyId',organization_id,'currency',currency,'timezone',timezone,'impressions',d->>'impressions','clicks',d->>'clicks','spendMicros',d->>'spendMicros','sourceId',id,'sourceAt',created_at,'status',case when check_status='matched' and coverage in ('complete_rows','aggregate_verified') then 'matched' else 'pending' end) order by account_id,d->>'date'),'[]') into daily from rows;
+ elsif a.role='client' then
+  -- Client performance uses published customer metrics only. Internal source spend/FX is never projected.
+  with rows as (
+   select distinct on(s.binding_id,d->>'date') b.account_id,s.usage->>'account_name' account_name,s.usage->>'timezone' timezone,d,s.id,s.published_at
+   from public.monthly_client_statements s join public.ads_reporting_bindings b on b.id=s.binding_id and b.organization_id=s.organization_id
+   cross join lateral jsonb_array_elements(s.usage->'daily') d
+   where s.organization_id=scope_id and d->>'date' between p_from::text and p_until::text
+    and d->>'impressions' ~ '^[0-9]{1,20}$' and d->>'clicks' ~ '^[0-9]{1,20}$'
+   order by s.binding_id,d->>'date',s.published_at desc,s.id desc
+  ) select coalesce(jsonb_agg(jsonb_build_object('date',d->>'date','accountId',account_id,'accountName',account_name,'companyId',scope_id,'currency',null,'timezone',timezone,'impressions',d->>'impressions','clicks',d->>'clicks','spendMicros',null,'sourceId',id,'sourceAt',published_at,'status','published') order by account_id,d->>'date'),'[]') into daily from rows;
+ end if;
+ if a.role in ('investor','client') then
+  select coalesce(jsonb_agg(jsonb_build_object('id',s.id,'walletId',s.wallet_id,'companyId',s.organization_id,'month',s.month,'advertisingMinor',s.upstream_cny_minor::text,'otherMinor',s.service_cny_minor::text,'totalMinor',s.total_cny_minor::text,'publishedAt',s.published_at) order by s.month,s.id),'[]') into statements from public.monthly_client_statements s where (scope_id is null or s.organization_id=scope_id) and s.month<=p_until and (s.month+interval '1 month'-interval '1 day')::date>=p_from;
+  select coalesce(jsonb_agg(jsonb_build_object('date',day_key,'currency',currency,'creditedMinor',credit::text) order by day_key,currency),'[]') into cash from (
+   select (e.posted_at at time zone 'UTC')::date day_key,e.currency,sum(e.amount_minor) credit from public.wallet_entries e where (scope_id is null or e.organization_id=scope_id) and e.kind='topup' and (e.posted_at at time zone 'UTC')::date between p_from and p_until group by 1,2
+  ) v;
+  select coalesce(jsonb_agg(jsonb_build_object('companyId',organization_id,'currency',currency,'balanceMinor',balance::text) order by organization_id,currency),'[]') into balances from (
+   select w.organization_id,w.currency,coalesce(sum(e.amount_minor),0) balance from public.client_wallets w left join public.wallet_entries e on e.wallet_id=w.id where scope_id is null or w.organization_id=scope_id group by w.organization_id,w.currency
+  ) v;
+ end if;
+ if a.role in ('investor','sales') then
+  select coalesce(jsonb_agg(jsonb_build_object('stage',stage,'count',n) order by stage),'[]') into pipeline from (
+   select o.stage,count(*) n from public.crm_opportunities o join public.crm_contacts c on c.id=o.contact_id where (scope_id is null or c.organization_id=scope_id) and (o.created_at at time zone 'UTC')::date between p_from and p_until group by o.stage
+  ) v;
+  select coalesce(jsonb_agg(jsonb_build_object('stage',status,'count',n) order by status),'[]') into projects from (
+   select status,count(*) n from public.projects where (scope_id is null or organization_id=scope_id) and (created_at at time zone 'UTC')::date between p_from and p_until group by status
+  ) v;
+  select coalesce(jsonb_agg(jsonb_build_object('stage',status,'count',n) order by status),'[]') into service from (
+   select status,count(*) n from public.service_requests where (scope_id is null or organization_id=scope_id) and (a.role='investor' or category<>'billing') and (created_at at time zone 'UTC')::date between p_from and p_until group by status
+  ) v;
+  select coalesce(jsonb_agg(jsonb_build_object('date',day_key,'count',n) order by day_key),'[]') into followups from (
+   select (created_at at time zone 'UTC')::date day_key,count(*) n from public.live_sales_updates where (scope_id is null or organization_id=scope_id) and (created_at at time zone 'UTC')::date between p_from and p_until group by 1
+  ) v;
+ end if;
+ result:=jsonb_build_object('version','business-analytics-v1','role',a.role,'userId',a.user_id,'scopeId',scope_id,'from',p_from,'until',p_until,'asOf',clock_timestamp(),'companies',companies,'daily',coalesce(daily,'[]'),'statements',coalesce(statements,'[]'),'cash',coalesce(cash,'[]'),'balances',coalesce(balances,'[]'),'pipeline',coalesce(pipeline,'[]'),'projects',coalesce(projects,'[]'),'service',coalesce(service,'[]'),'followups',coalesce(followups,'[]'));
+ if jsonb_array_length(result->'daily')>20000 or octet_length(result::text)>8388608 then raise exception 'Analytics range too large' using errcode='54000';end if;
+ return result;
+end $$;
+revoke all on function public.get_business_analytics(date,date,uuid) from public,anon;
+grant execute on function public.get_business_analytics(date,date,uuid) to authenticated;
+notify pgrst,'reload schema';
+-- END 040_business_analytics.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';

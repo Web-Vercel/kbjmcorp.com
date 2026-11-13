@@ -25,7 +25,7 @@ it("refreshes a successful mutation and clears the submitted form",async()=>{
 });
 it("does not call hosted Auth from the unconfigured staff login",async()=>{
  render(<StaffLogin locale="zh" enabled={false} siteKey=""/>);const user=userEvent.setup();await user.type(screen.getByLabelText('工作邮箱'),'fixture@example.com');await user.type(screen.getByLabelText('密码'),'test-only-password');await user.click(screen.getByRole('button',{name:'管理员登录'}));
- expect(fetchMock).not.toHaveBeenCalled();expect(screen.getByRole('status').textContent).toContain('尚未连接测试服务');
+ expect(fetchMock).not.toHaveBeenCalled();expect(screen.getByRole('status').textContent).toContain('账号登录暂不可用');
 });
 it("renders the official SDK's SVG data URI without double encoding it",async()=>{
  const qr='data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg"></svg>';
@@ -39,4 +39,21 @@ it("routes to the workspace only after a real successful MFA response",async()=>
 it("limits selectable ad accounts to the selected organization and resets the selection on change",async()=>{
  render(<form><ProjectFields locale="zh" organizations={[{id:'org-a',name:'Company A'},{id:'org-b',name:'Company B'}]} accounts={[{id:'account-a',organization_id:'org-a',label:'Account A',external_id:'fixture-A'},{id:'account-b',organization_id:'org-b',label:'Account B',external_id:'fixture-B'}]}/></form>);
  const user=userEvent.setup();const account=screen.getByLabelText('广告账户关联（选填）') as HTMLSelectElement;expect(screen.queryByRole('option',{name:'Account B'})).toBeNull();await user.selectOptions(account,'account-a');await user.selectOptions(screen.getByLabelText('客户公司'),'org-b');expect(account.value).toBe('');expect(screen.queryByRole('option',{name:'Account A'})).toBeNull();expect(screen.getByRole('option',{name:'Account B'})).toBeTruthy();
+});
+it('shows safe account-save database codes instead of a generic retry instruction',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({error:'account_save_unavailable',diagnosticCode:'42703'}),{status:503}));
+ render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><label>授权依据<textarea name="note" required/></label></AdminForm>);
+ const user=userEvent.setup();await user.type(screen.getByLabelText('授权依据'),'Authorization');await user.click(screen.getByRole('button',{name:'保存权限'}));
+ await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('数据库字段'));expect(screen.getByRole('status').textContent).toContain('42703');expect(navigation.refresh).not.toHaveBeenCalled();
+});
+it('identifies invalid account fields without rendering arbitrary response field names',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({error:'account_input_invalid',fields:['userId','PRIVATE FIELD']}),{status:400}));
+ render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><input name="userId" defaultValue="bad"/></AdminForm>);
+ await userEvent.setup().click(screen.getByRole('button',{name:'保存权限'}));await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('用户ID'));expect(screen.getByRole('status').textContent).not.toContain('PRIVATE');
+});
+it('explains demo isolation and provides an explicit exit without retrying the blocked business write',async()=>{
+ fetchMock.mockResolvedValue(new Response(JSON.stringify({error:'demo_only'}),{status:403}));
+ render(<AdminForm locale="zh" endpoint="/api/admin/live-access" button="保存权限"><input name="userId" defaultValue="fixture"/></AdminForm>);
+ const user=userEvent.setup();await user.click(screen.getByRole('button',{name:'保存权限'}));await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('浏览器仍处于演示模式'));
+ expect(screen.getByRole('button',{name:'退出演示，返回网站'})).toBeTruthy();expect(fetchMock).toHaveBeenCalledTimes(1);expect(navigation.refresh).not.toHaveBeenCalled();
 });

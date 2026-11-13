@@ -1,0 +1,13 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({context:vi.fn(),rpc:vi.fn()}));
+vi.mock('@/lib/live-access/server',()=>({getLiveContext:m.context}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw Error('not_found')},redirect:(url:string)=>{throw Error(url)}}));
+vi.mock('@/components/SignOutButton',()=>({default:()=> <button>Sign out</button>}));
+import Page from '@/app/[locale]/access/investor/page';
+beforeEach(()=>{vi.clearAllMocks();m.context.mockResolvedValue({context:{role:'investor',label:'Fixture investor'},client:{rpc:m.rpc}});m.rpc.mockResolvedValue({data:{section:'organizations',offset:0,limit:25,total:26,rows:[{id:'fixture',name:'SECOND COMPANY',created_at:'2026-11-11'}]},error:null});});
+const render=(q={})=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve(q)}).then(renderToStaticMarkup);
+it('renders cross-company business navigation and pagination without mutation forms',async()=>{const html=await render();expect(html).toContain('SECOND COMPANY');expect(html).toContain('全部企业');expect(html).toContain('下一页');expect(html).not.toContain('<form');expect(html).not.toContain('/admin/role-accounts');expect(html).toContain('密码、密钥');expect(m.rpc).toHaveBeenCalledWith('read_investor_business',{p_section:'organizations',p_offset:0,p_limit:25});});
+it('denies client and sales roles before querying global data',async()=>{for(const role of ['client','sales']){m.context.mockResolvedValue({context:{role},client:{rpc:m.rpc}});await expect(render()).rejects.toThrow('not_found');}expect(m.rpc).not.toHaveBeenCalled();});
+it('rejects unknown sections and invalid pages without sending them to the database',async()=>{await expect(render({section:'staff_members'})).rejects.toThrow('not_found');await expect(render({page:'-1'})).rejects.toThrow('not_found');expect(m.rpc).not.toHaveBeenCalled();});
+it('does not render data returned for a different section',async()=>{m.rpc.mockResolvedValue({data:{section:'staff_members',offset:0,limit:25,total:1,rows:[{name:'PRIVATE'}]}});const html=await render();expect(html).toContain('业务资料暂不可用');expect(html).not.toContain('PRIVATE');});

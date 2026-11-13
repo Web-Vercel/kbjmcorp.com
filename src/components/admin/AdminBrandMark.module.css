@@ -1,0 +1,2 @@
+.plate { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; padding: 3px; border-radius: 9px; background: white; }
+.plate :global(.brand-mark) { width: 100%; height: auto; }

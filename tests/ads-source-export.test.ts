@@ -1,0 +1,22 @@
+import {it,expect} from 'vitest';
+import {sourceCsv,type ExportSource} from '../src/lib/ads/source-export';
+const source:ExportSource={snapshot_id:'example',account_name:'=HYPERLINK("bad")',currency:'CAD',timezone:'America/Vancouver',since:'2026-01-01',until:'2026-01-02',source_check:'no_data',daily_spend_micros:'1234567',period_spend_micros:null,missing_dates:['2026-01-02'],end_boundary:'last_day_label_unverified',source_sha256:'examplehash',retrieved_at:'2026-01-03T00:00:00Z',shared_at:'2026-01-03T01:00:00Z',note:' \t+formula\n"note"',daily:[{date:'2026-01-01',spend_micros:'1234567',impressions:'10',clicks:'1'}]};
+it('exports exact spend, pending status and blank missing-day values instead of zeros',()=>{
+ const csv=sourceCsv(source,true);expect(csv.startsWith('\uFEFF')).toBe(true);expect(csv).toContain('"1.234567"');expect(csv).toContain('数据或日期范围待核对');expect(csv).toContain('"期间广告花费",""');expect(csv).toContain('"2026-01-02","","","","缺少明细，不按零花费计算"');
+});
+it('escapes CSV quotes and neutralizes formula-bearing names and multiline notes',()=>{
+ const csv=sourceCsv(source,false);expect(csv).toContain('"\'=HYPERLINK(""bad"")"');expect(csv).toContain('"\' \t+formula\n""note"""');expect(csv).toContain('not a customer bill');expect(csv).not.toContain('API_KEY');
+});
+
+it('renders a standalone print report with escaped text and preserved missing-data status',async()=>{
+ const {sourceHtml}=await import('../src/lib/ads/source-export');
+ const output=sourceHtml({...source,account_name:'<script>alert(1)</script>',note:'<img src=x onerror=alert(1)>'},true);
+ expect(output).toContain('&lt;script&gt;');expect(output).not.toContain('<script>');expect(output).not.toContain('<img');expect(output).toContain('default-src');expect(output).toContain('@media print');expect(output).toContain('缺少明细，不按零花费计算');expect(output).toContain('暂无期间汇总');expect(output).toContain('CAD 1.234567');expect(output).toContain('不是 OpenAI 官方发票');
+});
+
+it('labels verified zero days separately from unknown missing rows in CSV and readable reports',async()=>{
+ const {sourceHtml}=await import('../src/lib/ads/source-export');
+ const verified:ExportSource={...source,settlement_ready:true,coverage_kind:'reviewed_activity',coverage_check_id:'check-example',effective_amount_micros:'1234567',effective_daily:[{date:'2026-01-01',spendMicros:'1234567',impressions:'10',clicks:'1',origin:'api'},{date:'2026-01-02',spendMicros:'0',impressions:'0',clicks:'0',origin:'reviewed_no_activity'}]};
+ const csv=sourceCsv(verified,true);expect(csv).toContain('"2026-01-02","0.000000","0","0","经独立复核无活动"');expect(csv).toContain('check-example');const html=sourceHtml(verified,true);expect(html).toContain('经独立复核无活动');expect(html).toContain('check-example');
+ expect(sourceCsv(source,true)).toContain('"2026-01-02","","",""');
+});

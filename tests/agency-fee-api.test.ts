@@ -1,0 +1,10 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn()}));
+vi.mock('@/lib/admin/guard',async()=>{const {authResponse}=await import('@/lib/auth/http');return{getStaffContext:m.guard,staffError:(r:{error:string;status:number})=>authResponse({error:r.error},r.status)};});
+import {POST} from '@/app/api/agency-fees/route';
+const data={organizationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',unit:'kbjm_ca',month:'2026-11-01',mode:'percentage',basis:'platform_ad_spend',percent:'10.25',fixed:'0',minimum:'5.01',waive:'yes',note:'FICTIONAL DRAFT',confirm:'on'};
+const req=(patch:object={})=>new Request('https://site.example/api/agency-fees',{method:'POST',headers:{Origin:'https://site.example','Content-Type':'application/json'},body:JSON.stringify({...data,...patch})});
+beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc}});m.rpc.mockResolvedValue({error:null});});
+it('saves only an exact draft with server-owned actor and currency',async()=>{expect((await POST(req({created_by:'forged',currency:'USD',status:'approved'}))).status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('save_agency_fee_draft',expect.objectContaining({p_bps:1025,p_fixed:'0',p_minimum:'501'}));expect(m.rpc).toHaveBeenCalledTimes(1);});
+it('denies operators and MFA failures',async()=>{m.guard.mockResolvedValue({role:'operator'});expect((await POST(req())).status).toBe(403);expect(m.rpc).not.toHaveBeenCalled();});
+it.each([{percent:'garbage'},{percent:'100.01'},{fixed:'1.001'},{month:'2026-11-02'},{basis:'upstream_total'}])('rejects invalid or ambiguous terms %j',async patch=>{expect((await POST(req(patch))).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled();});

@@ -1,0 +1,6 @@
+import {z} from 'zod';
+import {getStaffContext,staffError} from '@/lib/admin/guard';
+import {authResponse,readAuthBody} from '@/lib/auth/http';
+import {liveAccessDatabaseError} from '@/lib/live-access/errors';
+import {liveAccessInput} from '@/lib/live-access/model';
+export async function POST(request:Request){const input=await readAuthBody(request);if(input.error)return input.error;const p=liveAccessInput.safeParse(input.body);if(!p.success)return authResponse({error:'account_input_invalid',fields:[...new Set(p.error.issues.map(issue=>String(issue.path[0])))]},400);const c=await getStaffContext();if('error'in c)return staffError(c);if(c.role!=='admin')return authResponse({error:'forbidden'},403);try{const d=p.data;const r=await c.client.rpc('set_live_account_access',{p_user:d.userId,p_org:d.organizationId,p_role:d.role,p_label:d.label,p_email:d.email,p_active:d.active==='yes',p_revision:d.revision,p_note:d.note});if(r.error){const failure=liveAccessDatabaseError(r.error);return authResponse(failure.body,failure.status);}if(!z.number().int().positive().safeParse(r.data).success)return authResponse({error:'account_save_unavailable',diagnosticCode:'REPLY'},503);return authResponse({ok:true,revision:r.data});}catch{return authResponse({error:'account_save_unavailable',diagnosticCode:'FETCH'},503);}}

@@ -1,0 +1,25 @@
+import {it,expect} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {mainFlow} from '@/lib/operations/main-flow';
+import MainFlowSummary from '@/components/operations/MainFlowSummary';
+import type {CloseOverview} from '@/lib/operations/month-close';
+import {upstreamPaymentWorkbench} from '@/lib/billing/upstream-payments';
+const id='b0000000-0000-4000-8000-000000000001';
+const closed={organization_id:id,month:'2026-10-01',wallet_id:id,balance_minor:'0',pending_receipt_count:0,pending_receipt_minor:'0',accounts:[{stage:'published',statement_id:id,source_ready:true}]} as CloseOverview;
+const clientRead={statement_count:1,statements:[{statement_id:id,confirmation_count:1,last_confirmed_at:'2026-11-01T00:00:00Z'}]};
+const payments=upstreamPaymentWorkbench.parse({statement_count:1,payment_count:0,statements:[{id,account_name:'FICTIONAL',month:'2026-10-01',procurement_cad_minor:'11000',verified_cad_minor:'11000',pending_cad_minor:'0'}],payments:[]});
+it('does not confuse publication with confirmed client access or company settlement',()=>{const steps=mainFlow(closed,{financeAccess:null,payments:null},true);expect(steps[2].state).toBe('ready');expect(steps[3].state).toBe('unknown');expect(steps[4].state).toBe('unknown');});
+it('separates readiness from actual client viewing and handles zero procurement',()=>{const steps=mainFlow(closed,{financeAccess:true,payments,clientRead},true);expect(steps.every(s=>s.state==='ready')).toBe(true);expect(steps[3].text).toContain('客户本人提交');expect(mainFlow(closed,{financeAccess:true,payments,clientRead:{...clientRead,statements:[{...clientRead.statements[0],confirmation_count:0,last_confirmed_at:null}]}},true)[3].state).toBe('pending');const zero={...payments,statements:[{...payments.statements[0],procurement_cad_minor:'0',verified_cad_minor:'0'}]};expect(mainFlow(closed,{financeAccess:true,payments:zero},true)[4].state).toBe('ready');});
+it('keeps company reconciliation pending for unresolved allocations and unknown for truncation',()=>{expect(mainFlow(closed,{financeAccess:true,payments:{...payments,statements:[{...payments.statements[0],pending_cad_minor:'1'}]}},true)[4].state).toBe('pending');expect(mainFlow(closed,{financeAccess:true,payments:{...payments,payment_count:101}},true)[4].state).toBe('unknown');});
+it('does not claim readiness with no advertiser bindings and preserves scope in links',()=>{const steps=mainFlow({...closed,accounts:[]},{financeAccess:true,payments:null},true);expect(steps[2].state).toBe('pending');const html=renderToStaticMarkup(<MainFlowSummary steps={mainFlow(closed,{financeAccess:null,payments},true)} locale="zh" company={id} month="2026-10" owner={false} fundingAvailable={false}/>);expect(html).toContain('主流程：只看这五项');expect(html).toContain('当前企业不能据此登记真实到账');expect(html).not.toContain(`/zh/admin/crm/${id}`);expect(html).toContain('month=2026-10');expect(html).toContain('客户使用自己的账号');});
+
+it('does not count duplicate or contradictory reading rows as completed client handoff',()=>{
+ const two={...closed,accounts:[closed.accounts[0],{...closed.accounts[0],statement_id:'b0000000-0000-4000-8000-000000000002'}]};
+ const duplicate={statement_count:2,statements:[clientRead.statements[0],clientRead.statements[0]]};expect(mainFlow(two,{financeAccess:true,payments:null,clientRead:duplicate},true)[3].state).toBe('unknown');
+ expect(mainFlow(closed,{financeAccess:true,payments:null,clientRead:{...clientRead,statements:[{...clientRead.statements[0],confirmation_count:0}]}},true)[3].state).toBe('unknown');
+});
+
+it('does not mark client handoff ready for missing or duplicated published statement identities',()=>{
+ const missing={...closed,accounts:[{...closed.accounts[0],statement_id:null}]};expect(mainFlow(missing,{financeAccess:true,payments:null,clientRead:{statement_count:0,statements:[]}},true)[3].state).toBe('unknown');
+ const duplicate={...closed,accounts:[closed.accounts[0],closed.accounts[0]]};expect(mainFlow(duplicate,{financeAccess:true,payments:null,clientRead},true)[3].state).toBe('unknown');
+});

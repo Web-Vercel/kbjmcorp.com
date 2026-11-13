@@ -1,0 +1,11 @@
+import {it,expect,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+vi.mock('next/navigation',()=>({useRouter:()=>({refresh:vi.fn(),push:vi.fn()})}));
+import Controls from '@/components/operations/UpstreamReversalControls';
+import type {PaymentRecord} from '@/lib/billing/upstream-payments';
+const user='a0000000-0000-4000-8000-000000000001';
+const payment={id:'b0000000-0000-4000-8000-000000000001',status:'approved',reversed:false,reversal_pending:false,reversal_count:0,reversals:[]} as unknown as PaymentRecord;
+const render=(p=payment,canPrepare=true,canReview=true,enabled=true)=>renderToStaticMarkup(<Controls payment={p} locale="zh" userId={user} canPrepare={canPrepare} canReview={canReview} enabled={enabled}/>);
+it('offers only whole-batch reversal with evidence and no amount input',()=>{const html=render();expect(html).toContain('申请整笔撤销错误核销');expect(html).toContain('原核销暂不变');expect(html).toContain('name="hash"');expect(html).not.toContain('name="amount"');expect(render(payment,false)).not.toContain('申请整笔撤销错误核销');expect(render(payment,true,true,false)).toContain('核销撤销功能暂不可用');});
+it('does not offer a new reversal while pending or after it becomes effective',()=>{expect(render({...payment,reversal_pending:true})).not.toContain('申请整笔撤销错误核销');const html=render({...payment,reversed:true});expect(html).not.toContain('申请整笔撤销错误核销');expect(html).toContain('沿用原银行流水号登记下一版本');});
+it('enforces separate review controls for the reversal proposer',()=>{const r={id:payment.id,revision:1,status:'pending',reason:'Correct allocation',evidence_reference:'CONTROLLED DOCUMENT',evidence_sha256:'a'.repeat(64),prepared_by:user,prepared_at:'2026-11-01T00:00:00Z',review_note:null,reviewed_at:null} as const;let html=render({...payment,reversal_pending:true,reversal_count:1,reversals:[r]});expect(html).toContain('原核销仍有效');expect(html).not.toContain('保存撤销复核结果');html=render({...payment,reversal_pending:true,reversal_count:1,reversals:[{...r,prepared_by:'other'}]});expect(html).toContain('保存撤销复核结果');expect(html).toContain('不改变客户余额');});

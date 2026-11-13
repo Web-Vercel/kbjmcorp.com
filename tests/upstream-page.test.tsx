@@ -1,0 +1,12 @@
+import {beforeEach,it,expect,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({operations:vi.fn(),rpc:vi.fn(),from:vi.fn()}));
+vi.mock('@/lib/operations/server',()=>({requireOperations:m.operations}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw Error('Not found');}}));
+import Page from '@/app/[locale]/operations/upstream/page';
+const totals={source_cad_minor:'0',canada_fee_cad_minor:'0',procurement_cad_minor:'0',procurement_cny_minor:'0',china_fee_cny_minor:'0',customer_transfer_cny_minor:'0',agency_transfer_cny_minor:'0',customer_charged_cny_minor:'0'};
+beforeEach(()=>{vi.clearAllMocks();const chain={select:()=>chain,order:()=>chain,limit:async()=>({data:[],error:null})};m.from.mockReturnValue(chain);m.operations.mockResolvedValue({context:{owner:true},client:{from:m.from,rpc:m.rpc}});m.rpc.mockResolvedValue({data:{month:'2024-01-01',organization_id:null,row_count:0,truncated:false,payment_status:'not_tracked',totals,rows:[]},error:null});});
+const render=()=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({month:'2024-01'})}).then(renderToStaticMarkup);
+it('does not query procurement or company data for non-admin staff',async()=>{m.operations.mockResolvedValue({context:{owner:false,canReview:true},client:{from:m.from,rpc:m.rpc}});await expect(render()).rejects.toThrow('Not found');expect(m.rpc).not.toHaveBeenCalled();expect(m.from).not.toHaveBeenCalled();});
+it('explains empty posted scope separately from unpaid remittances',async()=>{const html=await render();expect(html).toContain('暂无已发布客户账单');expect(html).toContain('不能据此认定已付或未付');expect(m.rpc).toHaveBeenCalledWith('get_upstream_reconciliation',{p_month:'2024-01-01',p_org:null});});
+it('does not show totals or download controls when reconciliation fails',async()=>{m.rpc.mockResolvedValue({data:null,error:{message:'PRIVATE ERROR'}});const html=await render();expect(html).toContain('暂不能确认采购金额');expect(html).not.toContain('下载内部采购对账表');expect(html).not.toContain('PRIVATE ERROR');});

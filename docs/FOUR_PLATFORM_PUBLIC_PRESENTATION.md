@@ -10,4 +10,4 @@ User authorization: 2026-11-10. Add four platform menu entries and a homepage lo
 
 Validation: TypeScript and optimized build passed; existing public route checks (31) and homepage browser scenarios (8) passed. `scripts/platforms-smoke.mjs` checks the four entries and logo loading at five widths in both languages, all eight detail routes, inquiry targets and language-switch URLs (18 scenarios). Desktop and mobile screenshots were reviewed locally.
 
-The owner authorized static frontend Production publication on 2026-11-12. The isolated public release includes this presentation, while advertising API integration and backend development remain on Preview.
+Delivery targets `preview/tenant-isolation` only. Production publication remains separate.

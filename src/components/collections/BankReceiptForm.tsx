@@ -1,0 +1,25 @@
+'use client';
+import {useRef,useState,type ReactNode,type FormEvent} from 'react';
+import {useRouter} from 'next/navigation';
+import {z} from 'zod';
+const savedReceipt=z.object({ok:z.literal(true),receiptId:z.uuid(),stage:z.enum(['prepared','credited','rejected'])});
+export default function BankReceiptForm({locale,mode,receiptId,company,month,fictional=false,currentStatus,children,button}:{locale:'zh'|'en';mode:'prepare'|'review';receiptId?:string;company?:string;month?:string;fictional?:boolean;currentStatus?:string;children:ReactNode;button:string}){
+ const zh=locale==='zh',router=useRouter(),lock=useRef(false);const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<z.infer<typeof savedReceipt>|null>(null);
+ const path=`/${locale}/operations/collections${company||month?'?'+new URLSearchParams({...company?{company}:{},...month?{month}:{}}):''}`;
+ const record=(id?:string)=>`${path}#${id?'bank-receipt-'+id:'bank-receipt-register'}`;
+ async function submit(event:FormEvent<HTMLFormElement>){
+  event.preventDefault();if(lock.current||receipt)return;const body=Object.fromEntries(new FormData(event.currentTarget));lock.current=true;setBusy(true);setMessage('');setUnknown(false);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
+  try{
+   const response=await fetch('/api/collections',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+   const result=await response.json(),parsed=savedReceipt.safeParse(result);
+   if(response.ok&&parsed.success&&(mode==='prepare'?parsed.data.stage==='prepared':parsed.data.receiptId===receiptId&&parsed.data.stage===body.decision)){
+    setReceipt(parsed.data);router.refresh();return;
+   }
+   const errors:Record<string,[string,string]>={unauthenticated:['登录已过期，请保留原输入，重新登录后先核查到账记录。','Your session expired. Retain the input, sign in again and check receipt records first.'],mfa_required:['请完成员工二次验证后，先核查原记录。','Complete staff two-factor verification and check the original record.'],forbidden:['当前账号无权处理，或不满足独立复核条件，请核查身份与角色。','This account lacks access or independent-review eligibility. Check identity and roles.'],duplicate_reference:['该银行流水已有记录，请核查原记录，不要改流水号重复登记。','This bank transaction is already recorded. Check the original; do not change the reference to register it again.'],conflict:['记录或复核状态已变化，请先刷新核查原结果。','The record or review status changed. Refresh and check the original result.'],invalid_input:['请核对客户、金额、日期、银行依据和确认项。','Check the client, amount, date, bank evidence and confirmation.']};
+   if(!response.ok&&response.status<500){setMessage((errors[result.error]||errors.invalid_input)[zh?0:1]);return;}setUnknown(true);
+  }catch{setUnknown(true);}finally{clearTimeout(timer);lock.current=false;setBusy(false);}
+ }
+ if(!receipt&&currentStatus&&currentStatus!=='pending')return null;
+ if(receipt)return <div role="status">{fictional&&<p>{zh?'虚构财务测试记录，不代表实际收款。':'Fictional finance test record; not an actual bank receipt.'}</p>}<p>{receipt.stage==='prepared'?(zh?'到账制单已保存，等待另一账号独立复核；尚未入账。':'Receipt preparation saved. Another account must independently review it; no credit has been posted.'):receipt.stage==='credited'?(zh?'到账复核结果已保存，系统已完成余额入账。':'Receipt review saved and the ledger credit is posted.'):(zh?'拒绝复核结果已保存，本记录未入账。':'Rejection saved. No ledger credit was posted for this record.')}</p><p>{zh?'到账记录编号：':'Receipt record ID: '}<span style={{overflowWrap:'anywhere'}}>{receipt.receiptId}</span></p><a className="service-link" href={record(receipt.receiptId)}>{zh?'定位原到账记录':'Locate receipt record'}</a><p><button className="button" type="button" onClick={()=>router.refresh()}>{zh?'刷新核查记录与余额':'Refresh records and balance'}</button></p><p>{zh?'本页不执行银行转账；请勿因保存回执再次付款。余额仍以已入账流水为准。':'This page does not initiate a bank transfer. Do not pay again because of a saved receipt. Posted ledger entries remain authoritative.'}</p>{mode==='prepare'&&<button className="button" type="button" onClick={()=>{setReceipt(null);setMessage('');setUnknown(false);}}>{zh?(fictional?'登记另一笔虚构款项':'登记另一笔实际到账'):'Prepare a different receipt'}</button>}</div>;
+ return <div><form className="admin-form" onSubmit={submit} aria-busy={busy}><fieldset disabled={busy} style={{border:0,padding:0,margin:0,minWidth:0,display:'grid',gap:20}}>{children}</fieldset><button className="button" type="submit" disabled={busy}>{busy?(zh?'正在保存…':'Saving…'):button}</button><p role="status" aria-live="polite">{message}</p></form>{unknown&&<div role="alert"><p>{zh?'处理结果待核查，不能认定未保存或未入账。请保留原输入，先刷新检查原记录与流水，不要更换银行流水号重复登记。':'The result is unconfirmed; do not assume nothing was saved or credited. Retain the input, refresh and check original records and ledger entries. Do not change the bank reference to register again.'}</p><button className="button" type="button" disabled={busy} onClick={()=>router.refresh()}>{zh?'刷新核查原到账记录':'Refresh and check receipt records'}</button><p><a className="service-link" href={record(receiptId)}>{zh?'查看原到账登记列表':'View receipt register'}</a></p></div>}</div>;
+}

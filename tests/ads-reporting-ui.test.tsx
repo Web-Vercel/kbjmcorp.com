@@ -1,0 +1,45 @@
+// @vitest-environment jsdom
+import {render,screen,cleanup,fireEvent,act} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {afterEach,expect,it,vi} from 'vitest';
+const refresh=vi.hoisted(()=>vi.fn());
+vi.mock('next/navigation',()=>({useRouter:()=>({refresh,push:vi.fn()})}));
+import AdsReadSync from '@/components/operations/AdsReadSync';
+afterEach(()=>{cleanup();vi.unstubAllGlobals();vi.clearAllMocks();vi.useRealTimers();});
+it('does not offer a read action until server configuration is supplied',()=>{render(<AdsReadSync locale="zh" configured={false}/>);expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(true);});
+it('keeps the same request ID after network interruption, then refreshes only on confirmed storage',async()=>{const fetch=vi.fn().mockRejectedValueOnce(new Error('interrupted')).mockResolvedValueOnce(Response.json({ok:true,id:'snapshot'}));vi.stubGlobal('fetch',fetch);render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('保存状态未知');expect(refresh).not.toHaveBeenCalled();await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('已保存内部来源快照');expect(refresh).toHaveBeenCalledTimes(1);const bodies=fetch.mock.calls.map(c=>JSON.parse(c[1].body));expect(bodies[0]).toEqual(bodies[1]);expect(Object.keys(bodies[0]).sort()).toEqual(['confirm','requestId']);});
+it('explains pinned-account mismatch without announcing success',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({error:'account_mismatch'},{status:502})));render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('已停止同步');expect(refresh).not.toHaveBeenCalled();});
+
+it('ends the waiting state after 45 seconds and allows a safe retry',async()=>{
+ vi.useFakeTimers();vi.stubGlobal('fetch',vi.fn((_url,init)=>new Promise((_resolve,reject)=>init.signal.addEventListener('abort',()=>reject(new DOMException('aborted','AbortError'))))));render(<AdsReadSync locale="zh" configured/>);fireEvent.click(screen.getByRole('checkbox'));fireEvent.submit(screen.getByRole('button').closest('form')!);expect(screen.getByRole('button').textContent).toContain('正在读取');await act(async()=>{await vi.advanceTimersByTimeAsync(45000);});expect(screen.getByRole('status').textContent).toContain('等待超过45秒');expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(false);expect(refresh).not.toHaveBeenCalled();
+});
+
+it('shows a bounded read diagnostic and hides unrecognized response details',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({error:'upstream_unavailable',diagnostic:{phase:'account',httpStatus:404,key:'SECRET',body:'SECRET'}},{status:503})));render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('账户信息 · HTTP 404');expect(screen.getByRole('status').textContent).not.toContain('SECRET');expect(refresh).not.toHaveBeenCalled();});
+
+it('shows the precise validation reason without money values or raw provider data',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({error:'invalid_response',diagnostic:{phase:'check',validation:'amount_precision',precision:7,key:'SECRET'}},{status:502})));render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('上游金额精度超过当前支持范围');expect(screen.getByRole('status').textContent).toContain('scale=7');expect(screen.getByRole('status').textContent).not.toContain('SECRET');});
+
+it('requires renewed confirmation when switching to a calendar month and submits that month',async()=>{
+ const fetch=vi.fn().mockResolvedValue(Response.json({ok:true,id:'monthly'}));vi.stubGlobal('fetch',fetch);render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.selectOptions(screen.getByRole('combobox'),'month');expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);
+ fireEvent.change(screen.getByLabelText(/报告月份/),{target:{value:'2026-10'}});await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(JSON.parse(fetch.mock.calls[0][1].body).month).toBe('2026-10-01');
+});
+
+it('groups operational periods separately and submits exact custom dates',async()=>{
+ const fetch=vi.fn().mockResolvedValue(Response.json({ok:true,id:'custom'}));vi.stubGlobal('fetch',fetch);render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();
+ expect(screen.getByRole('group',{name:'日常运营查询（不用于正式月结）'})).toBeDefined();expect(screen.getByRole('group',{name:'月度结算来源（须核对与复核）'})).toBeDefined();
+ await user.selectOptions(screen.getByRole('combobox'),'custom');fireEvent.change(screen.getByLabelText('开始日期'),{target:{value:'2026-11-02'}});fireEvent.change(screen.getByLabelText('结束日期'),{target:{value:'2026-11-04'}});await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));
+ expect(JSON.parse(fetch.mock.calls[0][1].body).selection).toEqual({mode:'custom',since:'2026-11-02',until:'2026-11-04'});
+});
+
+it('clearly distinguishes saving clipped data from successful settlement reconciliation',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({ok:true,id:'pending-snapshot',check:'no_data',coveragePending:true,actualSince:'2026-10-30'})));
+ render(<AdsReadSync locale="zh" configured/>);const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));expect(screen.getByRole('status').textContent).toContain('已保留为待核对来源');expect(screen.getByRole('status').textContent).toContain('暂不能用于结算');expect(refresh).toHaveBeenCalledTimes(1);
+});
+
+it('seeds a monthly workbench request without bypassing confirmation and includes its advertiser pin',async()=>{
+ const fetch=vi.fn().mockResolvedValue(Response.json({ok:true,id:'monthly'}));vi.stubGlobal('fetch',fetch);
+ render(<AdsReadSync locale="zh" configured initialMonth="2026-10" expectedAccountId="adacct_test"/>);
+ expect((screen.getByRole('checkbox') as HTMLInputElement).checked).toBe(false);expect((screen.getByRole('checkbox') as HTMLInputElement).required).toBe(true);
+ expect((screen.getByLabelText(/报告月份/) as HTMLInputElement).value).toBe('2026-10');
+ const user=userEvent.setup();await user.click(screen.getByRole('checkbox'));await user.click(screen.getByRole('button'));
+ expect(JSON.parse(fetch.mock.calls[0][1].body)).toMatchObject({month:'2026-10-01',expectedAccountId:'adacct_test',confirm:'on'});
+});

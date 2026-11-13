@@ -1,0 +1,11 @@
+import {createClient} from '@supabase/supabase-js';
+import {z} from 'zod';
+import {getStaffContext,staffError} from '@/lib/admin/guard';
+import {getPrivilegedConnection} from '@/lib/auth/privileged-config';
+import {consumeAuthLimit} from '@/lib/auth/rate-limit';
+import {authResponse,readAuthBody} from '@/lib/auth/http';
+const schema=z.object({organizationId:z.uuid(),role:z.enum(['investor','client','sales']),label:z.string().trim().min(3).max(80),email:z.email().max(254),password:z.string().min(16).max(128),note:z.string().trim().min(3).max(1000),confirm:z.literal('on')});
+export async function POST(request:Request){const input=await readAuthBody(request);if(input.error)return input.error;const p=schema.safeParse(input.body);if(!p.success)return authResponse({error:'invalid_input'},400);const c=await getStaffContext();if('error'in c)return staffError(c);if(c.role!=='admin')return authResponse({error:'forbidden'},403);const cfg=getPrivilegedConnection();if(!cfg)return authResponse({error:'unavailable'},503);
+ try{const ready=await c.client.from('live_access_accounts').select('user_id').limit(1);const org=await c.client.from('organizations').select('id').eq('id',p.data.organizationId).maybeSingle();if(ready.error||org.error||!org.data)return authResponse({error:'setup_required'},503);const wait=await consumeAuthLimit(c.user.id,'live_access');if(wait)return authResponse({error:'rate_limited'},429,wait);
+ const admin=createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:(url,init)=>fetch(url,{...init,signal:AbortSignal.timeout(15000),cache:'no-store'})}});const created=await admin.auth.admin.createUser({email:p.data.email,password:p.data.password,email_confirm:true});if(created.error||!created.data.user)return authResponse({error:'create_failed'},409);const userId=created.data.user.id;const d=p.data;const saved=await c.client.rpc('set_live_account_access',{p_user:userId,p_org:d.organizationId,p_role:d.role,p_label:d.label,p_email:d.email,p_active:false,p_revision:0,p_note:d.note});if(saved.error||!z.number().int().positive().safeParse(saved.data).success)return authResponse({error:'provisioning_incomplete',userId},503);return authResponse({ok:true,userId,organizationId:d.organizationId,role:d.role,revision:saved.data,active:false});
+ }catch{return authResponse({error:'unavailable'},503);}}
