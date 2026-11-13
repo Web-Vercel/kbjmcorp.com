@@ -1,0 +1,12 @@
+import {afterEach,expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('NOT_FOUND')},redirect:(path:string)=>{throw new Error(`REDIRECT:${path}`)}}));
+vi.mock('@/lib/auth/config',()=>({getStaffLoginConfig:()=>null}));
+vi.mock('@/components/admin/StaffLogin',()=>({default:()=> <div>Sign-in form</div>}));
+vi.mock('@/components/admin/AdminShell',()=>({default:({children}:{children:React.ReactNode})=><div>{children}</div>}));
+import Login from '@/app/[locale]/admin/login/page';
+import Preview from '@/app/[locale]/admin-preview/page';
+afterEach(()=>vi.unstubAllEnvs());
+it('removes the public simulation link from production staff login in both languages',async()=>{vi.stubEnv('VERCEL_ENV','production');for(const locale of ['zh','en']){const html=renderToStaticMarkup(await Login({params:Promise.resolve({locale})}));expect(html).not.toContain('/admin-preview');expect(html).toContain('Sign-in form');}});
+it('keeps the clearly fictional workspace available for Preview review',async()=>{vi.stubEnv('VERCEL_ENV','preview');const html=renderToStaticMarkup(await Login({params:Promise.resolve({locale:'zh'})}));expect(html).toContain('/zh/admin-preview');const demo=renderToStaticMarkup(await Preview({params:Promise.resolve({locale:'zh'})}));expect(demo).toContain('演示客户');});
+it('redirects direct production simulation URLs to real sign-in without rendering fixtures',async()=>{vi.stubEnv('VERCEL_ENV','production');for(const locale of ['zh','en'])await expect(Preview({params:Promise.resolve({locale})})).rejects.toThrow(`REDIRECT:/${locale}/admin/login`);});
