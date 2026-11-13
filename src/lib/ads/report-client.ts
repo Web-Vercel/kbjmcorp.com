@@ -1,4 +1,4 @@
-import {diagnosticTimezone} from './report-timezone';
+import {diagnosticTimezone,canonicalReportingTimezone} from './report-timezone';
 import 'server-only';
 import {readPeriod,type ReadSelection} from './read-period';
 import {createHash} from 'node:crypto';
@@ -25,7 +25,7 @@ async function read(path:string,key:string,signal:AbortSignal,phase:AdsFailure['
  const reader=r.body.getReader();const chunks:Uint8Array[]=[];let bytes=0;try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.length;if(bytes>131072)throw new AdsReadError('invalid_response');chunks.push(value);}}catch(e){if(e instanceof AdsReadError)throw new AdsReadError(e.code,{phase,httpStatus:r.status});throw new AdsReadError('upstream_unavailable',{phase,networkCode:safeNetworkCode(e,signal.aborted)});}finally{await reader.cancel().catch(()=>{});}return Buffer.concat(chunks).toString('utf8');
 }
 export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelection):Promise<AdsReport>{
- const config=reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];let phase:AdsFailure['phase']='account';
+ const config=reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];let phase:AdsFailure['phase']='account';let utcMetadata=false;
  try{
  const body=await read('/ad_account',config.key,signal,'account');rawResponses.push({path:'/ad_account',body});const account=accountSchema.parse(parseAdsJson(body));if(account.id!==config.accountId||(config.currency!==null&&account.currency_code!==config.currency))throw new AdsReadError('account_mismatch');
  const requested:ReadSelection=typeof selection==='string'?{mode:'month',month:selection}:selection||{mode:'week'};
@@ -41,12 +41,12 @@ export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelect
    if(granularity==='daily')fields.push('metadata.readable_time','metadata.timezone');
    for(const field of fields)q.append('fields[]',field);if(cursor)q.set('after',cursor);
    const path='/ad_account/insights?'+q.toString();const body=await read(path,key,signal,phase);rawResponses.push({path,body});if(rawResponses.reduce((n,r)=>n+Buffer.byteLength(r.body),0)>524288)throw new AdsReadError('invalid_response');
-   const parsed=insightPageSchema.parse(parseAdsJson(body));if(parsed.timezone&&!sameReportingTimezone(parsed.timezone,account.timezone,window))throw new AdsReadError('invalid_response',{phase:'check',validation:'timezone',source:granularity==='daily'?'daily':'period',expectedTimezone:diagnosticTimezone(account.timezone),actualTimezone:diagnosticTimezone(parsed.timezone)});for(const row of parsed.data){if(ids.has(row.id))throw new AdsReadError('invalid_response');ids.add(row.id);rows.push(row);}if(!parsed.has_more)return rows;if(!parsed.last_id||cursors.has(parsed.last_id))throw new AdsReadError('invalid_response');cursors.add(parsed.last_id);cursor=parsed.last_id;
+   const parsed=insightPageSchema.parse(parseAdsJson(body));if(parsed.timezone&&canonicalReportingTimezone(parsed.timezone)!=='UTC'&&!sameReportingTimezone(parsed.timezone,account.timezone,window))throw new AdsReadError('invalid_response',{phase:'check',validation:'timezone',source:granularity==='daily'?'daily':'period',expectedTimezone:diagnosticTimezone(account.timezone),actualTimezone:diagnosticTimezone(parsed.timezone)});if(parsed.timezone&&canonicalReportingTimezone(parsed.timezone)==='UTC'&&canonicalReportingTimezone(account.timezone)!=='UTC')utcMetadata=true;for(const row of parsed.data){if(ids.has(row.id))throw new AdsReadError('invalid_response');ids.add(row.id);rows.push(row);}if(!parsed.has_more)return rows;if(!parsed.last_id||cursors.has(parsed.last_id))throw new AdsReadError('invalid_response');cursors.add(parsed.last_id);cursor=parsed.last_id;
   }throw new AdsReadError('invalid_response');
  }
  const daily=await insights('daily');const totals=await insights('none');phase='check';let summary=summarize(account,range,daily,totals);
  if(summary.endBoundary==='last_day_label_unverified'){const probe=await insights('none',{since:range.until,until:range.until});phase='check';summary=summarize(account,range,daily,totals,probe);}
  if(requested.mode!=='week'&&summary.missingDates.length&&summary.coverageKind!=='aggregate_verified'&&summary.check==='matched')summary={...summary,check:'no_data'};
- return {version:'ads-readonly-v1',...summary,rawSha256:createHash('sha256').update(JSON.stringify(rawResponses)).digest('hex'),rawResponses};
+ return {version:'ads-readonly-v1',...summary,...(utcMetadata?{utcMetadata:true}:{}),rawSha256:createHash('sha256').update(JSON.stringify(rawResponses)).digest('hex'),rawResponses};
  }catch(e){if(e instanceof AdsReadError)throw new AdsReadError(e.code,e.diagnostic||{phase});throw new AdsReadError('invalid_response',{phase});}
 }

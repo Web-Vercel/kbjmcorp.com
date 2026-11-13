@@ -132,3 +132,10 @@ it('applies identical timezone rules to page metadata and individual rows',async
  fetcher.mockReset().mockResolvedValueOnce(Response.json(account)).mockResolvedValueOnce(Response.json({...page([row]),timezone:'America/Vancouver'}));
  await expect(fetchAdsReport(new Date('2026-11-01T12:00:00Z'))).rejects.toMatchObject({code:'invalid_response',diagnostic:{validation:'timezone',source:'daily',expectedTimezone:'UTC',actualTimezone:'America/Vancouver'}});
 });
+it('reads a Vancouver calendar month with UTC serialization metadata while preserving raw evidence',async()=>{
+ const localAccount={...account,timezone:'America/Vancouver'},range={since:'2026-10-01',until:'2026-10-31'},day=accountRangeSeconds({since:range.since,until:range.since},localAccount.timezone),month=accountRangeSeconds(range,localAccount.timezone);
+ const daily={...row,readable_time:range.since,start_time:day.start,end_time:day.end,timezone:'UTC'};
+ const total={...daily,id:'total',start_time:month.start,end_time:month.end};
+ fetcher.mockResolvedValueOnce(Response.json(localAccount)).mockResolvedValueOnce(Response.json({...page([daily]),timezone:'UTC'})).mockResolvedValueOnce(Response.json({...page([total]),timezone:'UTC'}));
+ const report=await fetchAdsReport(new Date('2026-11-13T12:00:00Z'),'2026-10-01');expect(report.check).toBe('matched');expect(report.utcMetadata).toBe(true);expect(report.account.timezone).toBe('America/Vancouver');expect(report.daily[0].date).toBe(range.since);expect(report.dailySpendMicros).toBe('18420001');expect(report.rawResponses[1].body).toContain('UTC');
+});
