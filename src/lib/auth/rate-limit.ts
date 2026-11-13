@@ -3,12 +3,12 @@ import { createHmac } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { getRateLimitConfig } from "./config";
 
-export async function consumeAuthLimit(identifier: string, action: "sms" | "verify" | "staff" | "mfa" | "client_test" | "demo" | "live_access") {
+export async function consumeAuthLimit(identifier: string, action: "sms" | "verify" | "staff" | "mfa" | "client_test" | "demo" | "live_access" | "recovery") {
   const config = getRateLimitConfig();
   if (!config) throw new Error("Auth unavailable");
   const digest = createHmac("sha256", config.rateSecret).update(identifier).digest("hex");
   const keys = action === "sms" ? [`sms:minute:${digest}`, `sms:hour:${digest}`, "sms:global"] : [`${action}:${digest}`, `${action}:global`];
-  const limits = action === "sms" ? [1, 5, 100] : (action === "staff" || action === "client_test" || action === "demo" || action === "live_access") ? [5, 100] : [10, 500];
+  const limits = action === "sms" ? [1, 5, 100] : (action === "staff" || action === "client_test" || action === "demo" || action === "live_access" || action === "recovery") ? [5, 100] : [10, 500];
   const windows = action === "sms" ? [60, 3600, 600] : [600, 600];
   const db = createClient(config.url, config.serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
