@@ -20,3 +20,8 @@ it('rejects inconsistent totals and formats publication time in Vancouver',()=>{
  expect(()=>statementCsv({...statement,total_minor:'1'},true)).toThrow();expect(()=>statementHtml({...statement,currency:'CAD'} as never,true)).toThrow();
  expect(statementPublishedAt(statement.published_at,false)).toContain('2026-11-08');expect(statementPublishedAt(statement.published_at,false)).toContain('17:30');
 });
+it('marks explicit acceptance statements in CSV and printable HTML without relabelling real sources',()=>{
+ const test={...statement,summary_zh:'[ACCEPTANCE-TEST-NOT-PAYABLE] 测试结算',organization_name:'Renamed acceptance company'};
+ for(const text of [statementCsv(test,true),statementHtml(test,true)]){expect(text).toContain('测试');expect(text).toContain('不作付款');expect(text).toContain('真实资料');expect(text).not.toContain('本账单已正式发布');}
+ expect(statementCsv(statement,true)).toContain('本账单已正式发布');
+});

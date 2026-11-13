@@ -1,15 +1,16 @@
 import {beforeEach,it,expect,vi} from 'vitest';
 import {buildQuoteSnapshot} from '@/lib/billing/quote-snapshot';
 import {checkedPublicationQuote} from '@/lib/billing/publication';
-const m=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn()}));
+const m=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),testOrg:vi.fn(),from:vi.fn(),single:vi.fn()}));
 vi.mock('@/lib/admin/guard',async()=>{const {authResponse}=await import('@/lib/auth/http');return {getStaffContext:m.guard,staffError:(s:{error:string;status:number})=>authResponse({error:s.error},s.status)};});
+vi.mock('@/lib/collections/test-mode',()=>({collectionTestOrganization:m.testOrg}));
 import {POST} from '@/app/api/admin/monthly-publications/route';
 const id='b0000000-0000-4000-8000-000000000001';
 const rule={mode:'percentage' as const,basis:'platform_ad_spend' as const,basisPoints:1000,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true};
 const quote=buildQuoteSnapshot({requestId:id,organizationId:id,period:'2024-01-01',sourceCadMinor:'10001',rateMode:'manual',rate:'5',canada:rule,china:rule,transfer:{mode:'none',basisPoints:0,fixedMinor:'0',bearer:'agency',includedInRate:false},costUnit:'zhidian_cn',note:'Fee agreement verified'});
 const body={draftId:id,summary:'本月广告及服务费用',confirm:'on'};
 const req=(origin='https://site.example',payload:unknown=body)=>new Request('https://site.example/api/admin/monthly-publications',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(payload)});
-beforeEach(()=>{vi.clearAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc}});m.rpc.mockImplementation((name:string)=>Promise.resolve(name==='get_monthly_publication_input'?{data:{quote_id:id,organization_id:id,period:'2024-01-01',private_snapshot:quote},error:null}:{data:id,error:null}));});
+beforeEach(()=>{vi.clearAllMocks();m.testOrg.mockReturnValue(null);m.from.mockReturnValue({select:()=>({eq:()=>({maybeSingle:m.single})})});m.single.mockResolvedValue({data:{name:"财务流程验收企业（虚构）"},error:null});m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc,from:m.from}});m.rpc.mockImplementation((name:string)=>Promise.resolve(name==='get_monthly_publication_input'?{data:{quote_id:id,organization_id:id,period:'2024-01-01',private_snapshot:quote},error:null}:{data:id,error:null}));});
 it('recalculates historical quote math and blocks tampered totals before any ledger RPC',async()=>{
  expect(checkedPublicationQuote(quote,{id,organizationId:id,period:'2024-01-01'})).toBe(quote);
  expect(()=>checkedPublicationQuote({...quote,upstreamCnyMinor:'1'},{id,organizationId:id,period:'2024-01-01'})).toThrow();
@@ -31,4 +32,10 @@ it('does not report success for an invalid publication receipt even after the wr
 
 it('confirms the original draft and server-derived company/month without exposing private pricing',async()=>{
  const r=await POST(req());expect(await r.json()).toEqual({ok:true,id,draftId:id,organizationId:id,period:'2024-01-01'});
+});
+
+it('pins acceptance publication to its dedicated company and stores a durable nonpayable marker',async()=>{
+ m.testOrg.mockReturnValue('b0000000-0000-4000-8000-000000000002');expect((await POST(req())).status).toBe(403);expect(m.rpc).not.toHaveBeenCalledWith('publish_monthly_statement',expect.anything());
+ m.testOrg.mockReturnValue(id);expect((await POST(req())).status).toBe(200);expect(m.rpc).toHaveBeenLastCalledWith('publish_monthly_statement',expect.objectContaining({p_summary:'[ACCEPTANCE-TEST-NOT-PAYABLE] '+body.summary}));
+ m.single.mockResolvedValue({data:{name:'Real customer'},error:null});expect((await POST(req())).status).toBe(403);
 });
