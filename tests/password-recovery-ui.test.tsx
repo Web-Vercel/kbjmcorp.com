@@ -24,3 +24,12 @@ it("does not accept an access-token fragment as recovery authority", () => {
   expect(window.location.hash).toBe(""); expect(screen.queryByLabelText("New password (at least 12 characters)")).toBeNull();
   expect(screen.getByRole("status").textContent).toContain("Invalid recovery link");
 });
+it("shows an actionable MFA error and permits retry on the same page", async () => {
+  window.history.replaceState(null,"",`/zh/auth/recovery?token_hash=${'b'.repeat(64)}&type=recovery`);
+  const fetcher=vi.fn().mockResolvedValueOnce({ok:false,json:async()=>({error:'mfa_required'})}).mockResolvedValueOnce({ok:true});vi.stubGlobal('fetch',fetcher);
+  render(<Recovery locale="zh" enabled siteKey="fixture"/>);
+  fireEvent.change(screen.getByLabelText('新密码（至少12个字符）'),{target:{value:'fixture-password'}});fireEvent.change(screen.getByLabelText('确认新密码'),{target:{value:'fixture-password'}});
+  fireEvent.click(screen.getByText('设置新密码'));await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('六位验证码'));
+  fireEvent.change(screen.getByLabelText('现有验证器验证码（已绑定的账户必填）'),{target:{value:'123456'}});fireEvent.click(screen.getByText('设置新密码'));
+  await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('密码已更新'));expect(fetcher).toHaveBeenCalledTimes(2);
+});
