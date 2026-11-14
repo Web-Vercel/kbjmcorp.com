@@ -34,6 +34,7 @@ const sections = {
 
 export default function BusinessNavigation({locale, section, role}: {locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales'}) {
   const path = usePathname();
+  if (path === `/${locale}/access/login` || (section === 'access' && !role)) return null;
   if (role === 'client' && (section === 'access' || section === 'account')) {
     const zh = locale === 'zh';
     const links = [

@@ -1,7 +1,7 @@
-import {expect,it,vi} from 'vitest';
+import {beforeEach,expect,it,vi} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
-const m=vi.hoisted(()=>({context:vi.fn()}));
-vi.mock('next/navigation',()=>({usePathname:()=>'/zh/access/analytics',notFound:()=>{throw Error('not_found')},redirect:(url:string)=>{throw Error(url)}}));
+const m=vi.hoisted(()=>({context:vi.fn(),path:"/zh/access/analytics"}));
+vi.mock('next/navigation',()=>({usePathname:()=>m.path,notFound:()=>{throw Error('not_found')},redirect:(url:string)=>{throw Error(url)}}));
 vi.mock('@/lib/live-access/server',()=>({getLiveContext:m.context}));
 import Navigation from '@/components/BusinessNavigation';
 import Security from '@/app/[locale]/access/security/page';
@@ -22,4 +22,12 @@ it('offers the same customer task menu across portal and statement pages',()=>{
  const portal=renderToStaticMarkup(<Navigation locale="zh" section="access" role="client"/>);
  const account=renderToStaticMarkup(<Navigation locale="zh" section="account" role="client"/>);
  for(const html of [portal,account]){expect(html).toContain('/account/statements');expect(html).toContain('/account/funds');expect(html).toContain('/account/service');expect(html).not.toContain('/access/investor');expect(html).not.toContain('/account/application');}
+});
+
+beforeEach(()=>{m.path='/zh/access/analytics';});
+it.each(['client','investor','sales',undefined] as const)('never renders business navigation on the login page (%s)',role=>{
+ m.path='/zh/access/login';expect(renderToStaticMarkup(<Navigation locale="zh" section="access" role={role}/>)).toBe('');
+});
+it('does not render portal navigation before verified access',()=>{
+ expect(renderToStaticMarkup(<Navigation locale="zh" section="access"/>)).toBe('');
 });
