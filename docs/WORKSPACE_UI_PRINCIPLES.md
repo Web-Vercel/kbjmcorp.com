@@ -10,3 +10,6 @@ Owner direction, 2026-11-14 (America/Vancouver). Applies to Preview and Producti
 - Keep fictional/test/nonpayable labels visible. Keep material debit consequences, insufficient-fund warnings, independent review and actual confirmation controls visible at the point of action.
 - UI simplification must not change access rights, calculations, saved records, review independence, publication or payment behavior.
 - Avoid duplicate status indicators, repeated instructions and marketing navigation inside authenticated workspaces.
+
+- One page should have one working purpose. Overviews offer task destinations; unrelated forms belong on dedicated pages. Company records show one selected subject at a time.
+- Occasional creation, assignment and optional evidence forms start collapsed. Keep active work, errors and material confirmations visible; do not hide a pending action merely to shorten a page.

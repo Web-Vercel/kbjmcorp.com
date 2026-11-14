@@ -1,0 +1,10 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({guard:vi.fn(),from:vi.fn(),rpc:vi.fn()}));
+vi.mock('@/lib/admin/page',()=>({requireStaffPage:m.guard}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw Error('NOT_FOUND')},useRouter:()=>({refresh:vi.fn()})}));
+import Page from '@/app/[locale]/admin/(workspace)/crm/[id]/page';
+const id='b0000000-0000-4000-8000-000000000003';
+beforeEach(()=>{vi.clearAllMocks();m.guard.mockResolvedValue({client:{from:m.from,rpc:m.rpc},role:'admin'});m.rpc.mockResolvedValue({data:[],error:null});m.from.mockImplementation((table:string)=>{const result={data:table==='organizations'?{id,name:'Company'}:table==='client_profiles'?{revision:0,status:'onboarding'}:[],error:null};const q:any={};for(const method of ['select','eq','order','limit','maybeSingle'])q[method]=()=>q;q.then=(resolve:any,reject:any)=>Promise.resolve(result).then(resolve,reject);return q;});});
+it.each([['profile','id="profile"','id="contacts"'],['contacts','id="contacts"','id="profile"'],['access','id="access"','id="finance"'],['finance','id="finance"','id="access"'],['contracts','id="contracts"','id="profile"']])('shows only the selected company-record subject: %s',async(view,present,absent)=>{const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh',id}),searchParams:Promise.resolve({view})}));expect(html).toContain(present);expect(html).not.toContain(absent);expect(html).toContain(`?view=${view}`);});
+it('keeps financial and authorization subjects restricted to administrators',async()=>{m.guard.mockResolvedValue({client:{from:m.from,rpc:m.rpc},role:'operator'});for(const view of ['finance','access','contracts'])await expect(Page({params:Promise.resolve({locale:'zh',id}),searchParams:Promise.resolve({view})})).rejects.toThrow('NOT_FOUND');});

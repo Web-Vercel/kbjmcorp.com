@@ -7,6 +7,12 @@ import SignOutButton from './SignOutButton';
 
 const sections = {
   operations: {title: ['三方运营中心', 'Three-party operations'], pages: {
+    'manual-accounts': ['手工关联广告账户', 'Manual account links'],
+    'manual-sources': ['手工报表交接', 'Manual report handoff'],
+    'manual-finance': ['手工核对草稿', 'Manual reconciliation drafts'],
+    'fund-summary': ['入账资金摘要', 'Posted fund summary'],
+    'service-requests': ['服务工单', 'Service requests'],
+    staff: ['人员职责', 'Staff responsibilities'],
     'month-close': ['月结工作台', 'Month close'],
     'ads-reporting': ['广告数据同步', 'Advertising data sync'],
     'source-data': ['广告来源资料', 'Advertising sources'],
