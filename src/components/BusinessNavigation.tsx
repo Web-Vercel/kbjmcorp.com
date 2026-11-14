@@ -7,6 +7,8 @@ import SignOutButton from './SignOutButton';
 
 const sections = {
   operations: {title: ['三方运营中心', 'Three-party operations'], pages: {
+    agents: ['代理业务', 'Agent business'],
+    refunds: ['客户余额退款', 'Balance refunds'],
     'manual-accounts': ['手工关联广告账户', 'Manual account links'],
     'manual-sources': ['手工报表交接', 'Manual report handoff'],
     'manual-finance': ['手工核对草稿', 'Manual reconciliation drafts'],
@@ -39,9 +41,10 @@ const sections = {
   }},
 } as const;
 
-export default function BusinessNavigation({locale, section, role}: {locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales'}) {
+export default function BusinessNavigation({locale, section, role}: {locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales' | 'agent'}) {
   const path = usePathname();
   if (path === `/${locale}/access/login` || (section === 'access' && !role)) return null;
+  if (role === 'agent') return null;
   if (role === 'client' && (section === 'access' || section === 'account')) {
     const zh = locale === 'zh';
     const links = [
@@ -50,6 +53,7 @@ export default function BusinessNavigation({locale, section, role}: {locale: Loc
       ['account/funds', zh ? '资金与流水' : 'Funds and entries'],
       ['access/analytics', zh ? '广告与费用分析' : 'Advertising and cost analysis'],
       ['account/service', zh ? '服务与账单问题' : 'Service and billing questions'],
+      ['account/refunds', zh ? '申请退款' : 'Balance refunds'],
       ['access/security', zh ? '账号安全' : 'Account security'],
     ];
     const selected = links.find(([route]) => path === `/${locale}/${route}`);

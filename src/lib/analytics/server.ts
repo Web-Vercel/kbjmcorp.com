@@ -3,6 +3,7 @@ import {getLiveContext} from '@/lib/live-access/server';
 import {analyticsData,analyticsQuery,defaultRange} from './model';
 export async function readAnalytics(query:{from?:string;until?:string;company?:string}){
  const c=await getLiveContext();if('error'in c)return {error:c.error==='forbidden'?'access_unavailable' as const:c.error||'unavailable' as const,status:c.status||503};
+ if(c.context.role==='agent')return {error:'forbidden' as const,status:403};
  const p=analyticsQuery.safeParse({...defaultRange(),...Object.fromEntries(Object.entries(query).filter(([,v])=>v!==undefined&&v!==''))});if(!p.success)return {error:'invalid_range' as const,status:400};
  const scope=c.context.role==='investor'?p.data.company||null:c.context.organization_id;
  if(c.context.role!=='investor'&&p.data.company&&p.data.company!==scope)return {error:'forbidden' as const,status:403};

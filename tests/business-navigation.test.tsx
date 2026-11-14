@@ -14,7 +14,7 @@ it('keeps investor navigation for investors',()=>{
  expect(renderToStaticMarkup(<Navigation locale="zh" section="access" role="investor"/>)).toContain('/access/investor');
 });
 it('shows verified security status without redirecting an authenticated user',async()=>{
- m.context.mockResolvedValue({user:{email:'client@example.com'},client:{auth:{mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal2'}})}}}});
+ m.context.mockResolvedValue({context:{role:'client'},user:{email:'client@example.com'},client:{auth:{mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal2'}})}}}});
  const html=renderToStaticMarkup(await Security({params:Promise.resolve({locale:'zh'})}));
  expect(html).toContain('当前登录已完成验证器二次验证');expect(html).toContain('client@example.com');
 });

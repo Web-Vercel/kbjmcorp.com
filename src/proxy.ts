@@ -41,4 +41,4 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Cache-Control", "private, no-store, max-age=0");
   return response;
 }
-export const config = { matcher: ["/zh/demo/:path*","/en/demo/:path*","/zh/access/:path*","/en/access/:path*","/api/:path*","/zh/account/:path*", "/en/account/:path*", "/zh/admin/:path*", "/en/admin/:path*", "/zh/operations/:path*", "/en/operations/:path*"] };
+export const config = { matcher: ["/zh/agent/:path*","/en/agent/:path*","/zh/demo/:path*","/en/demo/:path*","/zh/access/:path*","/en/access/:path*","/api/:path*","/zh/account/:path*", "/en/account/:path*", "/zh/admin/:path*", "/en/admin/:path*", "/zh/operations/:path*", "/en/operations/:path*"] };
