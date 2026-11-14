@@ -3,6 +3,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 const m=vi.hoisted(()=>({context:vi.fn(),path:"/zh/access/analytics"}));
 vi.mock('next/navigation',()=>({usePathname:()=>m.path,notFound:()=>{throw Error('not_found')},redirect:(url:string)=>{throw Error(url)}}));
 vi.mock('@/lib/live-access/server',()=>({getLiveContext:m.context}));
+vi.mock('@/components/SignOutButton',()=>({default:()=> <button>退出登录</button>}));
 import Navigation from '@/components/BusinessNavigation';
 import Security from '@/app/[locale]/access/security/page';
 it.each(['client','sales'] as const)('hides investor navigation from %s',role=>{
@@ -30,4 +31,9 @@ it.each(['client','investor','sales',undefined] as const)('never renders busines
 });
 it('does not render portal navigation before verified access',()=>{
  expect(renderToStaticMarkup(<Navigation locale="zh" section="access"/>)).toBe('');
+});
+
+it('provides one sign-out action in the shared client menu',()=>{
+ const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role="client"/>);
+ expect(html.match(/退出登录/g)).toHaveLength(1);
 });

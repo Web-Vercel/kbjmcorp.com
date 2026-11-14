@@ -4,6 +4,10 @@
 .menu summary { cursor: pointer; }
 .menu nav { display: flex; flex-wrap: wrap; gap: .75rem 1rem; max-width: 700px; padding-top: 1rem; }
 .menu a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
-.clientMenu { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; width: 100%; }
+.clientRow { display: flex; align-items: center; gap: 1rem; width: 100%; }
+.clientMenu { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; gap: .75rem 1.25rem; }
+.signOut { margin-left: auto; flex-shrink: 0; }
+.signOut :global(.button) { padding: .65rem 1rem; white-space: nowrap; }
+@media (max-width: 600px) { .clientRow { align-items: flex-start; } .clientMenu { gap: .6rem .8rem; } }
 .clientMenu a { padding: .3rem 0; }
 .clientMenu a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-underline-offset: .3em; }

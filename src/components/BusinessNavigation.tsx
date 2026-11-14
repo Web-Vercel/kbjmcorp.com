@@ -3,6 +3,7 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import type {Locale} from '@/lib/content';
 import styles from './BusinessNavigation.module.css';
+import SignOutButton from './SignOutButton';
 
 const sections = {
   operations: {title: ['三方运营中心', 'Three-party operations'], pages: {
@@ -51,9 +52,9 @@ export default function BusinessNavigation({locale, section, role}: {locale: Loc
         <Link href={`/${locale}/access`}>{zh ? '客户中心' : 'Client center'}</Link>
         {selected && <><span aria-hidden="true"> › </span><span aria-current="page">{selected[1]}</span></>}
       </nav>
-      <nav className={styles.clientMenu} aria-label={zh ? '客户主菜单' : 'Client navigation'}>
+      <div className={styles.clientRow}><nav className={styles.clientMenu} aria-label={zh ? '客户主菜单' : 'Client navigation'}>
         {links.map(([route, label]) => <Link key={route} href={`/${locale}/${route}`} aria-current={path === `/${locale}/${route}` ? 'page' : undefined}>{label}</Link>)}
-      </nav>
+      </nav><div className={styles.signOut}><SignOutButton locale={locale} destination={`/${locale}/access/login`}/></div></div>
     </div>;
   }
   const root = `/${locale}/${section}`;
