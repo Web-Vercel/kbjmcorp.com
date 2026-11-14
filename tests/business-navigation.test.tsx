@@ -17,3 +17,9 @@ it('shows verified security status without redirecting an authenticated user',as
  const html=renderToStaticMarkup(await Security({params:Promise.resolve({locale:'zh'})}));
  expect(html).toContain('当前登录已完成验证器二次验证');expect(html).toContain('client@example.com');
 });
+
+it('offers the same customer task menu across portal and statement pages',()=>{
+ const portal=renderToStaticMarkup(<Navigation locale="zh" section="access" role="client"/>);
+ const account=renderToStaticMarkup(<Navigation locale="zh" section="account" role="client"/>);
+ for(const html of [portal,account]){expect(html).toContain('/account/statements');expect(html).toContain('/account/funds');expect(html).toContain('/account/service');expect(html).not.toContain('/access/investor');expect(html).not.toContain('/account/application');}
+});

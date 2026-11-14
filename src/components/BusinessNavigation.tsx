@@ -34,6 +34,27 @@ const sections = {
 
 export default function BusinessNavigation({locale, section, role}: {locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales'}) {
   const path = usePathname();
+  if (role === 'client' && (section === 'access' || section === 'account')) {
+    const zh = locale === 'zh';
+    const links = [
+      ['access', zh ? '客户总览' : 'Client overview'],
+      ['account/statements', zh ? '账单与下载' : 'Statements and downloads'],
+      ['account/funds', zh ? '资金与流水' : 'Funds and entries'],
+      ['access/analytics', zh ? '广告与费用分析' : 'Advertising and cost analysis'],
+      ['account/service', zh ? '服务与账单问题' : 'Service and billing questions'],
+      ['access/security', zh ? '账号安全' : 'Account security'],
+    ];
+    const selected = links.find(([route]) => path === `/${locale}/${route}`);
+    return <div className={styles.bar}>
+      <nav aria-label={zh ? '当前位置' : 'Breadcrumb'} className={styles.path}>
+        <Link href={`/${locale}/access`}>{zh ? '客户中心' : 'Client center'}</Link>
+        {selected && <><span aria-hidden="true"> › </span><span aria-current="page">{selected[1]}</span></>}
+      </nav>
+      <nav className={styles.clientMenu} aria-label={zh ? '客户主菜单' : 'Client navigation'}>
+        {links.map(([route, label]) => <Link key={route} href={`/${locale}/${route}`} aria-current={path === `/${locale}/${route}` ? 'page' : undefined}>{label}</Link>)}
+      </nav>
+    </div>;
+  }
   const root = `/${locale}/${section}`;
   const parts = path.slice(root.length).split('/').filter(Boolean);
   if (parts[0] === 'login') return null;

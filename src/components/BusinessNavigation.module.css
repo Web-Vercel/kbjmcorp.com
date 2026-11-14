@@ -4,3 +4,6 @@
 .menu summary { cursor: pointer; }
 .menu nav { display: flex; flex-wrap: wrap; gap: .75rem 1rem; max-width: 700px; padding-top: 1rem; }
 .menu a[aria-current="page"] { font-weight: 700; text-decoration: underline; }
+.clientMenu { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; width: 100%; }
+.clientMenu a { padding: .3rem 0; }
+.clientMenu a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-underline-offset: .3em; }
