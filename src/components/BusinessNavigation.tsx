@@ -32,7 +32,7 @@ const sections = {
   }},
 } as const;
 
-export default function BusinessNavigation({locale, section}: {locale: Locale; section: keyof typeof sections}) {
+export default function BusinessNavigation({locale, section, role}: {locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales'}) {
   const path = usePathname();
   const root = `/${locale}/${section}`;
   const parts = path.slice(root.length).split('/').filter(Boolean);
@@ -49,7 +49,7 @@ export default function BusinessNavigation({locale, section}: {locale: Locale; s
     <details className={styles.menu}><summary>{index === 0 ? '本中心菜单' : 'Workspace menu'}</summary>
       <nav aria-label={title}>
         <Link href={root}>{title}</Link>
-        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key)).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{names[index]}</Link>)}
+        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key) && (section !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{names[index]}</Link>)}
       </nav>
     </details>
   </div>;
