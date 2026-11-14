@@ -25,5 +25,5 @@ it('rejects malformed identifiers and never passes internal pricing in the URL',
  expect(clientStatementPath('invalid','zh')).toBeNull();expect(clientStatementPath(id,'en')).toBe(`/en/account/statements?statement=${id}#statement-${id}`);render(<AccessLink statementId="invalid" locale="zh"/>);expect(screen.queryByRole('button')).toBeNull();
 });
 it('shows per-statement acknowledgement without implying fee acceptance or every member has read it',()=>{
- render(<Handoff statementId={id} readStatus={{...data,privateFX:'PRIVATE FX',phone:'PRIVATE PHONE'}} locale="zh"/>);expect(screen.getByText(/已有客户提交此账单/)).toBeDefined();expect(screen.getByText(/不代表同意收费/)).toBeDefined();expect(screen.queryByText(/PRIVATE FX|PRIVATE PHONE/)).toBeNull();expect(screen.queryByRole('checkbox')).toBeNull();
+ render(<Handoff statementId={id} readStatus={{...data,privateFX:'PRIVATE FX',phone:'PRIVATE PHONE'}} locale="zh"/>);expect(screen.getByText(/客户已确认查阅/)).toBeDefined();expect(screen.getByText(/不代表同意收费/)).toBeDefined();expect(screen.queryByText(/PRIVATE FX|PRIVATE PHONE/)).toBeNull();expect(screen.queryByRole('checkbox')).toBeNull();
 });
