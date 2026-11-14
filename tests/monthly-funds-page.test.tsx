@@ -19,9 +19,9 @@ it('does not show exports or zero balances after RPC failure or invalid reconcil
 it('rejects another wallet without querying its funds',async()=>{
  m.rpc.mockResolvedValue({data:[],error:null});await expect(render()).rejects.toThrow('NOT_FOUND');expect(m.rpc).toHaveBeenCalledTimes(1);
 });
-it('keeps the wallet and posting month in login return and language navigation',async()=>{
+it('keeps the wallet and posting month in login return without the public marketing header',async()=>{
  await render();const path=`/zh/account/funds?wallet=${wallet}&month=2024-03`;
- expect(m.require).toHaveBeenCalledWith('zh',path);expect(m.header).toHaveBeenCalledWith(expect.objectContaining({path:path.replace('/zh','')}));
+ expect(m.require).toHaveBeenCalledWith('zh',path);expect(m.header).not.toHaveBeenCalled();
 });
 it('does not read financial records when authentication redirects to sign-in',async()=>{
  m.require.mockRejectedValue(new Error('LOGIN_REDIRECT'));await expect(render()).rejects.toThrow('LOGIN_REDIRECT');expect(m.rpc).not.toHaveBeenCalled();

@@ -16,7 +16,7 @@ it('keeps staff bill links inside the finance workflow and explains that status 
  const html=renderToStaticMarkup(<ServiceThread locale="zh" requests={[row]} selected={row} messages={[]} staff/>);expect(html).toContain(`company=${org}&amp;month=2024-01#statement-${statement}`);expect(html).not.toContain('/account/statements');expect(html).toContain('不代表客户认可收费');expect(html).toContain('已处理工单会重新打开');
 });
 
-it('retains the request and linked statement in authentication, language navigation and thread anchors',async()=>{
+it('retains the request and linked statement in authentication and thread anchors without the public header',async()=>{
  const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({statement,ticket})}));const path=`/account/service?ticket=${ticket}&statement=${statement}#service-request-${ticket}`;
- expect(m.guard).toHaveBeenCalledWith('zh',`/zh${path}`);expect(m.header).toHaveBeenCalledWith({locale:'zh',path});expect(html).toContain(`id="service-request-${ticket}"`);expect(html).toContain(`ticket=${ticket}&amp;statement=${statement}#service-request-${ticket}`);expect(m.match).toHaveBeenCalledWith({statement_id:statement});
+ expect(m.guard).toHaveBeenCalledWith('zh',`/zh${path}`);expect(m.header).not.toHaveBeenCalled();expect(html).toContain(`id="service-request-${ticket}"`);expect(html).toContain(`ticket=${ticket}&amp;statement=${statement}#service-request-${ticket}`);expect(m.match).toHaveBeenCalledWith({statement_id:statement});
 });
