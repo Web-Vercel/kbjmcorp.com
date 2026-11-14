@@ -42,7 +42,7 @@ it('blocks wrong-scope, malformed and duplicate overviews before showing tasks o
  const original=m.rpc.getMockImplementation()!;
  for(const bad of [null,{...overview,organization_id:'c0000000-0000-4000-8000-000000000001'},{...overview,month:'2026-09-01'},{...overview,balance_minor:'not-money'},{...overview,accounts:[overview.accounts[0],overview.accounts[0]]},{...overview,accounts:[{...overview.accounts[0],statement_id:null}]}]){
   m.rpc.mockClear();m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{data:bad,error:null}:original(name,...args));
-  const html=await render();expect(html).toContain('资料核对未通过');expect(html).not.toContain('本账号月结待办');expect(html).not.toContain('查看发布回执');expect(html).not.toContain('CNY 395.00');expect(html).not.toContain('下载内部月结办理清单');
+  const html=await render();expect(html).toContain('暂时无法确认本月进度');expect(html).not.toContain('本账号月结待办');expect(html).not.toContain('查看发布回执');expect(html).not.toContain('CNY 395.00');expect(html).not.toContain('下载内部月结办理清单');
   expect(m.rpc.mock.calls.map(c=>c[0]).sort()).toEqual(['get_month_close_overview','get_statement_question_workbench']);
  }
 });
