@@ -48,3 +48,6 @@ The owner approved a staged payment design, not activation. Keep current manual 
 
 ## Backend visual hierarchy — 2026-11-15
 Apply the approved concise partner-workspace style consistently across backend pages: retrieved names/amounts/dates use the scoped `data-workspace-value` marker (deep blue), explanatory copy uses neutral gray, status indicators retain their semantic colors and text. Keep headings compact and secondary explanations in native details. Never hide errors, financial consent, payment uncertainty, independent-review constraints or fictional/test notices for visual simplification. Shared presentation belongs in WorkspacePresentation and backend-only components; do not restyle the approved public site. Presentation changes do not change business rules, permissions or stored data.
+
+## Restrained informational colors — 2026-11-15
+The owner clarified that routine explanatory copy, test-record notices and lead confirmation labels should share the normal neutral text color. Highlight retrieved company/agent names and financial values in blue. Do not add yellow test-copy text or green lead-status pills merely for decoration. Keep test wording visible. This refines the earlier status-color guidance for ordinary partner information; existing financial progress indicators and actionable error signals are separate.
