@@ -43,7 +43,7 @@ const sections = {
   }},
 } as const;
 
-export default function BusinessNavigation({locale, section, role, operationsContext}: {operationsContext?:OpsContext|null;locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales' | 'agent'}) {
+export default function BusinessNavigation({locale, section, role, operationsContext,canAdminWorkspace=false}: {canAdminWorkspace?:boolean;operationsContext?:OpsContext|null;locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales' | 'agent'}) {
   const path = usePathname();
   if (path === `/${locale}/access/login` || (section === 'access' && !role)) return null;
   if (role === 'agent') return null;
@@ -83,6 +83,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
     <nav aria-label={index === 0 ? '当前位置' : 'Breadcrumb'} className={styles.path}>
       {current ? <><Link href={root}>{title}</Link><span aria-hidden="true"> › </span><span aria-current="page">{label(parts[0],current)}</span></> : <span aria-current="page">{title}</span>}
     </nav>
+    {activeSection==='operations'&&canAdminWorkspace&&<Link className={styles.workspaceSwitch} href={`/${locale}/admin`}>{locale==='zh'?'← 业务管理中心':'← Business management center'}</Link>}
     <details className={styles.menu}><summary>{index === 0 ? '本中心菜单' : 'Workspace menu'}</summary>
       <nav aria-label={title}>
         <Link href={root}>{title}</Link>

@@ -24,3 +24,7 @@ Client service headings match the service/billing menu. Client monthly funds and
 ## Verification boundary
 
 Regression tests cover operations role visibility, shared labels, external role navigation and administrative sidebar filtering. Existing route, API and database authorization remain authoritative; hiding a menu is not an authorization mechanism. No SQL, account grants, balances, bills, payments, email or popup behavior changes are included.
+
+## Workspace return entry
+
+The operations layout checks `has_staff_access` on the server, using the same authority as the management workspace guard. A successful true result displays “Business management center” outside the collapsed workspace menu on every operations page. Errors or false results hide it. Finance-only preparers/reviewers remain in operations; staff who separately hold management/customer-service access can switch. This does not sign out, change roles or grant access. Navigation regression coverage includes administrator/authorized support, preparer, reviewer, default-hidden and client cases.

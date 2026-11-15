@@ -11,3 +11,5 @@
 @media (max-width: 600px) { .clientRow { align-items: flex-start; } .clientMenu { gap: .6rem .8rem; } }
 .clientMenu a { padding: .3rem 0; }
 .clientMenu a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-underline-offset: .3em; }
+
+.workspaceSwitch { padding: .35rem .65rem; border: 1px solid #dce5d8; border-radius: .35rem; text-decoration: underline; text-underline-offset: .2em; }

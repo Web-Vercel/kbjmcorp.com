@@ -93,3 +93,15 @@ it.each(['investor','sales'] as const)('keeps %s navigation in its read-only/fol
 it('accurately labels the client monthly-funds destination',()=>{
  m.path='/zh/account/funds';const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role="client"/>);expect(html).toContain('月度资金对账');expect(html).not.toContain('资金与流水');expect(html).toContain('/account/refunds');
 });
+
+it('shows the management workspace switch outside the collapsed menu only after verified access',()=>{
+ m.path='/zh/operations';
+ const html=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,owner:true}} canAdminWorkspace/>);
+ expect(html).toContain('href="/zh/admin"');expect(html.indexOf('← 业务管理中心')).toBeLessThan(html.indexOf('<details'));
+ for(const context of [preparer,{...preparer,canPrepare:false,canReview:true}]){
+  expect(renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>)).not.toContain('href="/zh/admin"');
+ }
+ const support=renderToStaticMarkup(<Navigation locale="en" section="operations" operationsContext={{...preparer,canSupport:true}} canAdminWorkspace/>);
+ expect(support).toContain('href="/en/admin"');expect(support).toContain('Business management center');
+ expect(renderToStaticMarkup(<Navigation locale="zh" section="account" role="client" canAdminWorkspace/>)).not.toContain('href="/zh/admin"');
+});
