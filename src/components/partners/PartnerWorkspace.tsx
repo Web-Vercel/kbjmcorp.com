@@ -1,3 +1,4 @@
+import {partnerPageTitles} from '@/lib/partners/navigation';
 import HomeAttention from '@/components/attention/HomeAttention';
 import {loadAttention} from '@/lib/attention/model';
 import styles from './PartnerWorkspace.module.css';
@@ -11,12 +12,12 @@ import {requireOperations} from '@/lib/operations/server';
 import {partnerWorkspace,displayAmount,statusName} from '@/lib/partners/model';
 import PartnerNavigation from './PartnerNavigation';import ActionForm from './ActionForm';import {Decision,PaymentRecord,PaymentList} from './PaymentControls';import FileUpload from './FileUpload';
 const views=['overview','clients','commissions','settlements','files','settings'] as const;type View=typeof views[number];
-const titles:Record<View,string>={overview:'代理业务总览',clients:'客户归属与引荐',commissions:'佣金明细',settlements:'月度结算',files:'合作文件',settings:'代理账号管理'};
 export default async function PartnerWorkspace({params,view='overview',internal=false}:{params:Promise<{locale:string}>;view?:string;internal?:boolean}){
  const {locale}=await params;if(locale!=='zh'&&locale!=='en'||!views.includes(view as View))notFound();
  let owner=false,canPrepare=false,canReview=false,client,expectedAgent:string|undefined;
  if(internal){const staff=await requireOperations(locale);if(!staff.context||!(staff.context.owner||staff.context.canPrepare||staff.context.canReview))notFound();client=staff.client;owner=staff.context.owner;canPrepare=owner||staff.context.canPrepare;canReview=owner||staff.context.canReview;if((view==='settings'||view==='files')&&!owner)notFound();}
  else{const auth=await getLiveContext();if('error'in auth)redirect(`/${locale}/access/${auth.error==='mfa_required'?'security':'login'}`);if(auth.context.role!=='agent')notFound();client=auth.client;expectedAgent=auth.context.organization_id;}
+ const titles=partnerPageTitles({internal,owner,canPrepare,canReview});
  const result=await client.rpc('read_partner_workspace',{p_view:view});const parsed=partnerWorkspace.safeParse(result.data);
  if(result.error||!parsed.success||parsed.data.staff!==internal||(!internal&&parsed.data.agentId!==expectedAgent))return <main className={`wrap section client-workspace ${styles.workspace}`}><h1>{titles[view as View]}</h1><PartnerNavigation locale={locale} internal={internal} owner={owner} canPrepare={canPrepare} canReview={canReview} view={view}/><p role="alert">代理功能暂不可用或尚未完成配置，请联系管理员。未知金额不显示为零。</p><p>可从菜单返回其他页面，或退出后重新登录；请先核实已有记录，不重复提交。</p></main>;
  const attention=view==='overview'?await loadAttention(client,internal?'staff':'agent'):null;

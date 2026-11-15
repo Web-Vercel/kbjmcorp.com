@@ -77,3 +77,9 @@ it.each([false,true])('keeps home destinations aligned with the financial role m
  for(const forbidden of ['staff','ads-reporting','manual-accounts','upstream'])expect(routes).not.toContain(forbidden);
  expect(html).toContain('财务咨询工单');expect(html).toContain('一般客服由客服处理');expect(html).toContain(reviewer?'月度结算复核':'月度结算制单');
 });
+it('uses consistent administrator module names in both the home menu and workspace navigation',async()=>{
+ m.path='/zh/operations';const context={...preparer,owner:true,canPrepare:true,canReview:true};
+ const Home=(await import('@/components/operations/OperationsHomeMenu')).default;
+ const nav=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>),home=renderToStaticMarkup(<Home locale="zh" context={context} finance source owner support/>);
+ for(const name of ['代理与佣金管理','月度结算管理','对公收款与入账','手工报表交接','整月活动覆盖核实','手工关联广告账户']){expect(nav).toContain(name);expect(home).toContain(name);}
+});

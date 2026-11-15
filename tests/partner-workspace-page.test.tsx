@@ -48,3 +48,8 @@ it('gives reviewers only independent commission review controls and no preparati
  await expect(Workspace({...props,view:'settings',internal:true})).rejects.toThrow('NOT_FOUND');await expect(Workspace({...props,view:'files',internal:true})).rejects.toThrow('NOT_FOUND');
  m.rpc.mockResolvedValue({data:{...data(true),owner:false,commissions:[{...c,prepared_by_me:true}]},error:null});const own=renderToStaticMarkup(await Workspace({...props,view:'commissions',internal:true}));expect(own).toContain('请另一人复核');expect(own).not.toContain('独立复核佣金／调整');
 });
+it.each([{owner:true,canPrepare:true,canReview:true,title:'代理与佣金管理',commission:'佣金核算与复核',settlement:'月度结算管理'},{owner:false,canPrepare:true,canReview:false,title:'代理佣金与结算',commission:'佣金核算',settlement:'结算制单'},{owner:false,canPrepare:false,canReview:true,title:'代理佣金与结算复核',commission:'佣金复核',settlement:'结算复核'}])('aligns partner headings and tabs with each internal role ($title)',async context=>{
+ m.staff.mockResolvedValue({client:{rpc:m.rpc},context});m.rpc.mockResolvedValue({data:{...data(true),owner:context.owner},error:null});
+ const home=renderToStaticMarkup(await Workspace({...props,view:'overview',internal:true}));expect(home).toContain(`<h1>${context.title}</h1>`);expect(home).toContain(context.commission);expect(home).toContain(context.settlement);
+ if(context.owner){expect(home).toContain('客户归属与引荐');expect(home).toContain('代理账号管理');}else{expect(home).toContain('客户归属依据');expect(home).not.toContain('代理账号管理');}
+});
