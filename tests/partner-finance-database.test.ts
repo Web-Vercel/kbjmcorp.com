@@ -4,7 +4,7 @@ import {applyMigrationsThrough} from './fixtures/migrations';
 let db:PGlite;const uid=(n:number)=>`d0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;const org=uid(100),other=uid(101);let wallet:string,otherWallet:string,agent:string,policy:string;let seq=500;const sessions=new Map<number,string>();
 async function as(n:number,sql:string,args:unknown[]=[],aal='aal2'){await db.exec(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${uid(n)}',true);select set_config('request.jwt.claims','${JSON.stringify({aal,session_id:sessions.get(n)})}',true);`);try{const r=await db.query<any>(sql,args);await db.exec('commit');return r.rows;}catch(e){await db.exec('rollback');throw e;}}
 async function command(n:number,action:string,data:Record<string,unknown>,request=uid(seq++)){try{return (await as(n,'select public.partner_finance_action($1,$2,$3) data',[action,request,{note:'FICTIONAL TEST EVIDENCE',...data}]))[0].data;}catch(e){throw Error(`${n} ${action}: ${(e as Error).message}`)}}
-beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create table auth.sessions(id uuid primary key default gen_random_uuid(),user_id uuid,created_at timestamptz default clock_timestamp());create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;create schema storage;grant usage on schema storage to authenticated;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,unique(bucket_id,name));alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);await applyMigrationsThrough(db,44);
+beforeAll(async()=>{db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create table auth.sessions(id uuid primary key default gen_random_uuid(),user_id uuid,created_at timestamptz default clock_timestamp());create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;create schema storage;grant usage on schema storage to authenticated;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,unique(bucket_id,name));alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);await applyMigrationsThrough(db,45);
  for(let n=1;n<=8;n++){await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[uid(n),`partner${n}@example.test`]);}
  await db.query("insert into public.staff_members(user_id,role) values($1,'admin'),($2,'operator'),($3,'operator')",[uid(1),uid(2),uid(3)]);
  await db.query("insert into public.organizations(id,name) values($1,'FICTIONAL ASSIGNED COMPANY'),($2,'PRIVATE OTHER COMPANY')",[org,other]);
@@ -136,7 +136,32 @@ it('does not expose raw tables, private objects, or paused agent data and protec
  expect((await as(5,'select public.can_partner_file_path($1,true) allowed',[`${uid(999)}/${uid(998)}/x.pdf`]))[0].allowed).toBe(false);
  const context=(await as(5,'select public.get_live_account_context() data'))[0].data;
  await command(1,'agent_save',{userId:uid(5),email:'partner5@example.test',label:'FICTIONAL AGENT',revision:context.revision,active:false});
- await expect(as(5,'select public.read_partner_workspace()')).rejects.toThrow(/unavailable/);
+ await expect(as(5,'select public.read_partner_workspace()')).rejects.toThrow(/unavailable/);await expect(as(5,'select public.get_home_attention()')).rejects.toThrow(/unavailable/);
  await command(1,'agent_save',{userId:uid(5),email:'partner5@example.test',label:'FICTIONAL AGENT',revision:context.revision+1,active:true});
- await expect(as(5,'select public.read_partner_workspace()')).rejects.toThrow(/sign-in/);
+ await expect(as(5,'select public.read_partner_workspace()')).rejects.toThrow(/sign-in/);await expect(as(5,'select public.get_home_attention()')).rejects.toThrow(/sign-in/);
+});
+
+it('scopes home reminders to each live role, separates independent work and removes completed work',async()=>{
+ sessions.set(5,(await db.query<any>('insert into auth.sessions(user_id) values($1) returning id',[uid(5)])).rows[0].id);
+ const get=async(n:number,aal='aal2')=>(await as(n,'select public.get_home_attention() data',[],aal))[0].data;
+ for(const n of [1,2,3])expect((await get(n)).role).toBe('staff');await expect(get(3,'aal1')).rejects.toThrow();
+ expect((await get(5,'aal1')).role).toBe('agent');expect((await get(4,'aal1')).role).toBe('client');
+ for(const n of [7,8])await expect(get(n)).rejects.toThrow();
+ const lead=await command(5,'lead_submit',{company:'PRIVATE REMINDER LEAD',note:'REMINDER FIXTURE'});
+ expect((await get(1)).items.some((i:any)=>i.key==='lead_review'&&i.bucket==='action')).toBe(true);
+ expect((await get(5,'aal1')).items.some((i:any)=>i.key==='lead_pending'&&i.bucket==='waiting')).toBe(true);
+ for(const n of [4,6]){const result=await get(n,'aal1');expect(JSON.stringify(result)).not.toContain('PRIVATE REMINDER LEAD');expect(result.items.every((i:any)=>i.key.startsWith('client_')||i.key==='statement_unread')).toBe(true);}
+ const otherBefore=await get(6,'aal1');
+ const request=(await as(4,"select public.create_service_request($1,'account','HOME REMINDER QUESTION','REMINDER DETAILS') id",[org],'aal1'))[0].id;
+ expect(await get(6,'aal1')).toEqual(otherBefore);
+ const before=(await get(4,'aal1')).items.find((i:any)=>i.key==='client_service'&&i.bucket==='waiting').count;
+ await as(1,"select public.reply_service_request($1,'REMINDER RESOLVED','resolved')",[request]);
+ expect(((await get(4,'aal1')).items.find((i:any)=>i.key==='client_service'&&i.bucket==='waiting')?.count||0)).toBe(before-1);
+ await command(1,'lead_review',{id:lead.id,decision:'confirmed',organizationId:org,note:'REMINDER CHECKED'});
+ const activePolicy=(await db.query<any>('select id from public.refund_policies where wallet_id=$1 and active',[wallet])).rows[0].id;
+ const refund=await command(4,'refund_request',{walletId:wallet,policyId:activePolicy,amountMinor:'1000',accepted:true});await command(2,'refund_prepare',{id:refund.id});
+ expect((await get(2)).items.some((i:any)=>i.key==='refund_prepared'&&i.bucket==='action')).toBe(false);
+ expect((await get(2)).items.some((i:any)=>i.key==='refund_prepared'&&i.bucket==='waiting')).toBe(true);
+ expect((await get(3)).items.some((i:any)=>i.key==='refund_prepared'&&i.bucket==='action')).toBe(true);
+ await command(3,'refund_review',{id:refund.id,decision:'reject'});
 });

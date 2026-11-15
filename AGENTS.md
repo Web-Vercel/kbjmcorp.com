@@ -56,3 +56,6 @@ The restrained informational-color rule applies to all Preview backend workspace
 
 ## Service request status dots — 2026-11-15
 The owner explicitly requested colored status circles on both customer and internal service-request views: open yellow, in-progress blue, resolved green. Use the shared ServiceStatus component for lists, current detail and reply receipts. Retain status text so color is not the sole signal; routine explanations stay neutral. This narrow exception does not restore decorative colored pills elsewhere or change workflow states.
+
+## Homepage tasks and reminders — 2026-11-15
+The owner authorized role-scoped home reminders for administrators, finance preparers/reviewers, clients and agents. Keep actionable work separate from waiting and explicit exceptions; preserve independent review and company/agent isolation. Use existing authoritative workflow states, not fabricated overdue thresholds or unread-message claims. Query failures must remain distinguishable from empty queues. No emails, popups, background notification delivery or new payment activation in this stage. Reassess email/popup timing after home task rules and role isolation are stable, and proactively explain the proposed next stage to the owner.

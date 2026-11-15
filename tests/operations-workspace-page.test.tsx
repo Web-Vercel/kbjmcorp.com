@@ -9,7 +9,7 @@ const props={params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve(
 beforeEach(()=>{vi.clearAllMocks();m.guard.mockResolvedValue({client:{from:m.from,rpc:m.rpc},user:{id:'staff'},context:{owner:false,roles:[{unit:'zhidian_cn',role:'finance_preparer'}],canSource:false,canPrepare:true,canReview:false,canSupport:false}})});
 it('shows task destinations without unrelated forms or fetching their records on the overview',async()=>{
  const html=renderToStaticMarkup(await Workspace(props));
- expect(html).toContain('/zh/operations/manual-sources');expect(html).toContain('/zh/operations/manual-finance');expect(html).toContain('/zh/operations/service-requests');expect(html).not.toContain('<form');expect(html).not.toContain('name="action"');expect(m.from).not.toHaveBeenCalled();expect(m.rpc).not.toHaveBeenCalled();
+ expect(html).toContain('/zh/operations/manual-sources');expect(html).toContain('/zh/operations/manual-finance');expect(html).toContain('/zh/operations/service-requests');expect(html).not.toContain('<form');expect(html).not.toContain('name="action"');expect(m.from).not.toHaveBeenCalled();expect(m.rpc).toHaveBeenCalledWith('get_home_attention');
 });
 it('rejects direct staff-setting access for a finance operator',async()=>{await expect(Workspace({...props,view:'staff'})).rejects.toThrow('NOT_FOUND');expect(m.from).not.toHaveBeenCalled()});
 it('rejects finance and service pages for ad operations without those responsibilities',async()=>{
