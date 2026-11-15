@@ -1,4 +1,5 @@
 'use client';
+import PasswordInput from '@/components/auth/PasswordInput';
 import {useCallback,useRef,useState,type FormEvent} from 'react';
 import {useRouter} from 'next/navigation';
 import {clientReturnTo} from '@/lib/auth/client-return';
@@ -13,5 +14,5 @@ export default function ClientTestLogin({locale,siteKey,returnTo}:{locale:Locale
  setMessage(response.status===429?(zh?'尝试过于频繁，请稍后重试。':'Too many attempts. Try again later.'):response.status===404?(zh?'此测试入口未开放。':'This test entry is not enabled.'):(zh?'登录未完成，请核对测试账号及公司授权。':'Sign-in failed. Check the test credentials and company authorization.'));
  }catch{setMessage(zh?'暂时无法连接，请稍后重试。':'Connection unavailable. Try again later.');}
  finally{lock.current=false;setBusy(false);setToken('');setVersion(value=>value+1);const password=form.elements.namedItem('password');if(password instanceof HTMLInputElement)password.value='';}}
- return <form className="admin-form" onSubmit={submit} aria-busy={busy}><label>{zh?'测试客户邮箱':'Test client email'}<input name="email" type="email" autoComplete="username" required maxLength={254}/></label><label>{zh?'密码':'Password'}<input name="password" type="password" autoComplete="current-password" required maxLength={256}/></label><Captcha key={version} locale={locale} siteKey={siteKey} onToken={onToken}/><button className="button" disabled={busy}>{busy?(zh?'正在登录…':'Signing in…'):(zh?'登录测试客户中心':'Sign in to test client center')}</button><p role="status" aria-live="polite">{message}</p></form>;
+ return <form className="admin-form" onSubmit={submit} aria-busy={busy}><label>{zh?'测试客户邮箱':'Test client email'}<input name="email" type="email" autoComplete="username" required maxLength={254}/></label><label>{zh?'密码':'Password'}<PasswordInput name="password"  autoComplete="current-password" required maxLength={256} locale={locale}/></label><Captcha key={version} locale={locale} siteKey={siteKey} onToken={onToken}/><button className="button" disabled={busy}>{busy?(zh?'正在登录…':'Signing in…'):(zh?'登录测试客户中心':'Sign in to test client center')}</button><p role="status" aria-live="polite">{message}</p></form>;
 }

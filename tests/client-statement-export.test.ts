@@ -32,3 +32,9 @@ it('uses fictional Chinese issuer details only on acceptance templates and separ
  const live=statementHtml(statement,true);expect(live).not.toContain('TEST-NOT-VALID');expect(live).not.toContain('法定全称（虚构测试）');expect(live).toContain('出单主体资料尚未核实');
  expect(html).not.toContain('注册地址');expect(html).not.toContain('银行账号');
 });
+it('includes CTR CPC and CPM in customer PDF and CSV using client charges rather than internal CAD costs',()=>{
+ const input={...statement,advertising_service_minor:'21198',operating_other_minor:'8480',total_minor:'29678',usage:{...statement.usage,impressions:'1017',clicks:'20'}};
+ for(const output of [statementHtml(input,true),statementCsv(input,true)])for(const value of ['平均每次点击成本','每千次展示成本','1.97%','10.60','208.44'])expect(output).toContain(value);
+ const html=statementHtml(input,true);expect(html).toContain('不含运营及其他费用');expect(html).not.toContain('CAD 1.81');
+ const zero=statementHtml({...input,usage:{...input.usage,impressions:'0',clicks:'0'}},true);expect(zero).not.toContain('NaN');expect(zero).not.toContain('Infinity');
+});

@@ -1,3 +1,4 @@
+import {displayRatio} from './display-metrics';
 import {canonicalReportingTimezone,diagnosticTimezone} from './report-timezone';
 import {z} from 'zod';
 import {AdsReadError,type AdsFailure} from './read-errors';
@@ -101,3 +102,6 @@ export function summarize(account:AdsAccount,range:{since:string;until:string},d
  const utcMetadata=canonicalReportingTimezone(account.timezone)!=='UTC'&&[...daily,...totals,...(boundaryProbe||[])].some(r=>r.timezone&&canonicalReportingTimezone(r.timezone)==='UTC');
  return {...(utcMetadata?{utcMetadata:true}:{}),account,...range,daily:rows,dailySpendMicros,periodSpendMicros,periodImpressions,periodClicks,coverageKind,differenceMicros,startBoundary,periodRange,endBoundary,check:coverageKind==='aggregate_verified'?'matched':!rows.length||periodSpendMicros===null||startBoundary==='later_start_unverified'||endBoundary==='last_day_label_unverified'?'no_data':differenceMicros==='0'?'matched':'difference',missingDates,impressions:sum('impressions'),clicks:sum('clicks')};
 }
+
+/** Rounded presentation only; formatMicros retains exact source precision. */
+export function formatSpend(value:string):string{return displayRatio(BigInt(value),1000000n);}

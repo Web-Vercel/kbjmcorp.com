@@ -11,7 +11,7 @@ describe('source performance report',()=>{
  });
  it('distinguishes platform period total from incomplete daily-derived metrics',()=>{
  const html=renderToStaticMarkup(<Report source={source} zh/>);
- expect(html).toContain('期间广告花费');expect(html).toContain('CAD 152.640000');expect(html).toContain('不代表完整期间表现');expect(html).toContain('1.12%');
+ expect(html).toContain('期间广告花费');expect(html).toContain('CAD 152.64');expect(html).toContain('不代表完整期间表现');expect(html).toContain('1.12%');
  const empty=renderToStaticMarkup(<Report source={{...source,daily:[],daily_spend_micros:'0',period_spend_micros:null}} zh/>);
  expect(empty).toContain('暂无期间汇总');expect(empty).not.toContain('NaN');expect(empty).not.toContain('Infinity');
  });
