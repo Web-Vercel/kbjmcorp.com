@@ -83,3 +83,13 @@ it('uses consistent administrator module names in both the home menu and workspa
  const nav=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>),home=renderToStaticMarkup(<Home locale="zh" context={context} finance source owner support/>);
  for(const name of ['代理与佣金管理','月度结算管理','对公收款与入账','手工报表交接','整月活动覆盖核实','手工关联广告账户']){expect(nav).toContain(name);expect(home).toContain(name);}
 });
+it.each(['investor','sales'] as const)('keeps %s navigation in its read-only/follow-up portal even on a legacy account URL',role=>{
+ m.path='/zh/account/funds';const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role={role}/>);
+ expect(html).toContain('/zh/access/analytics');expect(html).toContain('/zh/access/security');
+ for(const route of ['application','company','statements','funds','service','refunds'])expect(html).not.toContain(`href="/zh/account/${route}"`);
+ expect(html.includes('/access/investor')).toBe(role==='investor');
+ if(role==='sales')expect(html).toContain('客户跟进分析');
+});
+it('accurately labels the client monthly-funds destination',()=>{
+ m.path='/zh/account/funds';const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role="client"/>);expect(html).toContain('月度资金对账');expect(html).not.toContain('资金与流水');expect(html).toContain('/account/refunds');
+});

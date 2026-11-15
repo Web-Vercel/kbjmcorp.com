@@ -52,7 +52,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
     const links = [
       ['access', zh ? '客户总览' : 'Client overview'],
       ['account/statements', zh ? '账单与下载' : 'Statements and downloads'],
-      ['account/funds', zh ? '资金与流水' : 'Funds and entries'],
+      ['account/funds', zh ? '月度资金对账' : 'Monthly funds statements'],
       ['access/analytics', zh ? '广告与费用分析' : 'Advertising and cost analysis'],
       ['account/service', zh ? '服务与账单问题' : 'Service and billing questions'],
       ['account/refunds', zh ? '申请退款' : 'Balance refunds'],
@@ -69,22 +69,24 @@ export default function BusinessNavigation({locale, section, role, operationsCon
       </nav><div className={styles.signOut}><SignOutButton locale={locale} destination={`/${locale}/access/login`}/></div></div>
     </div>;
   }
-  const root = `/${locale}/${section}`;
-  const parts = path.slice(root.length).split('/').filter(Boolean);
+  const activeSection=(role==='investor'||role==='sales')&&section==='account'?'access':section;
+  const root = `/${locale}/${activeSection}`;
+  const parts = path.startsWith(root+'/')?path.slice(root.length).split('/').filter(Boolean):[];
   if (parts[0] === 'login') return null;
-  const config = sections[section];
+  const config = sections[activeSection];
   const index = locale === 'zh' ? 0 : 1;
   const pages = config.pages as Record<string, readonly string[]>;
   const current = pages[parts[0]];
   const title = config.title[index];
+  const label=(key:string,names:readonly string[])=>activeSection==='operations'?operationsMenuLabel(key,names,operationsContext,locale):activeSection==='access'&&key==='analytics'&&role==='sales'?(locale==='zh'?'客户跟进分析':'Client follow-up analysis'):names[index];
   return <div className={styles.bar}>
     <nav aria-label={index === 0 ? '当前位置' : 'Breadcrumb'} className={styles.path}>
-      {current ? <><Link href={root}>{title}</Link><span aria-hidden="true"> › </span><span aria-current="page">{section==='operations'?operationsMenuLabel(parts[0],current,operationsContext,locale):current[index]}</span></> : <span aria-current="page">{title}</span>}
+      {current ? <><Link href={root}>{title}</Link><span aria-hidden="true"> › </span><span aria-current="page">{label(parts[0],current)}</span></> : <span aria-current="page">{title}</span>}
     </nav>
     <details className={styles.menu}><summary>{index === 0 ? '本中心菜单' : 'Workspace menu'}</summary>
       <nav aria-label={title}>
         <Link href={root}>{title}</Link>
-        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key) && (section !== 'operations' || canVisitOperationsPage(operationsContext,key)) && (section !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{section==='operations'?operationsMenuLabel(key,names,operationsContext,locale):names[index]}</Link>)}
+        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key) && (activeSection !== 'operations' || canVisitOperationsPage(operationsContext,key)) && (activeSection !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{label(key,names)}</Link>)}
       </nav>
     </details>
   </div>;
