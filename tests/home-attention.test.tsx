@@ -22,9 +22,16 @@ it('rejects malformed counts, timestamps and mismatched returned roles instead o
 });
 it.skipIf(process.env.HOME_ATTENTION_ARTIFACTS!=='1')('exports a fictional reminder panel for responsive visual inspection',async()=>{
  const {mkdirSync,writeFileSync,readFileSync}=await import('node:fs');
- const markup=renderToStaticMarkup(<HomeAttention data={sample} locale="zh"/>);
- let css=readFileSync('src/components/attention/HomeAttention.module.css','utf8');for(const value of new Set(markup.match(/_[a-zA-Z]+_[a-z0-9]+/g)||[]))css=css.replaceAll('.'+value.split('_')[1],'.'+value);
+ const markup=renderToStaticMarkup(<HomeAttention data={{...sample,totalGroups:3,items:[...sample.items,{key:'source_difference',bucket:'attention',count:1,oldest:'2026-11-13T00:00:00Z',org,company:'示例企业（虚构）'}]}} locale="zh"/>);
+ let css=readFileSync('src/components/attention/HomeAttention.module.css','utf8');for(const value of [...new Set((markup+renderToStaticMarkup(<HomeAttention data={{role:'staff',totalGroups:0,items:[]}} locale="zh"/>)).match(/_[a-zA-Z]+_[a-z0-9]+/g)||[])].sort((a,b)=>b.length-a.length))css=css.replaceAll('.'+value.split('_')[1],'.'+value);
  const dir='/workspace/shared/home-attention';mkdirSync(dir,{recursive:true});
  const data:Attention={...sample,totalGroups:3,items:[...sample.items,{key:'source_difference',bucket:'attention',count:1,oldest:'2026-11-13T00:00:00Z',org,company:'示例企业（虚构）'}]};
  writeFileSync(dir+'/sample.html','<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui;margin:0;padding:16px;max-width:1100px;margin:auto;box-sizing:border-box}*{box-sizing:border-box}[data-workspace-value]{color:#205481}'+css+'</style>'+renderToStaticMarkup(<HomeAttention data={data} locale="zh"/>));expect(readFileSync(dir+'/sample.html','utf8')).toContain('示例企业（虚构）');
+ writeFileSync(dir+'/single.html','<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font:16px/1.6 system-ui;margin:0;padding:16px;max-width:1100px;margin:auto;box-sizing:border-box}*{box-sizing:border-box}[data-workspace-value]{color:#205481}'+css+'</style>'+renderToStaticMarkup(<HomeAttention data={{...sample,totalGroups:1,items:[sample.items[0]]}} locale="zh"/>));
+});
+
+it('links nonempty summary cards to visible detail groups and keeps empty categories compact',()=>{
+ const html=renderToStaticMarkup(<HomeAttention data={sample} locale="zh"/>);
+ expect(html).toContain('href="#home-attention-action"');expect(html).toContain('id="home-attention-action"');expect(html).toContain('href="#home-attention-waiting"');
+ expect(html).not.toContain('href="#home-attention-attention"');expect(html).not.toContain('id="home-attention-attention"');expect(html).toContain('暂无事项');expect(html).toContain('去处理');expect(html).toContain('aria-hidden="true"');
 });

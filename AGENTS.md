@@ -59,3 +59,6 @@ The owner explicitly requested colored status circles on both customer and inter
 
 ## Homepage tasks and reminders — 2026-11-15
 The owner authorized role-scoped home reminders for administrators, finance preparers/reviewers, clients and agents. Keep actionable work separate from waiting and explicit exceptions; preserve independent review and company/agent isolation. Use existing authoritative workflow states, not fabricated overdue thresholds or unread-message claims. Query failures must remain distinguishable from empty queues. No emails, popups, background notification delivery or new payment activation in this stage. Reassess email/popup timing after home task rules and role isolation are stable, and proactively explain the proposed next stage to the owner.
+
+## Homepage reminder visual emphasis — 2026-11-15
+The owner requested immediate visual identification of actionable, exceptional and waiting reminders. Use scoped summary cards with distinct icons, restrained blue for actions, amber for actual exceptions and neutral gray for waiting. Empty categories stay muted and compact; only nonempty groups expand into details. Keep text labels alongside visual signals. No workflow, permissions, email or popup changes.
