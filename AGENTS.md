@@ -51,3 +51,5 @@ Apply the approved concise partner-workspace style consistently across backend p
 
 ## Restrained informational colors — 2026-11-15
 The owner clarified that routine explanatory copy, test-record notices and lead confirmation labels should share the normal neutral text color. Highlight retrieved company/agent names and financial values in blue. Do not add yellow test-copy text or green lead-status pills merely for decoration. Keep test wording visible. This refines the earlier status-color guidance for ordinary partner information; existing financial progress indicators and actionable error signals are separate.
+
+The restrained informational-color rule applies to all Preview backend workspaces, not only partner pages. Routine badges, folded-help labels and informational notices use neutral gray without decorative status fills. Table cells are not all “data”: explicitly mark names, dates and monetary values; keep status descriptions neutral. Keep existing financial progress indicators and actionable errors distinguishable, and leave the approved public marketing design untouched.

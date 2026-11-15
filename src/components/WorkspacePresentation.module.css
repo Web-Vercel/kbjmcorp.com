@@ -9,7 +9,7 @@
 .workspace :global(.admin-notice),.workspace :global(.workflow-byline) { font-size: .9rem; line-height: 1.65; }
 .workspace :global(.admin-notice) { padding: .85rem 1rem; border-radius: 8px; }
 .workspace :global(details) { margin-block: .8rem; }
-.workspace :global(details>summary) { cursor: pointer; font-size: .9rem; line-height: 1.6; color: #285b48; }
+.workspace :global(details>summary) { cursor: pointer; font-size: .9rem; line-height: 1.6; color: #52616a; }
 .workspace :global(details[open]>summary) { margin-bottom: .85rem; }
 .workspace :global(details>p) { max-width: 78ch; }
 .workspace :global(.admin-filter) { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-block: 1.25rem; }
@@ -26,7 +26,7 @@
 .workspace :global(main h3) { font-size: 1.05rem; line-height: 1.5; letter-spacing: 0; }
 .workspace :global(main p:not([class]):not([role])),.workspace :global(main .workflow-byline),.workspace :global(main label),.workspace :global(main dt) { color: #52616a; }
 .workspace :global(main p) { font-size: .93rem; }
-.workspace :global(main input),.workspace :global(main select),.workspace :global(main textarea),.workspace :global(main dd),.workspace :global(main td),.workspace :global([data-workspace-value]) { color: #205481; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.workspace :global(main input),.workspace :global(main select),.workspace :global(main textarea),.workspace :global(main dd),.workspace :global([data-workspace-value]) { color: #205481; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .workspace :global([data-workspace-value]) { font-weight: 600; }
 .workspace :global(main th) { color: #52616a; font-size: .85rem; }
 .workspace :global(main .admin-facts dt) { font-size: .8rem; }
@@ -40,3 +40,9 @@
 
 .workspace :global(main h1),.workspace :global(main h2),.workspace :global(main h3) { color: #173e35; }
 .workspace :global(.admin-stats strong),.workspace :global(.ops-calculation strong),.workspace :global(.admin-list-row>strong),.workspace :global(main time) { color: #205481; font-variant-numeric: tabular-nums; }
+
+/* Routine labels and explanations are neutral; real data is explicitly marked. */
+.workspace :global(main td),.workspace :global(main .billing-currency-note),.workspace :global(main .billing-updated),.workspace :global(.admin-badge) { color: #52616a; }
+.workspace :global(.admin-badge) { background: transparent; border: 0; border-radius: 0; padding: 0; font-weight: 400; }
+.workspace :global(.admin-notice) { color: #52616a; background: #f6f7f8; border-color: #e2e7eb; }
+.workspace :global(.admin-notice[role="alert"]) { color: #a12c32; }
