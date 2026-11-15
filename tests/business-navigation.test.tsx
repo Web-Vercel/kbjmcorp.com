@@ -37,3 +37,4 @@ it('provides one sign-out action in the shared client menu',()=>{
  const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role="client"/>);
  expect(html.match(/退出登录/g)).toHaveLength(1);
 });
+it('keeps agent navigation, sign-out and password recovery reachable on account security',async()=>{m.context.mockResolvedValue({context:{role:'agent'},user:{email:'agent@example.test'}});const html=renderToStaticMarkup(await Security({params:Promise.resolve({locale:'zh'})}));expect(html).toContain('/zh/agent/clients');expect(html).toContain('/zh/agent/settlements');expect(html).toContain('/zh/auth/recovery');expect(html).toContain('退出登录');expect(html).not.toContain('/operations');});
