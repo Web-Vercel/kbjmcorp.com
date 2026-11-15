@@ -8,3 +8,5 @@ it('requires a server-validated active scoped account after real password authen
 it('fails closed before sign-in if authentication or persistent throttling is unavailable',async()=>{
  m.limit.mockRejectedValue(Error('PRIVATE'));const r=await POST(req());expect(r.status).toBe(503);expect(await r.text()).not.toContain('PRIVATE');expect(m.signIn).not.toHaveBeenCalled();
 });
+
+it('does not require an authenticator for a server-validated agent',async()=>{m.rpc.mockResolvedValue({data:{user_id:id,organization_id:id,organization_name:'代理门户',role:'agent',label:'Agent',revision:1},error:null});expect(await (await POST(req())).json()).toEqual({ok:true,requiresMfa:false});});
