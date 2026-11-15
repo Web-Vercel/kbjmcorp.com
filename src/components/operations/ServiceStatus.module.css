@@ -1,0 +1,6 @@
+.status { display: inline-flex; align-items: center; gap: .45rem; color: #52616a; font-size: .9rem; font-weight: 500; vertical-align: baseline; }
+.dot { width: .6rem; height: .6rem; flex: 0 0 .6rem; border-radius: 50%; background: #6b7280; }
+.status[data-service-status="open"] .dot { background: #a26b00; }
+.status[data-service-status="in_progress"] .dot { background: #2468a0; }
+.status[data-service-status="resolved"] .dot { background: #237342; }
+@media (forced-colors: active) { .dot { background: CanvasText; border: 1px solid CanvasText; } }
