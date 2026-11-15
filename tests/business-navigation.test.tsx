@@ -56,3 +56,8 @@ it('keeps source and support role destinations distinct',()=>{
  expect(source).toContain('/operations/manual-accounts');expect(source).toContain('/operations/manual-sources');expect(source).not.toContain('/operations/collections');expect(source).not.toContain('/operations/service-requests');
  const support=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,canPrepare:false,canSupport:true}}/>);expect(support).toContain('/operations/service-requests');expect(support).not.toContain('/operations/manual-accounts');expect(support).not.toContain('/operations/settlements');
 });
+it('names reviewer tasks as review without granting preparer or administrator destinations',()=>{
+ m.path='/zh/operations';const html=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,canPrepare:false,canReview:true}}/>);
+ for(const text of ['月度结算复核','收款到账复核','代理佣金与结算复核','客户退款复核','整月活动覆盖复核','公司间到账复核','报价查看'])expect(html).toContain(text);
+ expect(html).not.toContain('广告数据同步');expect(html).not.toContain('人员职责');
+});

@@ -60,8 +60,9 @@ it('snapshots percentage fees, reserves gross funds, rejects excess requests, an
  await expect(db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','ad_spend',-70000,'RESERVED DEBIT','FORGED-DEBIT')",[wallet,org])).rejects.toThrow(/reserved/);
  await db.exec('begin');try{await db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','ad_spend',-20000,'FICTIONAL ATOMIC DEBIT','ATOMIC-1')",[wallet,org]);await expect(db.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','service_fee',-50000,'FICTIONAL ATOMIC DEBIT','ATOMIC-2')",[wallet,org])).rejects.toThrow(/reserved/);}finally{await db.exec('rollback');}
  await command(1,'refund_policy',{walletId:wallet,mode:'fixed',value:200});expect((await as(4,'select public.read_refund_workspace() data'))[0].data.refunds[0].fee_minor).toBe('1000');
+ await expect(command(3,'refund_prepare',{id:r.id})).rejects.toThrow(/Preparation/);
  await command(2,'refund_prepare',{id:r.id});await expect(command(2,'refund_review',{id:r.id,decision:'approve'})).rejects.toThrow(/review/);await command(3,'refund_review',{id:r.id,decision:'approve'});
- await expect(command(2,'refund_approve',{id:r.id})).rejects.toThrow(/Administrator/);await command(1,'refund_approve',{id:r.id});
+ await expect(command(2,'refund_approve',{id:r.id})).rejects.toThrow(/Administrator/);await expect(command(3,'refund_approve',{id:r.id})).rejects.toThrow(/Administrator/);await command(1,'refund_approve',{id:r.id});
  const payment=await command(2,'payment_record',{id:r.id,kind:'refund',amountMinor:'39000',bankReference:'FICTIONAL-REFUND-001',payeeReference:'Original payer verified, masked account 1234',paidOn:'2026-01-01'});
  expect((await as(4,'select public.read_refund_workspace() data'))[0].data.wallets[0].balance_minor).toBe('100000');
  await expect(command(2,'payment_verify',{id:payment.id,decision:'approve'})).rejects.toThrow(/Independent/);
@@ -88,6 +89,7 @@ it('earns only from receipt-backed published business and snapshots commission r
  await expect(command(2,'commission_prepare',{statementId:statement})).rejects.toThrow(/receipt/);
  const account=uid(706);await db.query("insert into public.collection_accounts(id,legal_name,bank_name,account_number,verification_reference,created_by) values($1,'FICTIONAL LEGAL','FICTIONAL BANK','TESTONLY123','FICTIONAL ORIGINAL',$2)",[account,uid(1)]);
  await db.query("insert into public.bank_receipts(wallet_id,organization_id,collection_account_id,amount_minor,payer_name,bank_reference,booked_date,evidence_reference,status,prepared_by,reviewed_by,reviewed_at,review_note) values($1,$2,$3,100000,'FICTIONAL PAYER','TESTBANKSOURCE','2026-01-01','FICTIONAL ORIGINAL','credited',$4,$5,now(),'FICTIONAL VERIFIED')",[wallet,org,account,uid(2),uid(3)]);
+ await expect(command(3,'commission_prepare',{statementId:statement})).rejects.toThrow(/Forbidden/);
  commission=(await command(2,'commission_prepare',{statementId:statement})).id;
  await expect(command(2,'commission_prepare',{statementId:statement})).rejects.toThrow();await expect(command(2,'commission_review',{id:commission,decision:'approve'})).rejects.toThrow(/Independent/);
  await command(3,'commission_review',{id:commission,decision:'approve'});
@@ -97,12 +99,13 @@ it('settles a closed calendar month, separates approval from payment, and freeze
  const policyId=(await as(4,'select public.read_refund_workspace() data'))[0].data.wallets[0].policy.id;
  const refund=await command(4,'refund_request',{walletId:wallet,policyId,amountMinor:'10000',accepted:true});
  await expect(command(2,'settlement_prepare',{agentId:agent,period:'2026-03-01'})).rejects.toThrow(/eligible/);
- await command(4,'refund_cancel',{id:refund.id});settlement=(await command(2,'settlement_prepare',{agentId:agent,period:'2026-03-01'})).id;
+ await command(4,'refund_cancel',{id:refund.id});await expect(command(3,'settlement_prepare',{agentId:agent,period:'2026-03-01'})).rejects.toThrow();settlement=(await command(2,'settlement_prepare',{agentId:agent,period:'2026-03-01'})).id;
  const withdrawn=settlement;await command(1,'settlement_cancel',{id:withdrawn});expect((await db.query<any>('select status from public.partner_settlements where id=$1',[withdrawn])).rows[0].status).toBe('rejected');settlement=(await command(2,'settlement_prepare',{agentId:agent,period:'2026-03-01'})).id;
- await expect(command(2,'settlement_review',{id:settlement,decision:'approve'})).rejects.toThrow(/Independent/);await command(3,'settlement_review',{id:settlement,decision:'approve'});await command(1,'settlement_approve',{id:settlement});
+ await expect(command(2,'settlement_review',{id:settlement,decision:'approve'})).rejects.toThrow(/Independent/);await command(3,'settlement_review',{id:settlement,decision:'approve'});await expect(command(3,'settlement_approve',{id:settlement})).rejects.toThrow();await command(1,'settlement_approve',{id:settlement});
  const hold=await command(4,'refund_request',{walletId:wallet,policyId,amountMinor:'10000',accepted:true});
  const payment={id:settlement,kind:'commission',amountMinor:'400',bankReference:'FICTIONAL-COMMISSION-001',payeeReference:'Verified agent masked account 9876',paidOn:'2026-03-05'};
  await expect(command(2,'payment_record',payment)).rejects.toThrow(/unobstructed/);await command(4,'refund_cancel',{id:hold.id});
+ await expect(command(3,'payment_record',payment)).rejects.toThrow();
  const record=await command(2,'payment_record',payment);expect((await as(5,"select public.read_partner_workspace('settlements') data"))[0].data.settlements[0].status).toBe('payment_pending');
  const before=(await db.query<any>('select sum(amount_minor)::text balance from public.wallet_entries where wallet_id=$1',[wallet])).rows[0].balance;
  await command(3,'payment_verify',{id:record.id,decision:'approve'});
