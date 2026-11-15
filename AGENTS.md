@@ -42,3 +42,6 @@ The owner requested removing the budget diagrams in favor of short, clear text c
 
 ## Service sequence and partnership cards — 2026-11-12
 The owner requested a logical sequence for services, management benefits and platforms, ensuring the Services navigation does not skip the management section. Order the homepage as Services → Customer management benefits → Advertising platforms; both the hero exploration link and Services navigation start at #services. Restore the five partnership models in the previous numbered text-card grid, with concise one-sentence summaries and understated links. Preview review first.
+
+## Deferred online payments — 2026-11-15
+The owner approved a staged payment design, not activation. Keep current manual receipt verification, refund requests, independent review, approval, offline payment registration and payment verification. Do not enable gateways, online top-ups, automatic refunds or customer-editable balances. Refund requests remain available; requests and approvals are not payments. Follow `docs/PAYMENT_EVOLUTION.md` for future design: online top-ups → original-payment refunds → additional customer self-service. Preserve immutable financial history, organization isolation, held funds, exact amounts and independent approval. Future activation needs a separate implementation and release decision.
