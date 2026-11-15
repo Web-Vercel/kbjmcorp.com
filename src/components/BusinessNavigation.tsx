@@ -1,5 +1,7 @@
 "use client";
 import Link from 'next/link';
+import type {OpsContext} from '@/lib/operations/model';
+import {canVisitOperationsPage,operationsMenuLabel} from '@/lib/operations/navigation';
 import {usePathname} from 'next/navigation';
 import type {Locale} from '@/lib/content';
 import styles from './BusinessNavigation.module.css';
@@ -41,7 +43,7 @@ const sections = {
   }},
 } as const;
 
-export default function BusinessNavigation({locale, section, role}: {locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales' | 'agent'}) {
+export default function BusinessNavigation({locale, section, role, operationsContext}: {operationsContext?:OpsContext|null;locale: Locale; section: keyof typeof sections; role?: 'client' | 'investor' | 'sales' | 'agent'}) {
   const path = usePathname();
   if (path === `/${locale}/access/login` || (section === 'access' && !role)) return null;
   if (role === 'agent') return null;
@@ -82,7 +84,7 @@ export default function BusinessNavigation({locale, section, role}: {locale: Loc
     <details className={styles.menu}><summary>{index === 0 ? '本中心菜单' : 'Workspace menu'}</summary>
       <nav aria-label={title}>
         <Link href={root}>{title}</Link>
-        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key) && (section !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{names[index]}</Link>)}
+        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key) && (section !== 'operations' || canVisitOperationsPage(operationsContext,key)) && (section !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{section==='operations'?operationsMenuLabel(key,names,operationsContext,locale):names[index]}</Link>)}
       </nav>
     </details>
   </div>;

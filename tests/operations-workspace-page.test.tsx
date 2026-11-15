@@ -11,7 +11,7 @@ it('shows task destinations without unrelated forms or fetching their records on
  const html=renderToStaticMarkup(await Workspace(props));
  expect(html).toContain('/zh/operations/manual-sources');expect(html).toContain('/zh/operations/manual-finance');expect(html).toContain('/zh/operations/service-requests');expect(html).not.toContain('<form');expect(html).not.toContain('name="action"');expect(m.from).not.toHaveBeenCalled();expect(m.rpc).toHaveBeenCalledWith('get_home_attention');
 });
-it('rejects direct staff-setting access for a finance operator',async()=>{await expect(Workspace({...props,view:'staff'})).rejects.toThrow('NOT_FOUND');expect(m.from).not.toHaveBeenCalled()});
+it.each(['staff','manual-accounts'] as const)('rejects direct access to %s for a finance preparer',async view=>{await expect(Workspace({...props,view})).rejects.toThrow('NOT_FOUND');expect(m.from).not.toHaveBeenCalled()});
 it('rejects finance and service pages for ad operations without those responsibilities',async()=>{
  m.guard.mockResolvedValue({client:{from:m.from},context:{owner:false,roles:[{unit:'kbjm_ca',role:'ad_operations'}],canSource:true,canPrepare:false,canReview:false,canSupport:false}});
  for(const view of ['manual-finance','fund-summary','service-requests'] as const)await expect(Workspace({...props,view})).rejects.toThrow('NOT_FOUND');expect(m.from).not.toHaveBeenCalled();

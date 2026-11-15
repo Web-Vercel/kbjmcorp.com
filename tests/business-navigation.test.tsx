@@ -38,3 +38,21 @@ it('provides one sign-out action in the shared client menu',()=>{
  expect(html.match(/退出登录/g)).toHaveLength(1);
 });
 it('keeps agent navigation, sign-out and password recovery reachable on account security',async()=>{m.context.mockResolvedValue({context:{role:'agent'},user:{email:'agent@example.test'}});const html=renderToStaticMarkup(await Security({params:Promise.resolve({locale:'zh'})}));expect(html).toContain('/zh/agent/clients');expect(html).toContain('/zh/agent/settlements');expect(html).toContain('/zh/auth/recovery');expect(html).toContain('退出登录');expect(html).not.toContain('/operations');});
+
+const preparer={owner:false,roles:[{unit:'zhidian_cn',role:'finance_preparer'}],canPrepare:true,canReview:false,canSource:false,canSupport:false};
+it.each([{...preparer}, {...preparer,canPrepare:false,canReview:true}])('filters finance navigation to accessible destinations without hiding read-only finance work',context=>{
+ m.path='/zh/operations/agents';const html=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>);
+ for(const route of ['staff','ads-reporting','manual-accounts','upstream'])expect(html).not.toContain(`href="/zh/operations/${route}"`);
+ for(const route of ['agents','refunds','manual-sources','manual-finance','fund-summary','service-requests','month-close','source-data','source-checks','pricing','settlements','collections','funds','upstream-payments','statement-questions'])expect(html).toContain(`href="/zh/operations/${route}"`);
+ expect(html).toContain('报价查看');expect(html).not.toContain('报价管理');
+});
+it('retains administrator entries and hides unverified operational permissions',()=>{
+ m.path='/en/operations';const html=renderToStaticMarkup(<Navigation locale="en" section="operations" operationsContext={{...preparer,owner:true}}/>);
+ for(const route of ['staff','ads-reporting','manual-accounts','upstream'])expect(html).toContain(`href="/en/operations/${route}"`);
+ expect(html).toContain('Pricing');const unavailable=renderToStaticMarkup(<Navigation locale="en" section="operations"/>);expect(unavailable).not.toContain('/operations/staff');expect(unavailable).not.toContain('/operations/collections');expect(unavailable).toContain('href="/en/operations"');
+});
+it('keeps source and support role destinations distinct',()=>{
+ m.path='/zh/operations';const source=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,canPrepare:false,canSource:true}}/>);
+ expect(source).toContain('/operations/manual-accounts');expect(source).toContain('/operations/manual-sources');expect(source).not.toContain('/operations/collections');expect(source).not.toContain('/operations/service-requests');
+ const support=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,canPrepare:false,canSupport:true}}/>);expect(support).toContain('/operations/service-requests');expect(support).not.toContain('/operations/manual-accounts');expect(support).not.toContain('/operations/settlements');
+});
