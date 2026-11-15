@@ -36,6 +36,14 @@ it('confirms an agent lead and preserves the original referral separately from t
  const row=(await db.query<any>('select status,note,review_note,organization_id from public.partner_leads where id=$1',[lead.id])).rows[0];expect(row).toMatchObject({status:'confirmed',note:'ORIGINAL REFERRAL',review_note:payload.note,organization_id:org});
  await expect(command(1,'lead_review',payload)).rejects.toThrow(/state changed/);const rejected=await command(5,'lead_submit',{company:'FICTIONAL RETURNED LEAD',note:'ORIGINAL RETURNED REFERRAL'});await command(1,'lead_review',{id:rejected.id,decision:'rejected',note:'FICTIONAL RETURN REASON'});expect((await db.query<any>('select status,note,review_note from public.partner_leads where id=$1',[rejected.id])).rows[0]).toMatchObject({status:'rejected',note:'ORIGINAL RETURNED REFERRAL',review_note:'FICTIONAL RETURN REASON'});
 });
+it('lets a password-only scoped client ask billing questions and read replies only in its company',async()=>{
+ const request=(await as(4,"select public.create_service_request($1,'billing','FICTIONAL CLIENT QUESTION','FICTIONAL BILL EXPLANATION') id",[org],'aal1'))[0].id;
+ await expect(as(4,"select public.create_service_request($1,'billing','FORGED QUESTION','FORGED OTHER COMPANY')",[other],'aal1')).rejects.toThrow();
+ expect(await as(6,'select id from public.service_requests where id=$1',[request],'aal1')).toEqual([]);
+ await as(3,"select public.reply_service_request($1,'FICTIONAL FINANCE REPLY','resolved')",[request]);
+ const messages=await as(4,'select body from public.service_request_messages where request_id=$1 order by created_at',[request],'aal1');expect(messages.map((x:any)=>x.body)).toContain('FICTIONAL FINANCE REPLY');
+ await as(4,"select public.reply_service_request($1,'FICTIONAL CLIENT FOLLOWUP','resolved')",[request],'aal1');expect((await as(4,'select status from public.service_requests where id=$1',[request],'aal1'))[0].status).toBe('open');
+});
 it('permits agent password sessions while keeping financial actions and other roles MFA protected',async()=>{
  const context=(await as(5,'select public.get_live_account_context() data',[],'aal1'))[0].data;expect(context.role).toBe('agent');
  expect((await as(5,"select public.read_partner_workspace('clients') data",[],'aal1'))[0].data.clients).toHaveLength(2);
