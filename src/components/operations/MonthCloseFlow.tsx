@@ -26,7 +26,7 @@ export default function MonthCloseFlow({accounts,context,locale,company,month,su
    const published=account.stage==='published';
    const problem=['source_invalid','settlement_rejected','quote_archived'].includes(account.stage);
    return <article className={styles.account} key={account.binding_id}>
-    <h3>{account.account_label}</h3>
+    <h3><span data-workspace-value>{account.account_label}</span></h3>
     <ol className={styles.track} aria-label={zh?'账单办理步骤':'Statement workflow'}>{titles.map((title,i)=>{
      const completed=published||i+1<current.step;const active=!published&&i+1===current.step;
      return <li key={title} className={completed?styles.complete:active?(problem?styles.problem:styles.current):styles.waiting} aria-current={active?'step':undefined}><span className={styles.number}>{i+1}</span><strong>{title}</strong><small>{roles[i]}</small><Status kind={completed?'done':active?(problem?'problem':'pending'):'waiting'} zh={zh}/></li>;

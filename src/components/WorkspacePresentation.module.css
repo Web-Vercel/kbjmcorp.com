@@ -20,3 +20,23 @@
 .workspace :global(.admin-badge) { font-size: .8rem; padding: .35rem .65rem; border-radius: 20px; white-space: normal; }
 .workspace :global(.button) { max-width: 100%; }
 @media(max-width:600px) { .workspace :global(.admin-filter)>label { width: 100%; } .workspace :global(.admin-filter input),.workspace :global(.admin-filter select) { max-width: 100%; } }
+
+/* Shared backend hierarchy. Applied only inside authenticated workspace layouts. */
+.workspace :global(main h2) { font-size: 1.2rem; line-height: 1.45; letter-spacing: 0; margin-block: 1.5rem .8rem; }
+.workspace :global(main h3) { font-size: 1.05rem; line-height: 1.5; letter-spacing: 0; }
+.workspace :global(main p:not([class]):not([role])),.workspace :global(main .workflow-byline),.workspace :global(main label),.workspace :global(main dt) { color: #52616a; }
+.workspace :global(main p) { font-size: .93rem; }
+.workspace :global(main input),.workspace :global(main select),.workspace :global(main textarea),.workspace :global(main dd),.workspace :global(main td),.workspace :global([data-workspace-value]) { color: #205481; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.workspace :global([data-workspace-value]) { font-weight: 600; }
+.workspace :global(main th) { color: #52616a; font-size: .85rem; }
+.workspace :global(main .admin-facts dt) { font-size: .8rem; }
+.workspace :global(main .admin-facts dd) { margin-left: 0; font-weight: 600; }
+.workspace :global(main [role="alert"]) { color: #a12c32; }
+
+.workspace :global(main .button:disabled) { cursor: not-allowed; }
+.workspace :global(main details) { overflow-wrap: anywhere; }
+.workspace :global(main .admin-panel>h2) { margin-top: 0; }
+@media(max-width:600px) { .workspace :global(main table) { font-size: .85rem; } .workspace :global(main h2) { font-size: 1.1rem; } }
+
+.workspace :global(main h1),.workspace :global(main h2),.workspace :global(main h3) { color: #173e35; }
+.workspace :global(.admin-stats strong),.workspace :global(.ops-calculation strong),.workspace :global(.admin-list-row>strong),.workspace :global(main time) { color: #205481; font-variant-numeric: tabular-nums; }
