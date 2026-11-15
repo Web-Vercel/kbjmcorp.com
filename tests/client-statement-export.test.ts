@@ -25,3 +25,10 @@ it('marks explicit acceptance statements in CSV and printable HTML without relab
  for(const text of [statementCsv(test,true),statementHtml(test,true)]){expect(text).toContain('测试');expect(text).toContain('不作付款');expect(text).toContain('真实资料');expect(text).not.toContain('本账单已正式发布');}
  expect(statementCsv(statement,true)).toContain('本账单已正式发布');
 });
+it('uses fictional Chinese issuer details only on acceptance templates and separates the usage appendix',()=>{
+ const html=statementHtml({...statement,summary_zh:'[ACCEPTANCE-TEST-NOT-PAYABLE] 测试'},true);
+ for(const text of ['中国运营公司的法定全称（虚构测试）','TEST-NOT-VALID','不是税务发票','出单时间（北京时间）','Asia/Shanghai','附件：每日投放使用情况','含税或未税约定待中国财务核实'])expect(html).toContain(text);
+ expect(html.indexOf('本期费用')).toBeLessThan(html.indexOf('附件：每日投放使用情况'));
+ const live=statementHtml(statement,true);expect(live).not.toContain('TEST-NOT-VALID');expect(live).not.toContain('法定全称（虚构测试）');expect(live).toContain('出单主体资料尚未核实');
+ expect(html).not.toContain('注册地址');expect(html).not.toContain('银行账号');
+});
