@@ -61,3 +61,19 @@ it('names reviewer tasks as review without granting preparer or administrator de
  for(const text of ['月度结算复核','收款到账复核','代理佣金与结算复核','客户退款复核','整月活动覆盖复核','公司间到账复核','报价查看'])expect(html).toContain(text);
  expect(html).not.toContain('广告数据同步');expect(html).not.toContain('人员职责');
 });
+it.each([false,true])('ties every remaining finance destination to its preparer or reviewer duty (reviewer=%s)',reviewer=>{
+ m.path='/zh/operations';const context={...preparer,canPrepare:!reviewer,canReview:reviewer};
+ const html=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>);
+ const expected=['agents','refunds','manual-sources','manual-finance','fund-summary','service-requests','month-close','source-data','source-checks','pricing','settlements','collections','funds','upstream-payments','statement-questions'];
+ const links=[...html.matchAll(/href="\/zh\/operations\/([^"?#]+)"/g)].map(m=>m[1]);expect(links.sort()).toEqual(expected.sort());
+ expect(html).toContain('财务咨询工单');expect(html).toContain('广告来源查看');expect(html).toContain('手工来源核对');expect(html).not.toContain('>代理业务<');
+ if(reviewer){expect(html).toContain('月度结算复核');expect(html).not.toContain('月度结算制单');}else{expect(html).toContain('月度结算制单');expect(html).toContain('手工草稿进度');expect(html).toContain('退款核算与登记');}
+});
+it.each([false,true])('keeps home destinations aligned with the financial role menu (reviewer=%s)',async reviewer=>{
+ const Home=(await import('@/components/operations/OperationsHomeMenu')).default;
+ const context={...preparer,canPrepare:!reviewer,canReview:reviewer};
+ const html=renderToStaticMarkup(<Home locale="zh" context={context} finance source={false} owner={false} support={false}/>);
+ const routes=[...html.matchAll(/href="\/zh\/operations\/([^"?#]+)"/g)].map(m=>m[1]);expect(routes).toHaveLength(15);
+ for(const forbidden of ['staff','ads-reporting','manual-accounts','upstream'])expect(routes).not.toContain(forbidden);
+ expect(html).toContain('财务咨询工单');expect(html).toContain('一般客服由客服处理');expect(html).toContain(reviewer?'月度结算复核':'月度结算制单');
+});

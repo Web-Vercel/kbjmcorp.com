@@ -79,7 +79,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
   const title = config.title[index];
   return <div className={styles.bar}>
     <nav aria-label={index === 0 ? '当前位置' : 'Breadcrumb'} className={styles.path}>
-      {current ? <><Link href={root}>{title}</Link><span aria-hidden="true"> › </span><span aria-current="page">{current[index]}</span></> : <span aria-current="page">{title}</span>}
+      {current ? <><Link href={root}>{title}</Link><span aria-hidden="true"> › </span><span aria-current="page">{section==='operations'?operationsMenuLabel(parts[0],current,operationsContext,locale):current[index]}</span></> : <span aria-current="page">{title}</span>}
     </nav>
     <details className={styles.menu}><summary>{index === 0 ? '本中心菜单' : 'Workspace menu'}</summary>
       <nav aria-label={title}>
