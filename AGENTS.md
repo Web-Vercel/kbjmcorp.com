@@ -74,3 +74,6 @@ The owner requested a visible current email/account label/role/company on extern
 
 ## Retired demonstration entrypoints — 2026-11-16 (Vancouver)
 The owner requested removing legacy demonstration links and disabling old fictional preview route trees. Do not reintroduce demo entry links into employee login, client CRM or public application pages. Retain archived components only behind retired route layouts and keep legacy demo-cookie cleanup/logout and fail-closed real API checks. Existing client A/B isolation accounts and their fictional acceptance records must remain unchanged. Future external demonstrations use separately provisioned, role-scoped real accounts with fictional records. See `docs/RETIRED_DEMOS.md`.
+
+## Fictional intercompany receipt acceptance — 2026-11-16 (Vancouver)
+Use the explicit Preview-only fictional workflow for the configured collections test organization, verified as 财务流程验收企业（虚构）. Test forms and independent reviews must say 未实际汇款 and must not require a false real-payment attestation. Persist TEST-UPSTREAM- references and fictional evidence labels; retain independent approval, allocation checks and client-balance separation. No real transfers or hosted registrations are automatic. See `docs/UPSTREAM_FICTIONAL_ACCEPTANCE.md`.

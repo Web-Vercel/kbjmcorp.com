@@ -2,7 +2,7 @@
 import {useRef,useState,type ReactNode,type FormEvent} from 'react';
 import {upstreamActionReceipt,type UpstreamActionReceipt} from '@/lib/billing/upstream-payments';
 import UpstreamReceipt from './UpstreamReceipt';
-export default function UpstreamActionForm({locale,action,targetId,company,month,children,button}:{locale:'zh'|'en';action:'review'|'reversal_submit'|'reversal_review';targetId:string;company?:string;month?:string;children:ReactNode;button:string}){
+export default function UpstreamActionForm({locale,action,targetId,company,month,children,button,testMode=false}:{locale:'zh'|'en';action:'review'|'reversal_submit'|'reversal_review';targetId:string;company?:string;month?:string;children:ReactNode;button:string;testMode?:boolean}){
  const zh=locale==='zh',lock=useRef(false);const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<UpstreamActionReceipt|null>(null);
  const query=new URLSearchParams({...company?{company}:{},...month?{month}:{}}).toString();const original=`/${locale}/operations/upstream-payments${query?'?'+query:''}#${action==='reversal_review'?'upstream-reversal':'upstream-payment'}-${targetId}`;
  async function submit(event:FormEvent<HTMLFormElement>){
@@ -13,6 +13,6 @@ export default function UpstreamActionForm({locale,action,targetId,company,month
    if(!response.ok&&response.status<500&&errors[result.error])setMessage(errors[result.error][zh?0:1]);else setUnknown(true);
   }catch{setUnknown(true);}finally{clearTimeout(timer);lock.current=false;setBusy(false);}
  }
- if(receipt)return <UpstreamReceipt receipt={receipt} locale={locale} company={company} month={month}/>;
+ if(receipt)return <UpstreamReceipt testMode={testMode} receipt={receipt} locale={locale} company={company} month={month}/>;
  return <div><form className="admin-form" onSubmit={submit} aria-busy={busy}><fieldset disabled={busy} style={{border:0,padding:0,margin:0,minWidth:0,display:'grid',gap:20}}>{children}</fieldset><button className="button" disabled={busy}>{busy?(zh?'正在保存…':'Saving…'):button}</button><p role="status" aria-live="polite">{message}</p></form>{unknown&&<div role="alert"><p>{zh?'处理结果待核查，不能认定未保存。保留原依据、说明及请求，先查看原记录，不要重复另建或进行相反操作。':'The result is unconfirmed. Retain the evidence, note and request, then check the original before creating another or taking the opposite action.'}</p></div>}{(unknown||message)&&<p><a className="service-link" href={original} target="_blank" rel="noopener noreferrer">{zh?'核查原 CAD 记录':'Check the original CAD record'}</a></p>}</div>;
 }

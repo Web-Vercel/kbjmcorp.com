@@ -13,3 +13,23 @@ it('retains the same request ID after an unknown network outcome',async()=>{cons
 it('preserves the original bank reference and allocation on a malformed success or server error',async()=>{
  for(const response of [Response.json({ok:true,id}),Response.json({error:'unavailable'},{status:503})]){vi.stubGlobal('fetch',vi.fn().mockResolvedValue(response));setup();await userEvent.setup().click(screen.getByRole('button',{name:'提交独立复核'}));expect(screen.getByRole('alert').textContent).toContain('登记结果未知');expect((screen.getByLabelText('银行交易流水号（逐笔唯一）') as HTMLInputElement).value).toBe('FICTIONAL-001');expect((screen.getByLabelText('第 1 项核销金额 CAD') as HTMLInputElement).value).toBe('20.00');cleanup();}
 });
+it('prefills a single fictional allocation and never asks the tester to attest actual payment',async()=>{
+ const fetch=vi.fn();vi.stubGlobal('fetch',fetch);
+ render(<Form locale="zh" organizationId={id} testMode statements={[{id,account_name:'FICTIONAL',month:'2026-10-01',procurement_cad_minor:'4530',verified_cad_minor:'0',pending_cad_minor:'0'}]}/>);
+ expect((screen.getByLabelText('测试金额 CAD') as HTMLInputElement).value).toBe('45.30');expect((screen.getByLabelText('第 1 项账单') as HTMLSelectElement).value).toBe(id);
+ expect(screen.getByRole('checkbox').parentElement?.textContent).toContain('未实际汇款');expect(screen.queryByText(/已核实实际 CAD/)).toBeNull();
+ fireEvent.click(screen.getByRole('checkbox'));fireEvent.submit(screen.getByRole('button',{name:'提交独立复核'}).closest('form')!);
+ expect(screen.getAllByRole('status').some(n=>n.textContent?.includes('请先生成测试凭证'))).toBe(true);expect(fetch).not.toHaveBeenCalled();
+});
+it('generates the matching fictional PDF and invalidates its fingerprint when the amount changes',async()=>{
+ const {webcrypto}=await import('node:crypto');vi.stubGlobal('crypto',webcrypto);
+ const NativeURL=URL;vi.stubGlobal('URL',class extends NativeURL {static createObjectURL=vi.fn(()=> 'blob:fictional');static revokeObjectURL=vi.fn();});
+ const click=vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(()=>{});
+ try{
+  render(<Form locale="zh" organizationId={id} testMode statements={[{id,account_name:'FICTIONAL',month:'2026-10-01',procurement_cad_minor:'4530',verified_cad_minor:'0',pending_cad_minor:'0'}]}/>);
+  const button=screen.getByRole('button',{name:'生成测试凭证 PDF'});await userEvent.setup().click(button);
+  await vi.waitFor(()=>expect(screen.getAllByRole('status').some(n=>n.textContent?.includes('测试凭证与指纹已生成'))).toBe(true));
+  const form=button.closest('form')!;expect((form.elements.namedItem('bankReference') as HTMLInputElement).value).toMatch(/^TEST-UPSTREAM-/);expect((form.elements.namedItem('hash') as HTMLInputElement).value).toMatch(/^[a-f0-9]{64}$/);expect(click).toHaveBeenCalledOnce();
+  fireEvent.input(screen.getByLabelText('测试金额 CAD'),{target:{value:'40.00'}});expect((form.elements.namedItem('hash') as HTMLInputElement).value).toBe('');
+ }finally{click.mockRestore();}
+});

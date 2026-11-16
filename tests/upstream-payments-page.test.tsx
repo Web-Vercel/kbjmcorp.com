@@ -23,3 +23,9 @@ it('leaves original records visible but disables summary exports when history is
 it('does not expose banking reports to staff without a finance role',async()=>{
  m.operations.mockResolvedValue({context:{owner:false,canPrepare:false,canReview:false},client:{rpc:m.rpc},user:{id:user}});await expect(render()).rejects.toThrow('Not found');expect(m.rpc).not.toHaveBeenCalled();
 });
+it('shows fictional confirmations only for the configured Preview company with its verified name',async()=>{
+ vi.stubEnv('VERCEL_ENV','preview');vi.stubEnv('COLLECTIONS_TEST_ORGANIZATION_ID',org);
+ const chain={select:()=>chain,order:()=>chain,limit:async()=>({data:[{id:org,name:'财务流程验收企业（虚构）'}],error:null})};
+ m.operations.mockResolvedValue({user:{id:other},context:{owner:false,canPrepare:false,canReview:true},client:{from:()=>chain,rpc:m.rpc}});
+ try{const html=await render();expect(html).toContain('虚构测试 · 未实际汇款');expect(html).toContain('已独立核对虚构凭证');expect(html).not.toContain('已独立查看原件并核对收付双方');}finally{vi.unstubAllEnvs();}
+});
