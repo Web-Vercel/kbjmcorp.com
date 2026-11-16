@@ -5,7 +5,7 @@
 Local automated isolation checks pass, but hosted two-account acceptance is not complete.
 
 - Client A: existing `+client-demo` account, assigned to 财务流程验收企业（虚构）. Existing balance CNY 703.23 and statement CNY 296.78 must remain unchanged.
-- Client B: reuse the existing uniquely named 测试企业B. A Preview-only setup panel is provided on the administrator account-access page. Its presence is not evidence that an account has been created.
+- Client B: the owner screenshot confirmed `kennylu.ai.canada+client-demoB@gmail.com` was created and enabled for the existing uniquely named 测试企业B. A Preview-only setup panel is provided on the administrator account-access page. Its presence is not evidence that an account has been created.
 
 ## Client B setup panel
 
@@ -24,3 +24,9 @@ No company is duplicated; no customer A grant, wallet, statement, payment, recei
 5. Verify each client still reads its own authorized data and downloads. Record observed outcomes; do not mark manual checks passed from code inspection alone.
 
 Use separate browser profiles or sign out before changing client identities. Administrator access is not evidence of a client data leak.
+
+## Reported session ambiguity
+
+The owner reported both client views showing the 测试企业B · CNY wallet option. The screenshots show an empty published-statement list, not evidence of a shared published bill. Both screenshots are in Chrome Incognito; tabs and windows in the same Incognito session can share the last signed-in account. This is a hypothesis to verify, not a passed isolation result or a confirmed permission leak.
+
+Verified identity banners and cross-tab session invalidation are added; see [Portal identity and session views](PORTAL_IDENTITY.md). Repeat hosted acceptance with A in a normal browser profile and B in a separate Incognito profile, checking the visible email and company before opening direct links. Multiple Incognito windows alone do not establish isolated browser profiles.

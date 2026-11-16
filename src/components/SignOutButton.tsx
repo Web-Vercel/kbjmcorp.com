@@ -1,4 +1,5 @@
 "use client";
+import {notifySessionChange} from "@/lib/auth/session-sync";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/content";
@@ -9,6 +10,7 @@ export default function SignOutButton({ locale, mode = "client",destination }: {
     try {
       const response = await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
       if (!response.ok) throw new Error();
+      notifySessionChange();
       router.replace(destination||`/${locale}/${mode === "staff" ? "admin/login" : "login"}`); router.refresh();
     } catch { setError(true); setBusy(false); }
   }

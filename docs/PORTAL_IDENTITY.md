@@ -1,0 +1,11 @@
+# Portal identity and session views
+
+Customer account pages, the external access workspace and agent pages show the server-verified current email, account label and role. Client/sales views also show the assigned company. Agent views say own agent records rather than treating an agent ID as a customer company; investor scope is explicitly read-only. Login pages hide any previous-session banner. Identity is not taken from a login form, query string, local storage or a selected wallet.
+
+Layouts are dynamic and use the existing verified business-context helper. Protected page responses and Supabase reads remain no-store. The external login API checks that the returned Auth email matches the requested email, in addition to the existing context/user-ID check.
+
+Sign-in and sign-out emit a credential-free invalidation signal to other same-origin tabs. Workspace pages discard their previous client state through a full reload on account-change signals. When focus/visibility returns or a page is restored from browser history, a read-only no-store endpoint checks the current verified cookie identity. A changed or missing identity triggers reload; an unchanged identity does not discard unsaved staff work. Unavailable verification is not treated as another signed-in user. No periodic polling, email or popup notification is introduced. This synchronization is a view-consistency measure, not a permission grant; financial authorization remains in server/database guards.
+
+A browser profile has one current site login. Multiple tabs and Incognito windows in the same Incognito session can share it. To test A and B concurrently, use distinct profiles or a normal profile versus Incognito. First verify the banner email/company, then the wallet and direct statement/service URLs. CNY is a currency label, not proof that two users see the same bill.
+
+Local database regression now exercises two distinct password-login clients, two companies and two CNY wallets through migrations 046. It verifies separate identities/wallets, own published statements and empty cross-company statement/wallet queries at AAL1. This is automated evidence only. The owner's hosted A/B acceptance is still pending; no hosted account mappings or financial records are changed by this iteration. No new SQL migration is required.
