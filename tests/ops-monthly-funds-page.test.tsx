@@ -19,3 +19,7 @@ it('separates a known missing wallet from a failed or mismatched report',async()
 it('blocks nonfinance staff before reading organizations or money',async()=>{
  m.context.canReview=false;await expect(render()).rejects.toThrow('NOT_FOUND');expect(m.from).not.toHaveBeenCalled();expect(m.rpc).not.toHaveBeenCalled();
 });
+it('keeps verified zero-entry totals and export visible without rendering an empty ledger table',async()=>{
+ m.rpc.mockResolvedValue({data:{...data,opening_minor:'10000',credits_minor:'0',debits_minor:'0',closing_minor:'10000',entry_count:0,complete:true,entries:[]},error:null});
+ const html=await render();expect(html).toContain('CNY 100.00');expect(html).toContain('期初余额结转');expect(html).toContain('不代表广告平台没有发生费用');expect(html).toContain('下载本月资金对账单');expect(html).not.toContain('<table');
+});
