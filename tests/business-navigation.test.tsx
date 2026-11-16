@@ -66,7 +66,7 @@ it.each([false,true])('ties every remaining finance destination to its preparer 
  const html=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>);
  const expected=['agents','refunds','manual-sources','manual-finance','fund-summary','service-requests','month-close','source-data','source-checks','pricing','settlements','collections','funds','upstream-payments','statement-questions'];
  const links=[...html.matchAll(/href="\/zh\/operations\/([^"?#]+)"/g)].map(m=>m[1]);expect(links.sort()).toEqual(expected.sort());
- expect(html).toContain('财务咨询工单');expect(html).toContain('广告数据与凭证');expect(html).toContain('手工报表提交');expect(html).not.toContain('>代理业务<');
+ expect(html).toContain('财务咨询工单');expect(html).toContain('广告数据与凭证');expect(html).toContain('手工提交平台报表');expect(html).not.toContain('>代理业务<');
  if(reviewer){expect(html).toContain('月度结算复核');expect(html).not.toContain('月度结算制单');}else{expect(html).toContain('月度结算制单');expect(html).toContain('手工草稿进度');expect(html).toContain('退款核算与登记');}
 });
 it.each([false,true])('keeps home destinations aligned with the financial role menu (reviewer=%s)',async reviewer=>{
@@ -81,7 +81,7 @@ it('uses consistent administrator module names in both the home menu and workspa
  m.path='/zh/operations';const context={...preparer,owner:true,canPrepare:true,canReview:true};
  const Home=(await import('@/components/operations/OperationsHomeMenu')).default;
  const nav=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>),home=renderToStaticMarkup(<Home locale="zh" context={context} finance source owner support/>);
- for(const name of ['代理与佣金管理','月度结算管理','对公收款与入账','手工报表提交','月度数据完整性核对','手工账户归属关联']){expect(nav).toContain(name);expect(home).toContain(name);}
+ for(const name of ['代理与佣金管理','月度结算管理','对公收款与入账','手工提交平台报表','月度数据完整性核对','手工账户归属关联']){expect(nav).toContain(name);expect(home).toContain(name);}
 });
 it.each(['investor','sales'] as const)('keeps %s navigation in its read-only/follow-up portal even on a legacy account URL',role=>{
  m.path='/zh/account/funds';const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role={role}/>);
