@@ -62,3 +62,6 @@ The owner authorized role-scoped home reminders for administrators, finance prep
 
 ## Homepage reminder visual emphasis — 2026-11-15
 The owner requested immediate visual identification of actionable, exceptional and waiting reminders. Use scoped summary cards with distinct icons, restrained blue for actions, amber for actual exceptions and neutral gray for waiting. Empty categories stay muted and compact; only nonempty groups expand into details. Keep text labels alongside visual signals. No workflow, permissions, email or popup changes.
+
+## Unified internal system and two portals — 2026-11-16
+The owner authorized one business system with two sign-in portals: employees at `/admin/login` and external clients/agents/other authorized business roles at `/access/login`. Internal management and operations pages share one Business management center shell and role-scoped grouped navigation. Do not reintroduce separate centers or collection shortcuts beside an entire center. Preserve existing URLs, financial authority, company isolation, independent preparation/review and MFA. Keep explicit legacy application/document return verification compatible. See `docs/UNIFIED_BUSINESS_WORKSPACE.md`. Preview only.

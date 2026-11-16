@@ -1,0 +1,31 @@
+.shell { min-width: 0; }
+.shell :global(.admin-main) { min-width: 0; }
+.shell :global(.admin-sidebar) { overflow-y: auto; }
+.navigation { margin-top: 1.5rem; gap: .5rem; }
+.navigation details { padding-top: .8rem; border-top: 1px solid #365d4a; }
+.navigation summary { margin: 0 0 .4rem; padding: 0 .6rem; color: #a9c7b6; font-size: .8rem; cursor: pointer; font-weight: 600; line-height: 1.6; letter-spacing: 0; }
+.navigation a { padding: .6rem .7rem; line-height: 1.6; }
+.operations { min-width: 0; }
+.operations :global(.wrap) { width: 100%; max-width: 100%; margin-left: 0; margin-right: 0; }
+.operations :global(.section) { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.operations :global(.ops-app) { min-height: 0; background: transparent; }
+@media (max-width: 760px) {
+ .shell { grid-template-columns: minmax(0,1fr); }
+ .shell :global(.admin-sidebar) { position: static; height: auto; padding: 1.25rem; }
+ .navigation { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .navigation > a { grid-column: 1 / -1; }
+ .shell :global(.admin-topbar) { height: auto; min-height: 4rem; padding: 1rem; gap: 1rem; flex-wrap: wrap; }
+}
+@media print { .shell { display: block; } .shell :global(.admin-sidebar), .shell :global(.admin-topbar) { display: none; } .shell :global(.admin-content) { padding: 0; } }
+
+.navigation details a { display: block; margin-top: .25rem; }
+.shell .navigation summary { color: #d7e5dd; }
+.shell .navigation details { margin-block: .35rem; }
+.shell .navigation details[open] > summary { margin-bottom: .4rem; }
+
+.mobileToggle { display: none; }
+@media (max-width: 760px) {
+ .mobileToggle { display: block; margin-top: 1rem; padding: .65rem .85rem; background: #265546; color: #f6fbe9; border: 1px solid #56856b; border-radius: .35rem; font: inherit; cursor: pointer; }
+ .shell .navigation { max-height: 60vh; overflow-y: auto; align-items: start; }
+ .shell .navigation[data-expanded="false"] { display: none; }
+}

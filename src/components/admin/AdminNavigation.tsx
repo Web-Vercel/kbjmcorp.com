@@ -1,10 +1,13 @@
 "use client";
 import Link from "next/link";
+import InternalNavigation from "@/components/workspace/InternalNavigation";
+import type {OpsContext} from "@/lib/operations/model";
 import { usePathname } from "next/navigation";
 import type { Locale } from "@/lib/content";
 import { adminContent } from "@/lib/admin/content";
-export default function AdminNavigation({locale,demo,staffRole,canFinance=false}:{locale:Locale;demo:boolean;staffRole?:'admin'|'operator';canFinance?:boolean}){
+export default function AdminNavigation({locale,demo,staffRole,canFinance=false,context,canManage=staffRole==='admin'}:{context?:OpsContext|null;canManage?:boolean;locale:Locale;demo:boolean;staffRole?:'admin'|'operator';canFinance?:boolean}){
  const t=adminContent[locale];const path=usePathname();
+ if(!demo)return <InternalNavigation locale={locale} context={context} canManage={canManage} admin={staffRole==='admin'}/>;
  const items=[["",t.overview,"◫"],["/inquiries",t.inquiries,"◎"],["/projects",t.projects,"▤"],["/accounts",t.accounts,"◇"] ,...(!demo?[["/role-accounts",locale==="zh"?"业务账号权限":"Business account access","♧"],["/applications",locale==="zh"?"企业申请审核":"Business applications","◎"],["/crm",locale==="zh"?"企业客户 CRM":"Client CRM","▣"],["/clients",locale==="zh"?"项目协作权限":"Project collaboration access","♧"]]:[])];
  return <nav className="admin-nav" aria-label={locale==="zh"?"后台导航":"Workspace navigation"}>{items.filter(([suffix])=>demo||!["/role-accounts","/clients"].includes(suffix)||staffRole==='admin').map(([suffix,label,icon])=>{
  const href=demo?`/${locale}/admin-preview${suffix?`#${suffix.slice(1)}`:""}`:`/${locale}/admin${suffix}`;

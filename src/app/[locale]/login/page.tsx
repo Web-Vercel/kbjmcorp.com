@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import {clientReturnTo} from "@/lib/auth/client-return";
-import { notFound } from "next/navigation";
+import { notFound,redirect } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import PhoneLogin from "@/components/PhoneLogin";
@@ -18,6 +18,7 @@ export default async function Login({ params, searchParams }: Props) {
   const zh = locale === "zh";
   const query=await searchParams;const applicationFlow=query.flow === "application";
   const returnTo=applicationFlow?null:clientReturnTo(query.returnTo,locale);
+  if(!applicationFlow&&!returnTo)redirect(`/${locale}/access/login`);
   const config = getAuthConfig();
   const steps = zh ? [
     ["输入手机号", "默认 +86，填写 11 位中国大陆手机号码。"],

@@ -24,7 +24,7 @@ it("refreshes a successful mutation and clears the submitted form",async()=>{
  await waitFor(()=>expect(navigation.refresh).toHaveBeenCalled());expect(note.value).toBe('');expect(fetchMock).toHaveBeenCalledWith('/api/admin/test',expect.objectContaining({body:'{"body":"Fixture note"}'}));
 });
 it("does not call hosted Auth from the unconfigured staff login",async()=>{
- render(<StaffLogin locale="zh" enabled={false} siteKey=""/>);const user=userEvent.setup();await user.type(screen.getByLabelText('工作邮箱'),'fixture@example.com');await user.type(screen.getByLabelText('密码'),'test-only-password');await user.click(screen.getByRole('button',{name:'管理员登录'}));
+ render(<StaffLogin locale="zh" enabled={false} siteKey=""/>);const user=userEvent.setup();await user.type(screen.getByLabelText('工作邮箱'),'fixture@example.com');await user.type(screen.getByLabelText('密码'),'test-only-password');await user.click(screen.getByRole('button',{name:'员工登录'}));
  expect(fetchMock).not.toHaveBeenCalled();expect(screen.getByRole('status').textContent).toContain('账号登录暂不可用');
 });
 it("renders the official SDK's SVG data URI without double encoding it",async()=>{

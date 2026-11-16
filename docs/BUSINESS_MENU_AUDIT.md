@@ -1,5 +1,7 @@
 # Business menu audit — 2026-11-15
 
+Update: the separate workspace return entry described below is superseded by the shared internal shell and grouped menu in [Unified business workspace](UNIFIED_BUSINESS_WORKSPACE.md). Role-specific authority remains unchanged.
+
 Scope: authenticated business menus, destinations, successful page headings and existing role capabilities. Public marketing navigation is unchanged. This is a source and automated regression audit; hosted account acceptance remains separate.
 
 ## Role alignment

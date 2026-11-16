@@ -8,7 +8,7 @@ import styles from './BusinessNavigation.module.css';
 import SignOutButton from './SignOutButton';
 
 const sections = {
-  operations: {title: ['三方运营中心', 'Three-party operations'], pages: {
+  operations: {title: ['业务管理中心', 'Business management center'], pages: {
     agents: ['代理业务', 'Agent business'],
     refunds: ['客户余额退款', 'Balance refunds'],
     'manual-accounts': ['手工关联广告账户', 'Manual account links'],
