@@ -1,9 +1,8 @@
 .card.card { padding: 18px 20px; margin-block: 12px; }
-.identity { display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 7px 12px; margin: 0; align-items: baseline; }
-.identity dt { color: #607079; font-size: 14px; font-weight: 400; }
-.identity dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: 15px; }
-.identity .name { margin: 0; font-size: 17px; font-weight: 600; }
-.identity .platform { font-family: ui-monospace, monospace; font-size: 13px; }
+.identity { display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 7px 12px; margin: 0; align-items: baseline; font-family: inherit; font-size: 15px; line-height: 1.5; }
+.identity dt { color: #607079; font-size: inherit; line-height: inherit; font-weight: 400; }
+.identity dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: inherit; line-height: inherit; font-weight: 600; }
+.identity .name, .identity .platform { margin: 0; font: inherit; letter-spacing: normal; }
 .status { margin: 10px 0 0; font-size: 14px; }
 .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 12px 0; }
 .facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
@@ -15,6 +14,5 @@
 @media(max-width:540px) {
  .card.card { padding: 14px; }
  .identity { grid-template-columns: 76px minmax(0,1fr); gap: 6px 8px; }
- .identity .name { margin: 0; font-size: 15px; }
  .facts { gap: 8px; flex-direction: column; }
 }
