@@ -1,0 +1,7 @@
+.version { border-top: 1px solid #dce5df; padding-top: 16px; margin-top: 16px; }
+.version summary { cursor: pointer; }
+.row { display: inline-grid; grid-template-columns: minmax(0,1fr) auto; gap: 8px 24px; width: calc(100% - 24px); vertical-align: top; }
+.row small { grid-column: 1 / -1; font-weight: 400; }
+.row strong { white-space: nowrap; }
+.warning { margin-block: 10px 0; }
+@media(max-width:600px) { .row { grid-template-columns: 1fr; gap: 6px; } }
