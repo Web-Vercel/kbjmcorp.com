@@ -9,3 +9,7 @@ The API verifies the Preview allowlist and stored company name, requires TEST-UP
 This is not a separate sandbox database. Fictional registrations persist in the dedicated fictional company's existing workflow with explicit reference/evidence labels; CSV exports retain those identifiers. They must not be represented as bank evidence or included in formal accounting. Existing records are not relabeled or modified.
 
 Hosted acceptance: keep company 财务流程验收企业（虚构）, procurement month 2026-10. Confirm no registration first. Generate the fictional PDF for CAD45.30, then submit once; check pending allocation CAD45.30 and verified allocation CAD0. Another finance reviewer checks the fictional PDF and approves. Expected final: verified45.30, outstanding0, pending0. This is a test expectation, not a claimed hosted result. Do not repeat submissions after uncertain results; inspect the original record first.
+
+## Owner-confirmed registration — 2026-11-16 (Vancouver)
+
+The owner supplied a successful registration receipt for record `353cad29-2b89-48ad-abc5-51ff89587eee`, CAD45.30, allocated to the October statement `594a789b-db14-4a8e-b6f5-1e545c612f01`. A subsequent screenshot under the finance-reviewer identity shows this record pending independent review and not yet included in verified allocations. No approval, completed reconciliation, actual remittance or unchanged client balance has been independently confirmed by this observation. Continue with the existing record; do not register another.
