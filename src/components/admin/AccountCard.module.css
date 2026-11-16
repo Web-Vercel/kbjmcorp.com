@@ -1,8 +1,10 @@
-.card.card { padding: 18px 20px; margin-block: 12px; }
+.list { container-type: inline-size; }
+.card.card { padding: 18px 20px; margin-block: 12px; display: grid; gap: 14px 24px; align-items: start; }
 .identity { display: grid; grid-template-columns: 88px minmax(0,1fr); gap: 7px 12px; margin: 0; align-items: baseline; font-family: inherit; font-size: 15px; line-height: 1.5; }
 .identity dt { color: #607079; font-size: inherit; line-height: inherit; font-weight: 400; }
 .identity dd { margin: 0; min-width: 0; overflow-wrap: anywhere; font-size: inherit; line-height: inherit; font-weight: 600; }
 .identity .name, .identity .platform { margin: 0; font: inherit; letter-spacing: normal; }
+.identity .platform { font-weight: 600; }
 .status { margin: 10px 0 0; font-size: 14px; }
 .facts { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 12px 0; }
 .facts > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
@@ -13,4 +15,15 @@
  .card.card { padding: 14px; }
  .identity { grid-template-columns: 76px minmax(0,1fr); gap: 6px 8px; }
  .facts { gap: 8px; flex-direction: column; }
+}
+
+.state { min-width: 0; }
+.state .status { margin-top: 0; }
+.state .facts { display: grid; gap: 8px; margin-block: 10px 0; }
+.state .facts > div { display: grid; grid-template-columns: 86px minmax(0,1fr); gap: 10px; }
+.state .facts dd { overflow-wrap: anywhere; }
+.state .note { margin-bottom: 0; }
+@container (min-width: 900px) {
+ .card.card { grid-template-columns: minmax(0,1.85fr) minmax(0,1fr); }
+ .state { border-left: 1px solid #e1e7e4; padding-left: 24px; }
 }
