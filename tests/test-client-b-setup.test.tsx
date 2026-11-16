@@ -4,7 +4,7 @@ import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
 import Setup from '@/components/live-access/TestClientBSetup';
 import {testClientBSetup} from '@/lib/live-access/test-client-b';
 const id='b0000000-0000-4000-8000-000000000002',userId='b0000000-0000-4000-8000-000000000003';
-const org={id,name:'测试企业B'};const props={locale:'zh' as const,organization:org,email:'owner+client-isolation-b@gmail.com',existing:false,active:false};
+const org={id,name:'测试企业B'};const props={locale:'zh' as const,organization:org,email:'owner+client-demoB@gmail.com',existing:false,active:false};
 const fetcher=vi.fn();
 beforeEach(()=>{vi.stubGlobal('fetch',fetcher);fetcher.mockReset();});afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 function response(body:unknown,status=200){return new Response(JSON.stringify(body),{status});}

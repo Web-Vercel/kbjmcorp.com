@@ -9,7 +9,7 @@ Local automated isolation checks pass, but hosted two-account acceptance is not 
 
 ## Client B setup panel
 
-Only rendered to the already authenticated administrator in Vercel Preview. Requires exactly one existing company named 测试企业B and a current administrator Gmail address, from which a `+client-isolation-b` alias is derived. Existing client accounts linked to B are shown instead of offering creation. A matching alias already assigned elsewhere suppresses setup. No arbitrary third-party recipient is generated.
+Only rendered to the already authenticated administrator in Vercel Preview. Requires exactly one existing company named 测试企业B and a current administrator Gmail address, from which a `+client-demoB` alias is derived. Existing client accounts linked to B are shown instead of offering creation. A matching alias already assigned elsewhere suppresses setup. No arbitrary third-party recipient is generated.
 
 The button generates a cryptographically random initial password in the administrator's browser. It reuses the existing administrator-only account creation API, which creates Auth and a paused client grant, then activates only the returned client/company/user/revision through the existing access API. A mismatched response cannot trigger activation. No credential is logged, emailed or stored in browser storage. The password remains masked with the existing show/hide control and must be saved before refreshing. A failed or uncertain result locks further creation until account/Auth state is checked. Created-but-paused accounts can be resumed in the existing list.
 
