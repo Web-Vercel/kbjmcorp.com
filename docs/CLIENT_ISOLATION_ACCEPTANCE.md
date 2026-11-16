@@ -30,3 +30,9 @@ Use separate browser profiles or sign out before changing client identities. Adm
 The owner reported both client views showing the 测试企业B · CNY wallet option. The screenshots show an empty published-statement list, not evidence of a shared published bill. Both screenshots are in Chrome Incognito; tabs and windows in the same Incognito session can share the last signed-in account. This is a hypothesis to verify, not a passed isolation result or a confirmed permission leak.
 
 Verified identity banners and cross-tab session invalidation are added; see [Portal identity and session views](PORTAL_IDENTITY.md). Repeat hosted acceptance with A in a normal browser profile and B in a separate Incognito profile, checking the visible email and company before opening direct links. Multiple Incognito windows alone do not establish isolated browser profiles.
+
+## Hosted observations after the identity banner
+
+The owner confirmed client A and B each see their own statement/account display. A subsequent screenshot shows client B's verified banner (client-demoB / 测试企业B), the known client A statement ID in the URL and no client A bill/amount/detail rendered. This confirms that specific B→A statement read did not disclose A's bill; it does not prove all service/export endpoints or the reverse direction.
+
+A direct inaccessible/nonexistent statement link now shows one generic explanation and a link to the current user's authorized statements. It does not change the signed-in account, disclose whether the requested foreign bill exists or infer access denial from an upstream query error. A returned statement ID inconsistent with the requested ID is treated as unavailable, without exports.
