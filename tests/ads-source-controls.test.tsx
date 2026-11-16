@@ -15,13 +15,13 @@ const monthly={...snapshot,since:'2026-10-01',until:'2026-10-31'};
 const binding={id:'binding',organization_id:company,active:true,revision:1};
 it('distinguishes an operational source from a monthly source without implying zero activity',async()=>{
  render(await AdsSourceControls({client:client(binding),locale:'zh',accountId:'adacct_fictional',snapshots:[snapshot],expectedCompany:company,month:'2026-10'}));
- expect(screen.getByText(/只投放一两天也可以/)).toBeTruthy();expect(screen.queryByRole('button',{name:'交接选定来源版本供财务查看'})).toBeNull();expect(screen.queryByRole('link',{name:'查看整月活动覆盖核实'})).toBeNull();
+ expect(screen.getByText(/只投放一两天也可以/)).toBeTruthy();expect(screen.queryByRole('button',{name:'交接选定来源版本供财务查看'})).toBeNull();expect(screen.queryByRole('link',{name:'查看月度数据完整性核对'})).toBeNull();
 });
 it('requires explicit handoff of a saved month before offering finance verification',async()=>{
  const view=render(await AdsSourceControls({client:client(binding),locale:'zh',accountId:'adacct_fictional',snapshots:[monthly],expectedCompany:company,month:'2026-10'}));
- expect(screen.getByText(/该月来源已保存，尚未交接/)).toBeTruthy();expect((screen.getByLabelText('待交接的来源快照') as HTMLSelectElement).value).toBe('');expect(screen.queryByRole('link',{name:'查看整月活动覆盖核实'})).toBeNull();view.unmount();
+ expect(screen.getByText(/该月来源已保存，尚未交接/)).toBeTruthy();expect((screen.getByLabelText('待交接的来源快照') as HTMLSelectElement).value).toBe('');expect(screen.queryByRole('link',{name:'查看月度数据完整性核对'})).toBeNull();view.unmount();
  render(await AdsSourceControls({client:client(binding,[{snapshot_id:monthly.id}]),locale:'zh',accountId:'adacct_fictional',snapshots:[monthly],expectedCompany:company,month:'2026-10'}));
- const link=screen.getByRole('link',{name:'查看整月活动覆盖核实'});expect(link.getAttribute('href')).toBe(`/zh/operations/source-checks?company=${company}&month=2026-10`);expect(screen.getByText(/新读取的版本仍须单独选择交接/)).toBeTruthy();
+ const link=screen.getByRole('link',{name:'查看月度数据完整性核对'});expect(link.getAttribute('href')).toBe(`/zh/operations/source-checks?company=${company}&month=2026-10`);expect(screen.getByText(/新读取的版本仍须单独选择交接/)).toBeTruthy();
 });
 it('blocks handoff and access mutations for a different workbench company',async()=>{
  render(await AdsSourceControls({client:client(binding),locale:'zh',accountId:'adacct_fictional',snapshots:[monthly],expectedCompany:'b0000000-0000-4000-8000-000000000002',month:'2026-10'}));
@@ -29,7 +29,7 @@ it('blocks handoff and access mutations for a different workbench company',async
 });
 it('does not offer a verification shortcut for paused handoffs',async()=>{
  render(await AdsSourceControls({client:client({...binding,active:false},[{snapshot_id:monthly.id}]),locale:'zh',accountId:'adacct_fictional',snapshots:[monthly],expectedCompany:company,month:'2026-10'}));
- expect(screen.queryByRole('link',{name:'查看整月活动覆盖核实'})).toBeNull();
+ expect(screen.queryByRole('link',{name:'查看月度数据完整性核对'})).toBeNull();
 });
 it('pins new ownership choices to the explicitly selected workbench company',async()=>{
  render(await AdsSourceControls({client:client(),locale:'zh',accountId:'adacct_fictional',snapshots:[snapshot],expectedCompany:company,month:'2026-10'}));const select=screen.getByLabelText('实际获授权的客户企业') as HTMLSelectElement;expect(select.value).toBe('');expect([...select.options].filter(o=>o.value).map(o=>o.value)).toEqual([company]);
