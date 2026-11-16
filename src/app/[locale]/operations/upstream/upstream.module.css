@@ -1,0 +1,13 @@
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-block: 20px;
+}
+.summary p { margin: 0 0 6px; }
+.summary strong { font-size: 1.75rem; line-height: 1.25; }
+.statement { border-top: 1px solid #dce5df; margin-top: 24px; padding-top: 20px; }
+@media (max-width: 480px) {
+  .summary { gap: 16px; }
+  .summary strong { font-size: 1.35rem; }
+}
