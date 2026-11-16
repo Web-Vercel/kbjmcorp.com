@@ -9,8 +9,6 @@
 .facts dt { font-size: 13px; color: #607079; }
 .facts dd { font-size: 14px; margin: 0; }
 .note { font-size: 13px; margin: 6px 0; }
-.archive { font-size: 13px; margin-top: 10px; }
-.archive > summary { cursor: pointer; }
 @media(max-width:540px) {
  .card.card { padding: 14px; }
  .identity { grid-template-columns: 76px minmax(0,1fr); gap: 6px 8px; }

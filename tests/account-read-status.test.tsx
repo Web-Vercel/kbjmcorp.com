@@ -4,7 +4,7 @@ import Status from '@/components/admin/AccountReadStatus';
 const account={platform:'openai_ads',external_id:'adacct_test',organization_id:'org-test',connection_status:'unverified',source_type:'manual',last_synced_at:null};
 it('shows saved API read evidence despite stale manual account markers without claiming a live connection',()=>{
  const html=renderToStaticMarkup(<Status account={account} recent={{created_at:'2026-11-16T18:00:00Z'}} canRead unavailable={false} zh/>);
- expect(html).toContain('平台 API 读取');expect(html).toContain('最近成功读取');expect(html).toContain('非实时连接状态');expect(html).not.toContain('尚未同步');
+ expect(html).toContain('平台 API 读取');expect(html).toContain('最近成功读取');expect(html).toContain('已读取并保存广告数据');expect(html).not.toContain('账户档案');expect(html).not.toContain('未验证连接');expect(html).not.toContain('人工记录');expect(html).not.toContain('当前连接正常');expect(html).not.toContain('尚未同步');
 });
 it('uses provenance to distinguish a generated test copy from a platform read',()=>{
  const html=renderToStaticMarkup(<Status account={{...account,external_id:'adacct_acceptance_test'}} recent={{created_at:'2026-11-16T18:00:00Z',provenance:{kind:'acceptance-copy-not-payable',targetOrganizationId:'org-test'}}} canRead unavailable={false} zh/>);
