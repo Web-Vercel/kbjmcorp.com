@@ -5,7 +5,7 @@ export default function SettlementFollowup({locale,company,month,draftId,quoteId
  const workbench=`/${locale}/operations/month-close?${query}`;
  let text:string,href=workbench,label=zh?'查看本月整体进度':'View this month’s progress';
  if(published){
-  text=zh?'这份草稿已有正式账单，不能通过重新编辑或另存草稿再次结算。接下来核查客户查阅、账单问题与公司间到账。':'This draft has a published statement. Editing or saving another draft must not settle the same account month again. Follow up client acknowledgement, billing questions and intercompany receipts.';
+  text=zh?'已发布并完成记账，不能通过重新编辑或另存草稿再次结算。后续核查客户查阅、账单问题及公司间到账。':'This draft has a published statement. Editing or saving another draft must not settle the same account month again. Follow up client acknowledgement, billing questions and intercompany receipts.';
  }else if(!['pending','approved','rejected'].includes(status)){
   text=zh?'当前复核状态尚待确认，请先刷新核查原记录。':'The review status is unconfirmed. Refresh and check the original record first.';
  }else if(status==='rejected'||archived){
