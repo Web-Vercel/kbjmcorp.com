@@ -30,3 +30,12 @@ it('uses the real Supabase SDK to resume recovery, verify TOTP and update the pa
  expect(calls.filter(c=>c==='POST /auth/v1/verify')).toHaveLength(1);expect(calls).toContain('PUT /auth/v1/user');expect(m.set.mock.calls.at(-1)![2].maxAge).toBe(0);
  const before=calls.filter(c=>c==='PUT /auth/v1/user').length;expect(await(await POST(request('123456'))).json()).toEqual({error:'invalid_recovery'});expect(calls.filter(c=>c==='PUT /auth/v1/user')).toHaveLength(before);
 });
+it('passes the explicit website recovery URL through the real SDK email request',async()=>{
+ const fetcher=vi.fn(async(input:RequestInfo|URL,init?:RequestInit)=>{
+  const url=new URL(String(input));expect(url.hostname).toBe('fixture.supabase.test');expect(url.pathname).toBe('/auth/v1/recover');expect(url.searchParams.get('redirect_to')).toBe('https://preview.example/en/auth/recovery');
+  const body=JSON.parse(String(init?.body));expect(body.email).toBe('fixture@example.test');expect(body.gotrue_meta_security.captcha_token).toBe('fixture-captcha');
+  return new Response('{}',{status:200,headers:{'content-type':'application/json'}});
+ });vi.stubGlobal('fetch',fetcher);
+ const r=await POST(new Request('https://preview.example/api/auth/recovery',{method:'POST',headers:{origin:'https://preview.example','content-type':'application/json'},body:JSON.stringify({action:'request',email:'fixture@example.test',captchaToken:'fixture-captcha',locale:'en'})}));
+ expect(await r.json()).toEqual({ok:true});expect(fetcher).toHaveBeenCalledTimes(1);
+});

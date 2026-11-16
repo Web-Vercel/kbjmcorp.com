@@ -7,7 +7,7 @@ import { consumeAuthLimit } from "@/lib/auth/rate-limit";
 import { authResponse, readAuthBody } from "@/lib/auth/http";
 
 const schema = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("request"), email: z.email().max(254), captchaToken: z.string().min(1).max(4096) }),
+  z.object({ action: z.literal("request"), email: z.email().max(254), captchaToken: z.string().min(1).max(4096), locale: z.enum(["zh", "en"]).default("zh") }),
   z.object({ action: z.literal("reset"), token: z.string().regex(/^[a-fA-F0-9]{40,128}$/), password: z.string().min(12).max(256), code: z.string().regex(/^\d{6}$/).optional() }),
 ]);
 export async function POST(request: Request) {
@@ -21,7 +21,10 @@ export async function POST(request: Request) {
     // This client never installs a workspace session; recovery uses a separate encrypted grant.
     const client = createClient(config.url, config.key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: (url, init) => fetch(url, { ...init, cache: "no-store", signal: AbortSignal.timeout(12000) }) } });
     if (value.action === "request") {
-      await client.auth.resetPasswordForEmail(value.email, { captchaToken: value.captchaToken });
+      // readAuthBody already verified this browser Origin against the deployment host.
+      // Next may expose an internal localhost request URL behind a trusted proxy.
+      const redirectTo = new URL(`/${value.locale}/auth/recovery`, request.headers.get("origin")!).href;
+      await client.auth.resetPasswordForEmail(value.email, { captchaToken: value.captchaToken, redirectTo });
       // Do not disclose account existence or upstream errors.
       return authResponse({ ok: true });
     }
