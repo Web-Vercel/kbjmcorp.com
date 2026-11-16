@@ -1,0 +1,14 @@
+.totals { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin: 18px 0; }
+.totals > div { padding: 12px; border: 1px solid #dce5df; border-radius: 8px; }
+.totals dt { font-size: 13px; color: #607079; }
+.totals dd { margin: 7px 0 0; font-size: 20px; }
+.note { font-size: 13px; margin-block: 10px; }
+.guide { margin-top: 12px; font-size: 14px; }
+.guide summary { cursor: pointer; }
+.statement.statement { padding: 16px; margin-top: 14px; }
+.statement h3 { margin: 0 0 12px; font-size: 16px; }
+.amounts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-block: 12px; }
+.amounts dt { font-size: 13px; color: #607079; }
+.amounts dd { margin: 4px 0 0; font-size: 16px; }
+@media(max-width:900px) { .totals { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:540px) { .amounts { grid-template-columns: 1fr; gap: 8px; } .totals { gap: 8px; } .totals dd { font-size: 17px; } }

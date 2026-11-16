@@ -10,7 +10,7 @@ const work={statement_count:1,payment_count:1,statements:[{id:org,account_name:'
 function setup(who=user,owner=true){const chain={select:()=>chain,order:()=>chain,limit:async()=>({data:[{id:org,name:'FICTIONAL COMPANY'}],error:null})};m.operations.mockResolvedValue({user:{id:who},context:{owner,canPrepare:false,canReview:true},client:{from:()=>chain,rpc:m.rpc}});m.rpc.mockResolvedValue({data:work,error:null});}
 beforeEach(()=>{vi.clearAllMocks();setup();});
 const render=()=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({month:'2026-10',company:org})}).then(renderToStaticMarkup);
-it('separates verified, pending and unreconciled amounts and blocks self-review even for an admin',async()=>{const html=await render();expect(html).toContain('尚未核销 CAD 80.00');expect(html).toContain('待复核分配 CAD 30.00');expect(html).toContain('必须由另一位');expect(html).not.toContain('保存独立复核结果');});
+it('separates verified, pending and unreconciled amounts and blocks self-review even for an admin',async()=>{const html=await render();expect(html.replace(/<[^>]*>/g,'')).toContain('尚未核销 CAD80.00');expect(html).toContain('待复核分配 CAD 30.00');expect(html).toContain('必须由另一位');expect(html).not.toContain('保存独立复核结果');});
 it('offers independent review to another reviewer but no registration form',async()=>{setup(other,false);const html=await render();expect(html).toContain('保存独立复核结果');expect(html).not.toContain('登记加拿大 CAD 净到账与账单分配');});
 it('does not present a failed lookup as reconciled procurement',async()=>{m.rpc.mockResolvedValue({data:null,error:{message:'PRIVATE'}});const html=await render();expect(html).toContain('尚不能确认核销状态');expect(html).not.toContain('PRIVATE');expect(html).not.toContain('保存独立复核结果');});
 
