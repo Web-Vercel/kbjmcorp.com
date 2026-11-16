@@ -6,7 +6,7 @@ import type {Locale} from "@/lib/content";
 const pages: Record<string, [string, string]> = {
   "role-accounts": ["业务账号权限", "Business account access"],
   clients: ["项目协作权限", "Project collaboration access"],
-  inquiries: ["咨询与客户", "Inquiries and clients"],
+  inquiries: ["咨询线索", "Inquiry leads"],
   projects: ["广告项目", "Advertising projects"],
   accounts: ["广告账户", "Advertising accounts"],
   applications: ["企业申请审核", "Business applications"],
