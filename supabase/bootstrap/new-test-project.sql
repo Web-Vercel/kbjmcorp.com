@@ -51,6 +51,7 @@
 -- 044_partner_lead_review_note.sql 95a36ffd65d6257758db0f8b3b9a0fa774ff873b5db2abf419b3e7ce9f952311
 -- 045_home_attention.sql 2d66870cf529dd636757f5b13dad0ea5bf6107486c9cfbfa8a4f0ee57397d374
 -- 046_admin_account_credentials.sql 5180878c6cf6e49e5e2b662bc234324a8c0419ddb1959f57b3a41e471281934d
+-- 047_agent_refund_progress.sql 2b0edb8ad1a87f048005bfcca6d4d57509dc813e58430a17fbd00c1687bab45a
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -4593,8 +4594,9 @@ grant execute on function public.finish_account_credential_change(uuid,text,uuid
 notify pgrst,'reload schema';
 -- END 046_admin_account_credentials.sql
 
--- BEGIN 047_agent_refund_progress.sql
+-- START 047_agent_refund_progress.sql
 -- Read-only, agent-scoped refund progress. No money, roles or notifications seeded.
+
 do $$begin if to_regprocedure('public.account_credential_session_valid()') is null then raise exception 'Apply migrations through 046 before 047';end if;end $$;
 create function public.read_agent_refund_progress() returns jsonb language plpgsql stable security definer set search_path='' as $$
 declare a public.partner_agents%rowtype; rows jsonb;

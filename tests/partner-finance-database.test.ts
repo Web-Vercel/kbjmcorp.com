@@ -193,3 +193,30 @@ it('shows refund progress only to the related live agent and omits private verif
  await db.exec('begin;set local role anon');await expect(db.query('select public.read_agent_refund_progress()')).rejects.toThrow(/permission denied/);await db.exec('rollback');
  await db.query('update public.partner_agents set active=false where user_id=$1',[uid(9)]);await expect(get(9)).rejects.toThrow();
 });
+
+it('drives a real local refund through all roles while agent progress follows without duplicate ledger debits',async()=>{
+ const policyId=(await db.query<any>('select id from public.refund_policies where wallet_id=$1 and active',[wallet])).rows[0].id;
+ const balance=async(w:string)=>(await db.query<any>('select coalesce(sum(amount_minor),0)::text value from public.wallet_entries where wallet_id=$1',[w])).rows[0].value;
+ const before=await balance(wallet),otherBefore=await balance(otherWallet);
+ const request=uid(seq++),input={walletId:wallet,policyId,amountMinor:'1000',accepted:true,note:'FICTIONAL AUTOMATED ACCEPTANCE ONLY'};
+ const refund=await command(4,'refund_request',input,request);expect((await command(4,'refund_request',input,request)).id).toBe(refund.id);
+ const progress=async()=>{const data=(await as(5,'select public.read_agent_refund_progress() data',[],'aal1'))[0].data;expect(JSON.stringify(data)).not.toMatch(/FICTIONAL AUTOMATED ACCEPTANCE ONLY|PRIVATE PAYEE|TEST-AUTO-BANK/);return data.refunds.find((x:any)=>x.id===refund.id)};
+ expect(await progress()).toMatchObject({status:'requested',commission_paused:true,gross_minor:'1000'});
+ const view=(await as(4,'select public.read_refund_workspace() data',[],'aal1'))[0].data;
+ expect(view.wallets[0].held_minor).toBe('1000');expect(await balance(wallet)).toBe(before);
+ await command(2,'refund_prepare',{id:refund.id});expect((await progress()).status).toBe('prepared');
+ await expect(command(2,'refund_review',{id:refund.id,decision:'approve'})).rejects.toThrow();expect((await progress()).status).toBe('prepared');
+ await command(3,'refund_review',{id:refund.id,decision:'approve'});expect((await progress()).status).toBe('reviewed');
+ await expect(command(3,'refund_approve',{id:refund.id})).rejects.toThrow();await command(1,'refund_approve',{id:refund.id});
+ expect(await progress()).toMatchObject({status:'approved',commission_paused:true});expect(await balance(wallet)).toBe(before);
+ await expect(command(2,'payment_record',{id:refund.id,kind:'refund',amountMinor:'1000',bankReference:'TEST-AUTO-BANK-WRONG',payeeReference:'PRIVATE PAYEE',paidOn:'2026-01-01'})).rejects.toThrow();
+ expect((await progress()).status).toBe('approved');
+ const payment=await command(2,'payment_record',{id:refund.id,kind:'refund',amountMinor:'800',bankReference:'TEST-AUTO-BANK',payeeReference:'PRIVATE PAYEE',paidOn:'2026-01-01'});
+ expect(await progress()).toMatchObject({status:'payment_pending',commission_paused:true});expect(await balance(wallet)).toBe(before);
+ await expect(command(2,'payment_verify',{id:payment.id,decision:'approve'})).rejects.toThrow();
+ const verifyRequest=uid(seq++);await command(3,'payment_verify',{id:payment.id,decision:'approve'},verifyRequest);
+ expect(await progress()).toMatchObject({status:'paid',commission_paused:false});
+ expect(await balance(wallet)).toBe((BigInt(before)-1000n).toString());expect(await balance(otherWallet)).toBe(otherBefore);
+ await command(3,'payment_verify',{id:payment.id,decision:'approve'},verifyRequest);expect(await balance(wallet)).toBe((BigInt(before)-1000n).toString());
+ const final=(await as(4,'select public.read_refund_workspace() data',[],'aal1'))[0].data;expect(final.wallets[0].held_minor).toBe('0');
+});
