@@ -168,3 +168,28 @@ it('scopes home reminders to each live role, separates independent work and remo
  expect((await get(3)).items.some((i:any)=>i.key==='refund_prepared'&&i.bucket==='action')).toBe(true);
  await command(3,'refund_review',{id:refund.id,decision:'reject'});
 });
+
+it('shows refund progress only to the related live agent and omits private verification data',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ await db.exec(await readFile(new URL('../supabase/migrations/046_admin_account_credentials.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/migrations/047_agent_refund_progress.sql',import.meta.url),'utf8'));
+ const activePolicy=(await db.query<any>('select id from public.refund_policies where wallet_id=$1 and active',[wallet])).rows[0].id;
+ const r=(await command(4,'refund_request',{walletId:wallet,policyId:activePolicy,amountMinor:'1000',accepted:true,note:'PRIVATE BANK AND REASON'})).id;
+ const get=async(n:number)=>(await as(n,'select public.read_agent_refund_progress() data',[],'aal1'))[0].data;
+ for(const status of ['requested','prepared','reviewed','approved','payment_pending','paid','rejected','cancelled']){
+  await db.query('update public.balance_refunds set status=$1,assessment=$2,review_note=$2 where id=$3',[status,'PRIVATE INTERNAL EVIDENCE',r]);
+  const data=await get(5);const row=data.refunds.find((x:any)=>x.id===r);expect(row.status).toBe(status);
+  expect(row.commission_paused).toBe(!['paid','rejected','cancelled'].includes(status));
+  expect(JSON.stringify(data)).not.toMatch(/PRIVATE INTERNAL EVIDENCE|PRIVATE BANK AND REASON|bank_reference|policy_snapshot|assessment|review_note/);
+ }
+ await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[uid(9),'unrelated@example.test']);
+ await db.query("insert into public.partner_agents(user_id,label,expected_email,active,agreement,created_by,session_after) values($1,'UNRELATED AGENT','unrelated@example.test',true,'FICTIONAL AGREEMENT',$2,now()-interval '1 day')",[uid(9),uid(1)]);
+ sessions.set(9,(await db.query<any>('insert into auth.sessions(user_id) values($1) returning id',[uid(9)])).rows[0].id);
+ expect((await get(9)).refunds).toEqual([]);
+ // A newly assigned agent cannot acquire historical refund visibility by a backdated start month.
+ await db.query("insert into public.partner_assignments(agent_id,organization_id,valid_from,rate_bps,basis,evidence,created_by,created_at) select id,$1,'2000-01-01',100,'service','FICTIONAL',$2,now()+interval '1 day' from public.partner_agents where user_id=$3",[org,uid(1),uid(9)]);
+ expect((await get(9)).refunds).toEqual([]);
+ for(const n of [1,4,6,7,8])await expect(get(n)).rejects.toThrow();
+ await db.exec('begin;set local role anon');await expect(db.query('select public.read_agent_refund_progress()')).rejects.toThrow(/permission denied/);await db.exec('rollback');
+ await db.query('update public.partner_agents set active=false where user_id=$1',[uid(9)]);await expect(get(9)).rejects.toThrow();
+});
