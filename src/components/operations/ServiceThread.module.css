@@ -1,0 +1,4 @@
+.internal>section:first-child :global(.admin-project) {padding:14px 16px;margin-block:10px;}
+.internal>section:first-child h3 {margin:0 0 6px;}
+.internal>section:first-child :global(.admin-project)>p {margin:6px 0;font-size:13px;}
+.internal :global(.admin-note) {padding-block:14px;}

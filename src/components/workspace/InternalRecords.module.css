@@ -1,0 +1,13 @@
+.header {display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;}
+.header h2,.header h3,.header p {margin:0;}
+.meta {color:#62716c;font-size:14px;margin-block:8px;}
+.details {margin-block:14px;color:#62716c;}
+.details p {overflow-wrap:anywhere;}
+.metrics {display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px 24px;margin:14px 0;max-width:850px;}
+.metrics dt {color:#62716c;font-size:14px;}
+.metrics dd {margin:6px 0 0;font-size:20px;font-weight:600;}
+.actions {display:flex;gap:12px 24px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+.form :global(.admin-form) {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 20px;align-items:start;}
+.form :global(.admin-form)>:not(label),.form :global(.admin-form)>label:has(textarea),.form :global(.admin-form)>label:has(input[type=checkbox]) {grid-column:1/-1;}
+.form :global(.admin-form)>:global(.button) {justify-self:start;}
+@media(max-width:640px) {.metrics {grid-template-columns:1fr;}.form :global(.admin-form) {grid-template-columns:1fr;}}

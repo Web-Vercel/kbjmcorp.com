@@ -1,0 +1,22 @@
+/* Internal authenticated shell only. No public or external portal styles. */
+.content {min-width:0;}
+.content :global(.admin-project)>h3 {margin-block:0 .5rem;}
+.content :global(.admin-project)>p {margin-block:.45rem;}
+.content :global(.admin-table th),.content :global(.admin-table td) {padding-block:.8rem;}
+.content :global(.admin-table td strong) {color:#205481;font-size:inherit;}
+.content :global(.admin-table) {font-size:.9rem;}
+.content :global(.admin-list-row) {padding-block:.8rem;gap:1rem;}
+.content :global(.admin-filter)>label {display:flex;flex-direction:column;gap:.35rem;min-width:0;}
+.content :global(.admin-filter)>label:has(input[type="checkbox"]) {flex-direction:row;align-items:center;align-self:center;}
+.content :global(.admin-filter)>label>input,.content :global(.admin-filter)>label>select {margin-top:0;}
+.content :global(.admin-form) label {margin-bottom:.85rem;}
+.content :global(.admin-form) textarea {min-height:5.5rem;}
+.content :global(.admin-form) :global(.button) {min-height:44px;}
+.content :global(.admin-form) [role="status"]:empty {margin:0;}
+.content :global(.admin-facts) {margin-block:1rem;}
+.content :global(.admin-facts):has(>div) {grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem 1.5rem;}
+.content :global(.admin-facts)>div {min-width:0;}
+.content :global(.admin-facts)>div>dd {margin:.3rem 0 0;}
+.content :global(details.admin-panel:not([open])) {padding-block:1rem;}
+.content :global(.admin-empty) {padding-block:1rem;}
+@media(max-width:600px) {.content :global(.admin-filter)>label {width:100%;}.content :global(.admin-facts):has(>div) {grid-template-columns:1fr;}}
