@@ -53,3 +53,13 @@ it.each([{owner:true,canPrepare:true,canReview:true,title:'代理与佣金管理
  const home=renderToStaticMarkup(await Workspace({...props,view:'overview',internal:true}));expect(home).toContain(`<h1>${context.title}</h1>`);expect(home).toContain(context.commission);expect(home).toContain(context.settlement);
  if(context.owner){expect(home).toContain('客户归属与引荐');expect(home).toContain('代理账号管理');}else{expect(home).toContain('客户归属依据');expect(home).not.toContain('代理账号管理');}
 });
+
+it.each([{mode:'fixed',value:100,expected:'每笔固定 CNY 1.00'},{mode:'percent',value:250,expected:'申请金额的 2.5%'}])('lets internal staff read the saved $mode fee without editing or submitting again',async policy=>{
+ m.rpc.mockResolvedValue({data:{staff:true,owner:false,wallets:[{id,organization_id:id,name:'FICTIONAL CLIENT',currency:'CNY',can_request:false,balance_minor:'70323',held_minor:'0',available_minor:'70323',policy:{id,mode:policy.mode,value:policy.value,agreement:'TEST-ONLY SAVED FEE AGREEMENT'}}],refunds:[],payments:[]},error:null});
+ const html=renderToStaticMarkup(await Refund({client:{rpc:m.rpc} as any,locale:'zh',internal:true,canReview:true}));
+ expect(html).toContain('当前退款手续费约定');expect(html).toContain(policy.expected);expect(html).toContain('查看当前手续费规则');expect(html).toContain('TEST-ONLY SAVED FEE AGREEMENT');expect(html).toContain('已有退款申请仍按该申请保存的约定核算');expect(html).not.toContain('保存新的手续费约定');
+});
+it('allows administrators to revisit a saved agent agreement independently of the status-change form',async()=>{
+ m.rpc.mockResolvedValue({data:{...data(true),agents:[{id,user_id:id,label:'SAVED AGENT',active:true,revision:3,email:'agent@example.test',agreement:'SAVED AGENT IDENTITY AGREEMENT'}]},error:null});
+ const html=renderToStaticMarkup(await Workspace({...props,view:'settings',internal:true}));expect(html).toContain('查看已保存的身份与协议说明');expect(html).toContain('SAVED AGENT IDENTITY AGREEMENT');expect(html).toContain('当前版本：');
+});

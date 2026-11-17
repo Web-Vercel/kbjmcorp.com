@@ -1,0 +1,10 @@
+import type {SupabaseClient} from '@supabase/supabase-js';
+import {z} from 'zod';
+const rows=z.array(z.object({id:z.uuid(),entity_id:z.uuid(),created_at:z.string(),changes:z.object({note:z.string().optional(),active:z.boolean().optional(),archived:z.boolean().optional(),revision:z.number().optional()})}));
+/** Internal caller must gate the feature; the database's existing audit RLS remains authoritative. */
+export default async function SavedAuditHistory({client,entityType,records,locale}:{client:SupabaseClient;entityType:'quote_lifecycle'|'ads_reporting_binding';records:{id:string;label:string}[];locale:'zh'|'en'}){
+ if(!records.length)return null;const zh=locale==='zh',names=new Map(records.map(r=>[r.id,r.label]));
+ let result:{data:unknown;error:unknown};try{result=await client.from('audit_events').select('id,entity_id,created_at,changes').eq('entity_type',entityType).in('entity_id',[...names.keys()].slice(0,100)).order('created_at',{ascending:false}).limit(100);}catch{result={data:null,error:true};}
+ const parsed=rows.safeParse(result.data);
+ return <details><summary>{zh?'查看已保存的变更说明':'View saved change notes'}</summary>{result.error||!parsed.success?<p role="alert">{zh?'变更说明暂不可用；不能据此认定未保存，请勿重复提交。':'Change notes unavailable; do not infer that a save failed or submit duplicates.'}</p>:<>{parsed.data.filter(r=>names.has(r.entity_id)&&r.changes.note).map(r=><article className="admin-project" key={r.id}><h3 data-workspace-value>{names.get(r.entity_id)}</h3><p><time data-workspace-value>{r.created_at}</time>{typeof r.changes.active==='boolean'&&` · ${r.changes.active?(zh?'恢复访问':'Access restored'):(zh?'暂停访问':'Access paused')}`}{typeof r.changes.archived==='boolean'&&` · ${r.changes.archived?(zh?'已归档':'Archived'):(zh?'已恢复':'Restored')}`}</p><p className="admin-prewrap">{r.changes.note}</p></article>)}{!parsed.data.some(r=>names.has(r.entity_id)&&r.changes.note)&&<p>{zh?'当前范围内暂无变更说明。':'No change notes in this range.'}</p>}{(parsed.data.length===100||names.size>100)&&<p>{zh?'仅显示本次范围内最近100条，并非完整历史。':'Latest 100 within this range; not a complete history.'}</p>}</>}</details>;
+}

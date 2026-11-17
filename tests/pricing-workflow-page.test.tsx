@@ -8,7 +8,7 @@ vi.mock('@/components/operations/AgencyQuoteCalculator',()=>({default:()=>null})
 import Page from '@/app/[locale]/operations/pricing/page';
 const company='b0000000-0000-4000-8000-000000000001',quote='d0000000-0000-4000-8000-000000000001';
 beforeEach(()=>{vi.clearAllMocks();m.rpc.mockResolvedValue({data:[{id:quote,organization_id:company,period:'2026-10-01',revision:1,status:'draft',state_revision:1,parent_id:null,total_cny_minor:'60500'}],error:null});
- m.operations.mockResolvedValue({context:{owner:true},client:{rpc:m.rpc,from:(table:string)=>{const chain={select:()=>chain,order:()=>chain,eq:()=>chain,limit:async()=>({data:table==='organizations'?[{id:company,name:'FICTIONAL COMPANY'}]:[],error:null}),in:async()=>({data:[],error:null})};return chain;}}});
+ m.operations.mockResolvedValue({context:{owner:true},client:{rpc:m.rpc,from:(table:string)=>{if(table==='audit_events'){const q:any={};for(const k of ['select','eq','in','order'])q[k]=()=>q;q.limit=async()=>({data:[],error:null});return q;}const chain={select:()=>chain,order:()=>chain,eq:()=>chain,limit:async()=>({data:table==='organizations'?[{id:company,name:'FICTIONAL COMPANY'}]:[],error:null}),in:async()=>({data:[],error:null})};return chain;}}});
 });
 async function render(locale='zh',month?:string){const doc=document.implementation.createHTMLDocument('');doc.body.innerHTML=renderToStaticMarkup(await Page({params:Promise.resolve({locale}),searchParams:Promise.resolve({company,month})}));return doc;}
 it('keeps the same company and month in forward and return links in both languages',async()=>{
