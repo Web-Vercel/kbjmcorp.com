@@ -6,3 +6,6 @@
 .metrics dd {margin:7px 0 0;font-size:21px;font-weight:600;}
 .wallet details {margin-top:16px;}
 @media(max-width:640px) {.metrics {grid-template-columns:1fr;gap:12px;}.metrics > div + div {border-left:0;border-top:1px solid #e0e7e0;padding:12px 0 0;}.wallet {padding:18px;}}
+.unavailable {display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;border-top:1px solid #e0e7e0;margin-top:20px;padding-top:16px;}
+.unavailable p {margin:0;color:#62716c;font-size:14px;}
+.unavailable button {font-size:14px;padding:12px 18px;}
