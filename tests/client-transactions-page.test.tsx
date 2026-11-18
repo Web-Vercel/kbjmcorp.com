@@ -4,6 +4,7 @@ const m=vi.hoisted(()=>({context:vi.fn(),billing:vi.fn()}));
 vi.mock('@/lib/live-access/server',()=>({getLiveContext:m.context}));
 vi.mock('@/lib/billing/data',()=>({loadBilling:m.billing}));
 vi.mock('next/navigation',()=>({notFound:()=>{throw Error('NOT_FOUND');},redirect:()=>{throw Error('REDIRECT');}}));
+vi.mock('@/components/collections/CollectionInstructions',()=>({default:()=>null}));
 import Page from '@/app/[locale]/account/transactions/page';
 const wallet='b0000000-0000-4000-8000-000000000001';
 const render=(id=wallet)=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({wallet:id})}).then(renderToStaticMarkup);
