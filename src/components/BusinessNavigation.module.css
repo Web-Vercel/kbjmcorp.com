@@ -13,3 +13,9 @@
 .clientMenu a[aria-current="page"] { font-weight: 700; text-decoration: underline; text-underline-offset: .3em; }
 
 .workspaceSwitch { padding: .35rem .65rem; border: 1px solid #dce5d8; border-radius: .35rem; text-decoration: underline; text-underline-offset: .2em; }
+
+/* Authenticated workspace menus only. */
+.menu nav a, .clientMenu a, .partnerMenu a { padding: .55rem .8rem; border-radius: .45rem; text-decoration: none; }
+.menu nav a[aria-current="page"], .clientMenu a[aria-current="page"], .partnerMenu a[aria-current="page"] { background: #007e65; color: #fff; font-weight: 700; text-decoration: none; box-shadow: inset 0 -3px 0 #004b3c; }
+.partnerMenu { display: flex; gap: .5rem; flex-wrap: wrap; }
+.menu nav a:focus-visible, .clientMenu a:focus-visible, .partnerMenu a:focus-visible { outline: 3px solid #1767a0; outline-offset: 3px; }

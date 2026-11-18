@@ -29,3 +29,6 @@
  .shell .navigation { max-height: 60vh; overflow-y: auto; align-items: start; }
  .shell .navigation[data-expanded="false"] { display: none; }
 }
+
+.shell .navigation a[aria-current="page"] { background: #e4f0dc; color: #103e33; font-weight: 750; border-radius: .45rem; box-shadow: inset 5px 0 0 #a2c66e; }
+.shell .navigation a:focus-visible { outline: 3px solid #c4df9c; outline-offset: 2px; }
