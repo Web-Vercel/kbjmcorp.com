@@ -5,3 +5,12 @@
 .dailyTable th:first-child,.dailyTable td:first-child{padding-left:16px;min-width:150px}
 .dailyTable th:nth-child(2),.dailyTable td:nth-child(2),.dailyTable th:nth-child(3),.dailyTable td:nth-child(3){text-align:right;min-width:100px}
 .dailyTable tbody tr:last-child td{border-bottom:0}
+
+.amounts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:20px 0; }
+.amounts > div { padding:18px; border:1px solid #dce6df; border-radius:10px; background:#fafcf9; }
+.amounts > div:last-child { background:#edf5ef; border-color:#afcdbb; }
+.amounts dt { font-size:14px; color:#596b66; }
+.amounts dd { margin:10px 0 0; font-size:24px; font-weight:700; color:#245d85; font-variant-numeric:tabular-nums; }
+.usage { color:#596b66; }
+.summary { margin-block:20px; }
+@media(max-width:650px) { .amounts { grid-template-columns:1fr; gap:10px; } .amounts > div { padding:14px 16px; } }
