@@ -53,6 +53,7 @@
 -- 046_admin_account_credentials.sql 5180878c6cf6e49e5e2b662bc234324a8c0419ddb1959f57b3a41e471281934d
 -- 047_agent_refund_progress.sql 2b0edb8ad1a87f048005bfcca6d4d57509dc813e58430a17fbd00c1687bab45a
 -- 048_saved_partner_history.sql 79cfe9d62afc53cb25db636510b35b10ca370a20c64afed0b94bf5c1fda626b1
+-- 049_partner_file_visibility.sql dc6d32a4aa6031e941e26ab8677b2f0d8427470b5898c6adbe5c4c301a131a01
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -61,7 +62,7 @@ begin
  if to_regclass('auth.users') is null or not exists(select 1 from pg_roles where rolname='authenticated') or not exists(select 1 from pg_roles where rolname='service_role') then
   raise exception 'Supabase Auth schema and roles required; nothing was initialized';
  end if;
- if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('account_credential_operations','account_credential_state','ad_accounts','ad_sync_runs','ads_monthly_coverage_checks','ads_monthly_coverage_reviews','ads_reporting_bindings','ads_reporting_snapshots','ads_source_handoffs','agency_fee_rule_drafts','agency_quote_derivations','agency_quote_lifecycle','agency_quote_snapshots','audit_events','auth_rate_limits','balance_refunds','bank_receipts','billing_fx_quotes','campaign_metrics_daily','campaigns','client_contracts','client_operating_links','client_profiles','client_statement_read_receipts','client_topups','client_wallets','collection_accounts','crm_contacts','crm_opportunities','customer_application_history','customer_applications','customer_invites','finance_access','inquiries','inquiry_notes','live_access_accounts','live_sales_updates','memberships','monthly_ad_report_lines','monthly_ad_reports','monthly_client_statements','monthly_settlement_drafts','monthly_settlement_reviews','operating_units','ops_reconciliations','ops_source_packets','organizations','partner_actions','partner_agents','partner_assignments','partner_commissions','partner_files','partner_leads','partner_payments','partner_settlement_items','partner_settlements','project_activity','project_reviews','project_submissions','projects','refund_policies','service_request_messages','service_requests','staff_members','staff_unit_roles','upstream_payment_allocations','upstream_payment_records','upstream_payment_reversals','upstream_payment_reviews','upstream_reversal_reviews','wallet_collection_accounts','wallet_entries')) then
+ if exists(select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('account_credential_operations','account_credential_state','ad_accounts','ad_sync_runs','ads_monthly_coverage_checks','ads_monthly_coverage_reviews','ads_reporting_bindings','ads_reporting_snapshots','ads_source_handoffs','agency_fee_rule_drafts','agency_quote_derivations','agency_quote_lifecycle','agency_quote_snapshots','audit_events','auth_rate_limits','balance_refunds','bank_receipts','billing_fx_quotes','campaign_metrics_daily','campaigns','client_contracts','client_operating_links','client_profiles','client_statement_read_receipts','client_topups','client_wallets','collection_accounts','crm_contacts','crm_opportunities','customer_application_history','customer_applications','customer_invites','finance_access','inquiries','inquiry_notes','live_access_accounts','live_sales_updates','memberships','monthly_ad_report_lines','monthly_ad_reports','monthly_client_statements','monthly_settlement_drafts','monthly_settlement_reviews','operating_units','ops_reconciliations','ops_source_packets','organizations','partner_actions','partner_agents','partner_assignments','partner_commissions','partner_file_visibility','partner_files','partner_leads','partner_payments','partner_settlement_items','partner_settlements','project_activity','project_reviews','project_submissions','projects','refund_policies','service_request_messages','service_requests','staff_members','staff_unit_roles','upstream_payment_allocations','upstream_payment_records','upstream_payment_reversals','upstream_payment_reviews','upstream_reversal_reviews','wallet_collection_accounts','wallet_entries')) then
   raise exception 'Existing application objects detected. Stop and inspect migration history; do not overwrite';
  end if;
 end;
@@ -4652,6 +4653,40 @@ revoke all on function public.read_saved_partner_history(uuid[]) from public,ano
 grant execute on function public.read_saved_partner_history(uuid[]) to authenticated;
 notify pgrst,'reload schema';
 -- END 048_saved_partner_history.sql
+
+-- START 049_partner_file_visibility.sql
+-- Keep evidence immutable; removal affects presentation, never the original file.
+create table public.partner_file_visibility (
+ request_id uuid primary key, file_id uuid not null references public.partner_files(id),
+ hidden boolean not null, reason text not null check(reason in ('mistake','replaced','restore')),
+ actor_id uuid not null references auth.users(id), created_at timestamptz not null default clock_timestamp(),
+ check((hidden and reason in ('mistake','replaced')) or (not hidden and reason='restore'))
+);
+alter table public.partner_file_visibility enable row level security;
+revoke all on public.partner_file_visibility from public,anon,authenticated;
+create trigger immutable_partner_file_visibility before update or delete on public.partner_file_visibility for each row execute function public.lock_posted_money();
+create function public.set_partner_file_visibility(p_request uuid,p_file uuid,p_hidden boolean,p_reason text) returns uuid language plpgsql security definer set search_path='' as $$
+declare existing public.partner_file_visibility%rowtype;
+begin
+ perform public.read_partner_file(p_file); -- Existing administrator/MFA or active owning agent gate.
+ perform 1 from public.partner_files where id=p_file for update;
+ select * into existing from public.partner_file_visibility where request_id=p_request;
+ if found then
+  if existing.actor_id<>auth.uid() or existing.file_id<>p_file or existing.hidden<>p_hidden or existing.reason<>p_reason then raise exception 'Request conflict' using errcode='23505';end if;
+  return p_file;
+ end if;
+ insert into public.partner_file_visibility(request_id,file_id,hidden,reason,actor_id) values(p_request,p_file,p_hidden,p_reason,auth.uid());
+ return p_file;
+end $$;
+create function public.read_partner_file_visibility() returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ if not public.has_staff_access(array['admin']::text[]) then perform public.require_partner_agent(true);end if;
+ return coalesce((select jsonb_agg(t) from (select distinct on (v.file_id) v.file_id,v.hidden,v.reason from public.partner_file_visibility v join public.partner_files f on f.id=v.file_id where public.can_partner_file_path(f.object_path) order by v.file_id,v.created_at desc,v.request_id desc)t),'[]'::jsonb);
+end $$;
+revoke all on function public.set_partner_file_visibility(uuid,uuid,boolean,text),public.read_partner_file_visibility() from public,anon;
+grant execute on function public.set_partner_file_visibility(uuid,uuid,boolean,text),public.read_partner_file_visibility() to authenticated;
+notify pgrst, 'reload schema';
+-- END 049_partner_file_visibility.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';

@@ -24,3 +24,14 @@ export async function POST(request:Request){
 export async function GET(request:Request){const auth=await actor();if(!auth)return authResponse({error:'forbidden'},403);const id=z.uuid().safeParse(new URL(request.url).searchParams.get('id'));if(!id.success)return authResponse({error:'invalid_input'},400);
  try{const r=await auth.client.rpc('read_partner_file',{p_id:id.data});const p=z.object({path:z.string(),name:z.string()}).safeParse(r.data);if(r.error||!p.success)return authResponse({error:'forbidden'},403);const signed=await auth.client.storage.from('partner-documents').createSignedUrl(p.data.path,60);if(signed.error||!signed.data?.signedUrl)return authResponse({error:'unavailable'},503);return NextResponse.redirect(signed.data.signedUrl,{status:302,headers:{'Cache-Control':'private, no-store'}});}catch{return authResponse({error:'unavailable'},503);}
 }
+export async function PATCH(request:Request){
+ if(!hasSameOrigin(request))return authResponse({error:'forbidden'},403);
+ const auth=await actor();if(!auth)return authResponse({error:'forbidden'},403);
+ try{const raw=await request.text();if(raw.length>2048)return authResponse({error:'invalid_input'},400);
+ const input=z.object({requestId:z.uuid(),fileId:z.uuid(),hidden:z.boolean(),reason:z.enum(['mistake','replaced','restore'])}).strict().safeParse(JSON.parse(raw));
+ if(!input.success||input.data.hidden===(input.data.reason==='restore'))return authResponse({error:'invalid_input'},400);
+ const p=input.data,r=await auth.client.rpc('set_partner_file_visibility',{p_request:p.requestId,p_file:p.fileId,p_hidden:p.hidden,p_reason:p.reason});
+ if(r.error||r.data!==p.fileId)return authResponse({error:r.error?.code==='42501'?'forbidden':'unconfirmed'},r.error?.code==='42501'?403:503);
+ return authResponse({ok:true,id:p.fileId});
+ }catch{return authResponse({error:'unconfirmed'},503);}
+}

@@ -1,11 +1,22 @@
 import {beforeEach,it,expect,vi} from 'vitest';
 const m=vi.hoisted(()=>({staff:vi.fn(),live:vi.fn(),rpc:vi.fn(),upload:vi.fn(),signed:vi.fn()}));
 vi.mock('@/lib/admin/guard',()=>({getStaffContext:m.staff}));vi.mock('@/lib/live-access/server',()=>({getLiveContext:m.live}));
-import {POST,GET} from '@/app/api/partner-files/route';import {evidenceMime,maxFileBytes} from '@/lib/partners/files';
+import {POST,GET,PATCH} from '@/app/api/partner-files/route';import {evidenceMime,maxFileBytes} from '@/lib/partners/files';
 const agent='d0000000-0000-4000-8000-000000000001',other='d0000000-0000-4000-8000-000000000002';
 function req(agentId=agent,content='%PDF-1.7\nFICTIONAL',type='application/pdf',origin='https://site.example'){const f=new FormData();f.set('agentId',agentId);f.set('kind','agreement');f.set('leadId','');f.set('assignmentId','');f.set('file',new File([content],'fixture.pdf',{type}));return new Request('https://site.example/api/partner-files',{method:'POST',headers:{origin},body:f});}
-beforeEach(()=>{vi.clearAllMocks();m.staff.mockResolvedValue({error:'forbidden'});m.live.mockResolvedValue({client:{rpc:m.rpc,storage:{from:()=>({upload:m.upload,createSignedUrl:m.signed})}},context:{role:'agent',organization_id:agent}});m.upload.mockResolvedValue({error:null});m.rpc.mockImplementation((_name,args)=>Promise.resolve({data:args.p_id,error:null}));});
+beforeEach(()=>{vi.clearAllMocks();m.staff.mockResolvedValue({error:'forbidden'});m.live.mockResolvedValue({client:{rpc:m.rpc,storage:{from:()=>({upload:m.upload,createSignedUrl:m.signed})}},context:{role:'agent',organization_id:agent}});m.upload.mockResolvedValue({error:null});m.rpc.mockImplementation((_name,args)=>Promise.resolve({data:args.p_id??args.p_file,error:null}));});
 it('stores verified PDF bytes privately under the authenticated agent and registers a server hash',async()=>{const response=await POST(req());expect(response.status).toBe(200);const [path,bytes,options]=m.upload.mock.calls[0];expect(path).toMatch(new RegExp('^'+agent+'/[a-f0-9-]+/document.pdf$'));expect(bytes).toBeInstanceOf(Uint8Array);expect(options).toEqual({contentType:'application/pdf',upsert:false});expect(m.rpc).toHaveBeenCalledWith('register_partner_file',expect.objectContaining({p_agent:agent,p_assignment:null,p_hash:expect.stringMatching(/^[a-f0-9]{64}$/)}));});
 it('rejects cross-origin, cross-agent, forged MIME content and non-agent users before upload',async()=>{expect((await POST(req(agent,'%PDF-',undefined,'https://evil.example'))).status).toBe(403);expect((await POST(req(other))).status).toBe(403);expect((await POST(req(agent,'<html>FORGED</html>'))).status).toBe(400);m.live.mockResolvedValue({context:{role:'client'}});expect((await POST(req())).status).toBe(403);expect(m.upload).not.toHaveBeenCalled();});
 it('never reports an unregistered upload as archived and only signs an authorized path for 60 seconds',async()=>{m.rpc.mockResolvedValueOnce({data:null,error:{code:'55000'}});expect((await POST(req())).status).toBe(503);m.rpc.mockResolvedValueOnce({data:{path:`${agent}/${other}/document.pdf`,name:'fixture.pdf'},error:null});m.signed.mockResolvedValue({data:{signedUrl:'https://storage.example/private-file?token=FIXTURE'},error:null});const r=await GET(new Request('https://site.example/api/partner-files?id='+other));expect(r.status).toBe(302);expect(r.headers.get('cache-control')).toContain('no-store');expect(m.signed).toHaveBeenCalledWith(`${agent}/${other}/document.pdf`,60);});
 it('uses binary signatures and a body limit compatible with hosted uploads',()=>{expect(maxFileBytes).toBe(4194304);expect(evidenceMime(new Uint8Array([137,80,78,71,13,10,26,10]))).toBe('image/png');expect(evidenceMime(new Uint8Array([255,216,255]))).toBe('image/jpeg');expect(evidenceMime(new TextEncoder().encode('<script>'))).toBeNull();});
+
+function visibility(body:unknown,origin='https://site.example'){return new Request('https://site.example/api/partner-files',{method:'PATCH',headers:{origin,'content-type':'application/json'},body:JSON.stringify(body)});}
+it('archives only through the authorized RPC and preserves unknown outcomes',async()=>{
+ const input={requestId:other,fileId:agent,hidden:true,reason:'mistake'};
+ expect((await PATCH(visibility(input,'https://evil.example'))).status).toBe(403);expect(m.rpc).not.toHaveBeenCalled();
+ expect((await PATCH(visibility({...input,reason:'restore'}))).status).toBe(400);
+ expect((await PATCH(visibility(input))).status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('set_partner_file_visibility',{p_request:other,p_file:agent,p_hidden:true,p_reason:'mistake'});
+ m.rpc.mockResolvedValueOnce({error:{code:'42501'},data:null});expect((await PATCH(visibility(input))).status).toBe(403);
+ m.rpc.mockResolvedValueOnce({error:{code:'55000'},data:null});expect((await PATCH(visibility(input))).status).toBe(503);
+ m.live.mockResolvedValue({context:{role:'client'}});expect((await PATCH(visibility(input))).status).toBe(403);
+});
