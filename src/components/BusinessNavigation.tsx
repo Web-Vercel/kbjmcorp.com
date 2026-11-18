@@ -58,14 +58,15 @@ export default function BusinessNavigation({locale, section, role, operationsCon
       ['account/refunds', zh ? '申请退款' : 'Balance refunds'],
       ['access/security', zh ? '账号安全' : 'Account security'],
     ];
-    const selected = links.find(([route]) => path === `/${locale}/${route}`);
+    const clientMenuPath=path===`/${locale}/account/payment-notices`?`/${locale}/access`:path;
+    const selected = links.find(([route]) => clientMenuPath === `/${locale}/${route}`);
     return <div className={styles.bar}>
       <nav aria-label={zh ? '当前位置' : 'Breadcrumb'} className={styles.path}>
         <Link href={`/${locale}/access`}>{zh ? '客户中心' : 'Client center'}</Link>
         {selected && <><span aria-hidden="true"> › </span><span aria-current="page">{selected[1]}</span></>}
       </nav>
       <div className={styles.clientRow}><nav className={styles.clientMenu} aria-label={zh ? '客户主菜单' : 'Client navigation'}>
-        {links.map(([route, label]) => <Link key={route} href={`/${locale}/${route}`} aria-current={path === `/${locale}/${route}` ? 'page' : undefined}>{label}</Link>)}
+        {links.map(([route, label]) => <Link key={route} href={`/${locale}/${route}`} aria-current={clientMenuPath === `/${locale}/${route}` ? 'page' : undefined}>{label}</Link>)}
       </nav><div className={styles.signOut}><SignOutButton locale={locale} destination={`/${locale}/access/login`}/></div></div>
     </div>;
   }
