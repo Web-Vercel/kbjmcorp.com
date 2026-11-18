@@ -58,7 +58,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
       ['account/refunds', zh ? '申请退款' : 'Balance refunds'],
       ['access/security', zh ? '账号安全' : 'Account security'],
     ];
-    const clientMenuPath=path===`/${locale}/account/payment-notices`?`/${locale}/access`:path;
+    const clientMenuPath=[`/${locale}/account/payment-notices`,`/${locale}/account/transactions`].includes(path)?`/${locale}/access`:path;
     const selected = links.find(([route]) => clientMenuPath === `/${locale}/${route}`);
     return <div className={styles.bar}>
       <nav aria-label={zh ? '当前位置' : 'Breadcrumb'} className={styles.path}>
