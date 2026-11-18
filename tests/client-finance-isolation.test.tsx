@@ -5,6 +5,7 @@ import {afterEach,beforeEach,expect,it,vi} from 'vitest';
 const mocks=vi.hoisted(()=>({session:vi.fn(),scope:vi.fn(),from:vi.fn(),query:vi.fn(),rpc:vi.fn()}));
 vi.mock('@/lib/client/page',()=>({requireClientPage:mocks.session}));
 vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('not-found');}}));
+vi.mock('@/components/crm/ClaimInvites',()=>({default:()=>null}));
 vi.mock('@/components/SiteHeader',()=>({default:()=>null}));
 vi.mock('@/components/SiteFooter',()=>({default:()=>null}));
 vi.mock('@/components/crm/ContractDocument',()=>({default:()=> <p>Authorized contract content</p>}));
