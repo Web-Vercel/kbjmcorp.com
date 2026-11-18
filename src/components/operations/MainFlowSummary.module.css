@@ -1,0 +1,9 @@
+.step { padding:14px 0; border-bottom:1px solid #dce6df; }
+.step:last-of-type { border-bottom:0; }
+.heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+.heading h3 { margin:0; font-size:16px; }
+.status { padding:4px 10px; border-radius:6px; background:#f2f4f2; font-size:13px; font-weight:600; }
+.status[data-state='ready'] { color:#236546; background:#edf5ef; }
+.status[data-state='pending'] { color:#785a16; background:#fcf6e6; }
+.status[data-state='unknown'] { color:#4c6376; background:#edf2f6; }
+.reason { margin:8px 0; font-size:14px; color:#5c6c65; }
