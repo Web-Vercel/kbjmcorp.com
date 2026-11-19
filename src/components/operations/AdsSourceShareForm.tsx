@@ -1,4 +1,5 @@
 'use client';
+import {useRecordSwitchLock} from '@/components/workspace/useRecordSwitchLock';
 import {useRef,useState,type FormEvent} from 'react';
 import {z} from 'zod';
 type Snapshot={id:string;since:string;until:string;check_status:string};
@@ -6,6 +7,7 @@ const receiptSchema=z.object({ok:z.literal(true),handoff:z.object({id:z.uuid(),b
 export default function AdsSourceShareForm({locale,bindingId,company,month,snapshots}:{locale:'zh'|'en';bindingId:string;company:string;month?:string;snapshots:Snapshot[]}){
  const zh=locale==='zh',lock=useRef(false);const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<{id:string;snapshot:Snapshot}|null>(null);
  const query=new URLSearchParams({company,...month?{month}:{}}).toString();
+ useRecordSwitchLock(busy||unknown);
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||receipt)return;const data=new FormData(event.currentTarget),snapshot=snapshots.find(s=>s.id===data.get('snapshotId')),note=String(data.get('note')||'').trim();
   if(!snapshot||note.length<3||note.length>1000||data.get('confirm')!=='on'){setMessage(zh?'请选择来源版本、填写说明并勾选确认。':'Select a source version, enter a note and confirm.');return;}

@@ -1,4 +1,5 @@
 'use client';
+import {useRecordSwitchLock} from '@/components/workspace/useRecordSwitchLock';
 import {useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {z} from 'zod';
 const receiptSchema=z.object({ok:z.literal(true),checkId:z.uuid(),stage:z.enum(['submitted','approved','rejected']),snapshotId:z.uuid().optional()});
@@ -6,6 +7,7 @@ export default function MonthlyCoverageForm({locale,mode,snapshotId,checkId,comp
  const zh=locale==='zh',lock=useRef(false);const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<z.infer<typeof receiptSchema>|null>(null);
  const query=new URLSearchParams({...company?{company}:{},...month?{month}:{}}).toString();const base=`/${locale}/operations/source-checks${query?'?'+query:''}`;
  const record=(id?:string)=>`${base}#${id?'coverage-check-'+id:'coverage-source-'+snapshotId}`;
+ useRecordSwitchLock(busy||unknown);
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||receipt)return;const body=Object.fromEntries(new FormData(event.currentTarget));lock.current=true;setBusy(true);setMessage('');setUnknown(false);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{

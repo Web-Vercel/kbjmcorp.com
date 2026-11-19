@@ -20,7 +20,7 @@ export default function MonthCloseFlow({accounts,context,locale,company,month,su
   <header><div><p className={styles.eyebrow}>{month} · {zh?'本月办理路线':'This month’s workflow'}</p><h2>{zh?'进度在哪里，下一步谁来做':'What happened, and who acts next'}</h2></div><span className={styles.role}>{zh?'你的职责：':'Your role: '}{yourRole}</span></header>
   <div className={styles.legend} aria-label={zh?'状态颜色说明':'Status legend'}>{(['done','pending','problem','waiting','unknown'] as const).map(kind=><Status key={kind} kind={kind} zh={zh}/>)}</div>
   {!accounts.length&&<p>{zh?'还没有关联广告账户。请管理员先确认这个企业使用哪个账户。':'No advertiser is linked yet. Ask the administrator to confirm this company’s account.'}</p>}
-  {<RecordPicker label={locale==='zh'?'选择月结账户':'Select Month-close account'} locale={locale} hashPrefix="month-close-flow-" items={accounts.map((account)=>({id:account.binding_id,label:account.account_label+' · '+closeStages[account.stage][zh?'zh':'en'],active:account.stage!=='published',content:(()=>{
+  {<RecordPicker appearance="account" label={locale==='zh'?'选择月结账户':'Select Month-close account'} locale={locale} hashPrefix="month-close-flow-" items={accounts.map((account)=>({id:account.binding_id,label:account.account_label+' · '+closeStages[account.stage][zh?'zh':'en'],active:account.stage!=='published',content:(()=>{
    const current=closeStages[account.stage];const action=closeAction(account,context,locale,company,month);
    const canAct=action?.allowed&&(account.stage!=='funding_needed'||fundingAvailable);
    const published=account.stage==='published';
