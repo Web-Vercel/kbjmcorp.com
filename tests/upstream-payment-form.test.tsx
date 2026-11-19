@@ -33,3 +33,12 @@ it('generates the matching fictional PDF and invalidates its fingerprint when th
   fireEvent.input(screen.getByLabelText('测试金额 CAD'),{target:{value:'40.00'}});expect((form.elements.namedItem('hash') as HTMLInputElement).value).toBe('');
  }finally{click.mockRestore();}
 });
+it('retains a reversed receipt reference/date/amount for a new revision, regenerates matching evidence and clears it when switching modes',async()=>{
+ const {webcrypto,createHash}=await import('node:crypto');const {upstreamTestPdf}=await import('@/lib/billing/upstream-test-fixture');vi.stubGlobal('crypto',webcrypto);
+ const NativeURL=URL;vi.stubGlobal('URL',class extends NativeURL {static createObjectURL=vi.fn(()=> 'blob:fictional');static revokeObjectURL=vi.fn();});const click=vi.spyOn(HTMLAnchorElement.prototype,'click').mockImplementation(()=>{});
+ try{const reference='TEST-UPSTREAM-ORIGINAL-4530';render(<Form locale="zh" organizationId={id} testMode statements={[{id,account_name:'FICTIONAL',month:'2026-10-01',procurement_cad_minor:'4530',verified_cad_minor:'0',pending_cad_minor:'0'}]} corrections={[{id,bank_reference:reference,received_on:'2026-11-16',received_cad_minor:'4530',revision:1}]}/>);
+ fireEvent.change(screen.getByLabelText('登记方式'),{target:{value:id}});expect((screen.getByLabelText('沿用原测试流水号') as HTMLInputElement).value).toBe(reference);expect((screen.getByLabelText('模拟到账日期') as HTMLInputElement).value).toBe('2026-11-16');expect((screen.getByLabelText('测试金额 CAD') as HTMLInputElement).value).toBe('45.30');
+ const button=screen.getByRole('button',{name:'生成测试凭证 PDF'});await userEvent.setup().click(button);const form=button.closest('form')!;await vi.waitFor(()=>expect((form.elements.namedItem('hash') as HTMLInputElement).value).toBe(createHash('sha256').update(upstreamTestPdf(reference,'2026-11-16','45.30')).digest('hex')));
+ fireEvent.change(screen.getByLabelText('登记方式'),{target:{value:''}});expect((form.elements.namedItem('bankReference') as HTMLInputElement).value).toBe('');expect((form.elements.namedItem('hash') as HTMLInputElement).value).toBe('');
+ }finally{click.mockRestore();}
+});
