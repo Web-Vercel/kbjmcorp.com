@@ -9,3 +9,8 @@
 .unavailable {display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;border-top:1px solid #e0e7e0;margin-top:20px;padding-top:16px;}
 .unavailable p {margin:0;color:#62716c;font-size:14px;}
 .unavailable button {font-size:14px;padding:12px 18px;}
+
+.request {scroll-margin-top:190px;}
+.requestLinks {display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-block:16px;}
+.requestLinks a {padding:10px 14px;border:1px solid #dce6e0;border-radius:8px;}
+.cancel {border-top:1px solid #dce6e0;padding-top:16px;margin-top:16px;}
