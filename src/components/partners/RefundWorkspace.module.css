@@ -32,3 +32,13 @@
 
 .reference {margin-block:16px;border-top:1px solid #e0e7e0;padding-top:12px;}
 .reference > summary {font-size:14px;color:#62716c;}
+
+.accountSelector {background:#f1f6f3;border:1px solid #d8e3db;border-radius:12px;padding:16px 18px;margin:20px 0;}
+.accountSelector select {background:#fff;border:1px solid #d2ded6;border-radius:8px;min-height:44px;padding:10px 12px;}
+.requestGroup {border-top:2px solid #dce5df;margin-top:28px;padding-top:22px;}
+.groupHeading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.groupHeading h2 {font-size:18px;margin:0;color:#173e35;}
+.groupHeading span {font-size:13px;color:#62716c;}
+.requestSelector {background:#fff;border:1px solid #e0e7e2;border-radius:10px;padding:14px 16px;margin:0 0 16px;}
+.requestSelector select {min-height:44px;border:1px solid #d5dfd9;border-radius:7px;padding:10px 12px;background:#fff;}
+@media(max-width:640px){.accountSelector {padding:14px;}.requestGroup {margin-top:24px;padding-top:18px;}.requestSelector {padding:12px;}.groupHeading {align-items:baseline;}.groupHeading span {font-size:12px;}}
