@@ -1,0 +1,11 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),reference:vi.fn()}));
+vi.mock('@/lib/admin/guard',async()=>{const {authResponse}=await import('@/lib/auth/http');return {getStaffContext:m.guard,staffError:(v:{error:string;status:number})=>authResponse({error:v.error},v.status)};});
+vi.mock('@/lib/billing/boc-fetch',()=>({fetchBocReference:m.reference}));
+import {POST} from '@/app/api/admin/settlement-fx/route';
+const id='a0000000-0000-4000-8000-000000000001';
+const req=(over={},origin='https://site.test')=>new Request('https://site.test/api/admin/settlement-fx',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({requestId:id,rate:'5.12345678',referenceDate:'2026-11-19',confirm:'on',...over})});
+beforeEach(()=>{vi.resetAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc}});m.reference.mockResolvedValue({rate:'5.12345678',date:'2026-11-19',source:'Bank of Canada'});m.rpc.mockResolvedValue({data:id,error:null});});
+it('requires same origin, administrator and MFA',async()=>{expect((await POST(req({},'https://other.test'))).status).toBe(403);expect(m.guard).not.toHaveBeenCalled();m.guard.mockResolvedValue({role:'operator',client:{rpc:m.rpc}});expect((await POST(req())).status).toBe(403);m.guard.mockResolvedValue({error:'mfa_required',status:403});expect((await POST(req())).status).toBe(403);expect(m.rpc).not.toHaveBeenCalled();});
+it('re-fetches reference and rejects a changed or forged rate',async()=>{expect((await POST(req({rate:'999'}))).status).toBe(409);expect(m.rpc).not.toHaveBeenCalled();m.reference.mockRejectedValue(Error());expect((await POST(req())).status).toBe(503);expect(m.rpc).not.toHaveBeenCalled();});
+it('registers only server fetched fields with explicit confirmation and verifies receipt',async()=>{expect((await POST(req())).status).toBe(200);expect(m.rpc).toHaveBeenCalledWith('register_ops_fx_reference',{p_id:id,p_rate:'5.12345678',p_reference_date:'2026-11-19',p_source:'Bank of Canada'});m.rpc.mockResolvedValue({data:null,error:null});expect((await POST(req())).status).toBe(503);expect((await POST(req({confirm:''}))).status).toBe(400);});

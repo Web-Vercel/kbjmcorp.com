@@ -11,13 +11,13 @@ const owner:OpsContext={owner:true,roles:[],canSource:true,canPrepare:true,canRe
 const finance:OpsContext={...owner,owner:false,canSource:false,canSupport:false,canReview:false};
 it('places every operational task once under a named business group',()=>{
  const groups=workspaceGroups('zh',owner,true,true);const paths=groups.flatMap(g=>g.items.map(i=>i.path));
- expect(new Set(paths).size).toBe(paths.length);expect(paths.filter(p=>p.startsWith('operations/'))).toHaveLength(19);
+ expect(new Set(paths).size).toBe(paths.length);expect(paths.filter(p=>p.startsWith('operations/'))).toHaveLength(11);
  expect(groups.find(g=>g.key==='finance')?.items.some(i=>i.path==='operations/collections')).toBe(true);
  expect(groups.map(g=>g.label)).toEqual(['客户与业务','广告运营','财务与结算','代理与佣金','账号与权限']);
 });
 it.each([false,true])('keeps finance-only staff within their duties (reviewer=%s)',reviewer=>{
  const groups=workspaceGroups('zh',{...finance,canPrepare:!reviewer,canReview:reviewer},false,false);const items=groups.flatMap(g=>g.items);
- expect(items).toHaveLength(15);expect(items.some(i=>i.path.startsWith('admin/'))).toBe(false);
+ expect(items).toHaveLength(8);expect(items.some(i=>i.path.startsWith('admin/'))).toBe(false);
  for(const key of ['staff','ads-reporting','upstream','manual-accounts'])expect(items.some(i=>i.path===`operations/${key}`)).toBe(false);
  expect(items.find(i=>i.path==='operations/collections')?.label).toBe(reviewer?'收款到账复核':'收款到账登记');
 });

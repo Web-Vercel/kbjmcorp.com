@@ -7,7 +7,7 @@ it('groups administrator tasks and links to separate task pages',()=>{
 });
 it('keeps administrator-only destinations out of the finance menu',()=>{
  const html=renderToStaticMarkup(<Menu locale="zh" finance source={false} owner={false} support={false}/>);
- expect(html).not.toContain('href="/zh/operations/staff"');expect(html).not.toContain('/zh/operations/ads-reporting');expect(html).not.toContain('href="/zh/operations/upstream"');expect(html).toContain('/zh/operations/settlements');
+ expect(html).not.toContain('href="/zh/operations/staff"');expect(html).not.toContain('/zh/operations/ads-reporting');expect(html).not.toContain('href="/zh/operations/upstream"');expect(html).toContain('/zh/operations/month-close');
 });
 it('gives ad operations manual handoff access without finance actions',()=>{
  const html=renderToStaticMarkup(<Menu locale="en" source finance={false} owner={false} support={false}/>);

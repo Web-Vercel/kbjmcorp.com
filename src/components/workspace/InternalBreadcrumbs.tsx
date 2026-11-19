@@ -1,10 +1,11 @@
 'use client';
+import {workflowGroup} from '@/lib/operations/workflow-groups';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import type {OpsContext} from '@/lib/operations/model';
 import {workspaceGroups} from '@/lib/operations/workspace-navigation';
 export default function InternalBreadcrumbs({locale,context,canManage,admin}:{locale:'zh'|'en';context?:OpsContext|null;canManage:boolean;admin:boolean}){
- const path=usePathname();const home=`/${locale}/${canManage?'admin':'operations'}`;
+ const actual=usePathname();const workflow=actual.startsWith(`/${locale}/operations/`)?workflowGroup(actual.split('/')[3]):undefined;const matched=workflow?workspaceGroups(locale,context,canManage,admin).flatMap(g=>g.items).find(i=>i.path.startsWith('operations/')&&workflowGroup(i.path.slice(11))?.key===workflow.key):undefined;const path=matched?`/${locale}/${matched.path}`:actual;const home=`/${locale}/${canManage?'admin':'operations'}`;
  const groups=workspaceGroups(locale,context,canManage,admin);
  const group=groups.find(g=>g.items.some(i=>path===`/${locale}/${i.path}`||path.startsWith(`/${locale}/${i.path}/`)));
  const item=group?.items.find(i=>path===`/${locale}/${i.path}`||path.startsWith(`/${locale}/${i.path}/`));

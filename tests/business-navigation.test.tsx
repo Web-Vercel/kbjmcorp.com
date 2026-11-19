@@ -73,15 +73,16 @@ it.each([false,true])('keeps home destinations aligned with the financial role m
  const Home=(await import('@/components/operations/OperationsHomeMenu')).default;
  const context={...preparer,canPrepare:!reviewer,canReview:reviewer};
  const html=renderToStaticMarkup(<Home locale="zh" context={context} finance source={false} owner={false} support={false}/>);
- const routes=[...html.matchAll(/href="\/zh\/operations\/([^"?#]+)"/g)].map(m=>m[1]);expect(routes).toHaveLength(15);
+ const routes=[...html.matchAll(/href="\/zh\/operations\/([^"?#]+)"/g)].map(m=>m[1]);expect(routes).toHaveLength(8);
  for(const forbidden of ['staff','ads-reporting','manual-accounts','upstream'])expect(routes).not.toContain(forbidden);
- expect(html).toContain('财务咨询工单');expect(html).toContain('一般客服由客服处理');expect(html).toContain(reviewer?'月度结算复核':'月度结算制单');
+ for(const label of ['问题中心','月结办理','来源核对','资金查询','公司间对账'])expect(html).toContain(label);
 });
 it('uses consistent administrator module names in both the home menu and workspace navigation',async()=>{
  m.path='/zh/operations';const context={...preparer,owner:true,canPrepare:true,canReview:true};
  const Home=(await import('@/components/operations/OperationsHomeMenu')).default;
  const nav=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>),home=renderToStaticMarkup(<Home locale="zh" context={context} finance source owner support/>);
- for(const name of ['代理与佣金管理','月度结算管理','对公收款与入账','手工提交平台报表','月度数据完整性核对','手工账户归属关联']){expect(nav).toContain(name);expect(home).toContain(name);}
+ for(const name of ['代理与佣金管理','对公收款与入账','手工账户归属关联']){expect(nav).toContain(name);expect(home).toContain(name);}
+ for(const name of ['月结办理','来源核对','资金查询','公司间对账','问题中心'])expect(home).toContain(name);
 });
 it.each(['investor','sales'] as const)('keeps %s navigation in its read-only/follow-up portal even on a legacy account URL',role=>{
  m.path='/zh/account/funds';const html=renderToStaticMarkup(<Navigation locale="zh" section="account" role={role}/>);

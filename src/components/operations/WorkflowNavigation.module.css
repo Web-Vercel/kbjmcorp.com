@@ -1,0 +1,6 @@
+.panel {margin:20px 24px 0;padding:16px 20px;border:1px solid #d7e4de;border-radius:12px;background:#f1f6f3;color:#244c41;}
+.panel nav {display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+.panel a {padding:9px 14px;border:1px solid #cbdcd3;border-radius:8px;color:#245b72;text-decoration:none;background:white;}
+.panel a[aria-current=page] {background:#007f6b;color:white;border-color:#007f6b;font-weight:700;}
+.panel small {display:block;margin-top:10px;color:#62716b;}
+@media(max-width:600px){.panel{margin:12px 12px 0;padding:14px;}.panel a{flex:1 1 auto;text-align:center;}}

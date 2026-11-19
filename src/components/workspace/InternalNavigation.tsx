@@ -1,4 +1,5 @@
 'use client';
+import {workflowGroup} from '@/lib/operations/workflow-groups';
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {usePathname} from 'next/navigation';
@@ -6,7 +7,7 @@ import type {OpsContext} from '@/lib/operations/model';
 import {workspaceGroups} from '@/lib/operations/workspace-navigation';
 import styles from './InternalWorkspace.module.css';
 export default function InternalNavigation({locale,context,canManage,admin}:{locale:'zh'|'en';context?:OpsContext|null;canManage:boolean;admin:boolean}){
- const path=usePathname();const [expanded,setExpanded]=useState(false);
+ const actualPath=usePathname();const segment=actualPath.split('/')[3];const workflow=actualPath.startsWith(`/${locale}/operations/`)?workflowGroup(segment):undefined;const matched=workflow?workspaceGroups(locale,context,canManage,admin).flatMap(g=>g.items).find(i=>i.path.startsWith('operations/')&&workflowGroup(i.path.slice(11))?.key===workflow.key):undefined;const path=matched?`/${locale}/${matched.path}`:actualPath;const [expanded,setExpanded]=useState(false);
  useEffect(()=>{setExpanded(false);},[path]);
  const groups=workspaceGroups(locale,context,canManage,admin);
  const activeHref=groups.flatMap(group=>group.items).map(item=>`/${locale}/${item.path}`).filter(href=>path===href||path.startsWith(href+'/')).sort((a,b)=>b.length-a.length)[0];
