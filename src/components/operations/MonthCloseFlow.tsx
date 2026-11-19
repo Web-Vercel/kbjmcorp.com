@@ -1,3 +1,4 @@
+import RecordPicker from '@/components/workspace/RecordPicker';
 import Link from 'next/link';
 import {closeAction,closeStages,type CloseAccount} from '@/lib/operations/month-close';
 import type {MainFlowStep} from '@/lib/operations/main-flow';
@@ -19,7 +20,7 @@ export default function MonthCloseFlow({accounts,context,locale,company,month,su
   <header><div><p className={styles.eyebrow}>{month} · {zh?'本月办理路线':'This month’s workflow'}</p><h2>{zh?'进度在哪里，下一步谁来做':'What happened, and who acts next'}</h2></div><span className={styles.role}>{zh?'你的职责：':'Your role: '}{yourRole}</span></header>
   <div className={styles.legend} aria-label={zh?'状态颜色说明':'Status legend'}>{(['done','pending','problem','waiting','unknown'] as const).map(kind=><Status key={kind} kind={kind} zh={zh}/>)}</div>
   {!accounts.length&&<p>{zh?'还没有关联广告账户。请管理员先确认这个企业使用哪个账户。':'No advertiser is linked yet. Ask the administrator to confirm this company’s account.'}</p>}
-  {accounts.map(account=>{
+  {<RecordPicker label={locale==='zh'?'选择月结账户':'Select Month-close account'} locale={locale} hashPrefix="month-close-flow-" items={accounts.map((account)=>({id:account.binding_id,label:account.account_label+' · '+closeStages[account.stage][zh?'zh':'en'],active:account.stage!=='published',content:(()=>{
    const current=closeStages[account.stage];const action=closeAction(account,context,locale,company,month);
    const canAct=action?.allowed&&(account.stage!=='funding_needed'||fundingAvailable);
    const published=account.stage==='published';
@@ -32,7 +33,7 @@ export default function MonthCloseFlow({accounts,context,locale,company,month,su
     })}</ol>
     <div className={styles.task}><div><Status kind={published?'done':problem?'problem':'pending'} zh={zh}/><br/><strong>{published?(zh?'账单发布完成':'Statement published'):(zh?'现在需要处理':'Current task')}</strong><p>{zh?(plain[account.stage]||current.zh):current.en}</p><small>{zh?'下一步负责人：':'Responsible next: '}{action?who[action.who]:who.none}</small>{account.stage==='settlement_rejected'&&<p>{zh?'检查人已退回。管理员先另存修订报价，再由制单员重新制单；原记录保留。':'Returned by reviewer. The administrator saves a revised quote, then the preparer makes a new draft. Previous records remain.'}</p>}</div>{canAct?<Link className="button" href={action!.href}>{published?(zh?'查看发布记录':'View publication'):(zh?'办理这一步':'Open current task')}</Link>:<p>{zh?'这一步由上面的负责人处理，你可以继续查看进度。':'The responsible person handles this step. You can continue viewing progress.'}</p>}</div>
    </article>;
-  })}
+  })()}))}/>}
   <p>{zh?'已发布 ':'Published '}{accounts.filter(a=>a.stage==='published').length}/{accounts.length}</p><div className={styles.branches}><p>{zh?'账单发布后，客户查阅与公司间到账核对分别跟进：':'After publication, these two tracks proceed separately:'}</p><div>{summary.filter(s=>s.id==='access'||s.id==='payments').map(step=><article key={step.id}><h3>{step.id==='access'?(zh?'↳ 客户看账单':'↳ Client reads statement'):(zh?'↳ 两家公司核对到账':'↳ Companies check receipts')}</h3><p><Status kind={step.state==='ready'?'done':step.state==='unknown'?'unknown':'pending'} zh={zh}/></p><p>{step.text}</p><small>{step.id==='access'?(zh?'客户亲自确认看过；管理员不能代点。':'The client confirms reading; administrators cannot do it for them.'):(zh?'财务登记、另一人检查；这里不会发起转账，也不再扣客户余额。':'Finance records it and another person checks. No transfer or additional client debit occurs here.')}</small><p><Link className="service-link" href={`/${locale}/operations/${step.id==='access'?'month-close':'upstream-payments'}?${query}${step.id==='access'?'#client-handoff':''}`}>{zh?'查看记录与下一步':'View records and next step'}</Link></p></article>)}</div></div>
   <details className={styles.guide}><summary>{zh?'谁负责什么？':'Who is responsible for what?'}</summary><p>{zh?'管理员准备报价、最后发布；制单员把来源和报价做成账单草稿；另一位复核员检查并通过或退回；客户查看自己的账单并确认看过。每个人只能使用自己账号已获准的功能。':'The administrator prepares quotes and publishes. The preparer builds drafts from sources and quotes. A different reviewer approves or returns them. Clients view and acknowledge their own statements. Existing account permissions determine available actions.'}</p><p>{zh?'余额是已确认入账的钱。':'Balance means confirmed posted funds.'}</p></details>
  </section>;

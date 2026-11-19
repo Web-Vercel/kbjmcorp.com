@@ -1,4 +1,5 @@
 "use client";
+import {useRecordSwitchLock} from "@/components/workspace/useRecordSwitchLock";
 import { useRef,useState,type FormEvent } from "react";
 import DemoExitButton from "@/components/demo/DemoExitButton";
 import { useRouter } from "next/navigation";
@@ -6,10 +7,11 @@ import {clientLoginDestination} from "@/lib/auth/client-return";
 import type { Locale } from "@/lib/content";
 export default function AdminForm({locale,endpoint,method="POST",children,button,loginMode="staff",timeoutMs,returnTo}:{locale:Locale;returnTo?:string;loginMode?:"staff"|"client";timeoutMs?:number;endpoint:string;method?:"POST"|"PATCH";children:React.ReactNode;button:string}){
  const router=useRouter();const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");const [demoBlocked,setDemoBlocked]=useState(false);const lock=useRef(false);
+ const [unconfirmed,setUnconfirmed]=useState(false);useRecordSwitchLock(busy||unconfirmed);
  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(lock.current)return;const form=event.currentTarget;lock.current=true;setBusy(true);setMessage("");setDemoBlocked(false);const controller=timeoutMs?new AbortController():null;const timer=controller?setTimeout(()=>controller.abort(),timeoutMs):undefined;try{
  const response=await fetch(endpoint,{method,...(controller?{signal:controller.signal}:{}),headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(new FormData(form).entries()))});
  if(response.status===401){router.push(loginMode==="client"?clientLoginDestination(locale,returnTo):`/${locale}/admin/login`);return;}
- const result=await response.json();
+ const result=await response.json();setUnconfirmed(response.status>=500);
  if(!response.ok){
  if(result.error==='demo_only'){setDemoBlocked(true);setMessage(locale==='zh'?'浏览器仍处于演示模式，真实业务操作已被拦截。请先退出演示，再返回业务页面。':'This browser is still in demo mode. Real business actions are blocked. Exit the demo, then return to the business page.');return;}
 
@@ -24,6 +26,6 @@ export default function AdminForm({locale,endpoint,method="POST",children,button
  if(settlementErrors[result.error]){setMessage(settlementErrors[result.error][locale==='zh'?0:1]);return;}
  setMessage(locale==="zh"?(result.error==="duplicate_reference"?"流水号已登记，请查看原记录，勿重复入账。":result.error==="conflict"?"记录状态已变化，请刷新并核对原处理结果。":result.error==="already_linked"?"该外部账户已有关联，请核对客户归属。":result.error==="mfa_required"?"请先完成二次验证。":"操作未完成，请检查输入并重试。"):result.error==="duplicate_reference"?"This transaction is already registered. Check the original record.":result.error==="conflict"?"The record changed. Refresh and check the existing result.":result.error==="already_linked"?"This external account is already linked.":"The operation failed. Check your input and try again.");return;}
  const posted=endpoint==="/api/admin/monthly-publications";setMessage(locale==="zh"?(posted?"已发布客户账单并完成余额记账。":"已保存。"):(posted?"Client statement published and ledger posted.":"Saved."));form.reset();router.refresh();
- }catch{setMessage(timeoutMs?(locale==="zh"?"保存结果未知，请先刷新核查原记录；保留原内容重试会使用相同请求信息。":"Save result unknown. Refresh and check existing records; unchanged retries use the same request information."):(locale==="zh"?"网络暂时不可用，请重试。":"Network unavailable. Try again."));}finally{if(timer!==undefined)clearTimeout(timer);setBusy(false);lock.current=false;}}
+ }catch{setUnconfirmed(true);setMessage(timeoutMs?(locale==="zh"?"保存结果未知，请先刷新核查原记录；保留原内容重试会使用相同请求信息。":"Save result unknown. Refresh and check existing records; unchanged retries use the same request information."):(locale==="zh"?"网络暂时不可用，请重试。":"Network unavailable. Try again."));}finally{if(timer!==undefined)clearTimeout(timer);setBusy(false);lock.current=false;}}
  return <form className="admin-form" onSubmit={submit} aria-busy={busy}>{children}<button className="button" disabled={busy} type="submit">{busy?(locale==="zh"?"正在保存…":"Saving…"):button}</button><p role="status" aria-live="polite">{message}</p>{demoBlocked&&<DemoExitButton locale={locale}/>}</form>;
 }

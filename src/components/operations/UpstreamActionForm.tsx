@@ -1,10 +1,12 @@
 'use client';
+import {useRecordSwitchLock} from '@/components/workspace/useRecordSwitchLock';
 import {useRef,useState,type ReactNode,type FormEvent} from 'react';
 import {upstreamActionReceipt,type UpstreamActionReceipt} from '@/lib/billing/upstream-payments';
 import UpstreamReceipt from './UpstreamReceipt';
 export default function UpstreamActionForm({locale,action,targetId,company,month,children,button,testMode=false}:{locale:'zh'|'en';action:'review'|'reversal_submit'|'reversal_review';targetId:string;company?:string;month?:string;children:ReactNode;button:string;testMode?:boolean}){
  const zh=locale==='zh',lock=useRef(false);const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<UpstreamActionReceipt|null>(null);
  const query=new URLSearchParams({...company?{company}:{},...month?{month}:{}}).toString();const original=`/${locale}/operations/upstream-payments${query?'?'+query:''}#${action==='reversal_review'?'upstream-reversal':'upstream-payment'}-${targetId}`;
+ useRecordSwitchLock(busy||unknown);
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||receipt)return;const data=Object.fromEntries(new FormData(event.currentTarget));lock.current=true;setBusy(true);setMessage('');setUnknown(false);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{const response=await fetch('/api/upstream-payments',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const result=await response.json(),saved=upstreamActionReceipt.safeParse(result.receipt);

@@ -1,10 +1,12 @@
 'use client';
+import {useRecordSwitchLock} from '@/components/workspace/useRecordSwitchLock';
 import {useRef,useState,type FormEvent} from 'react';
 import {z} from 'zod';
 const receiptSchema=z.object({ok:z.literal(true),receipt:z.object({id:z.uuid(),archived:z.boolean(),stateRevision:z.number().int().min(0).max(2147483647)})});
 export default function QuoteArchiveForm({locale,quoteId,archived,revision,company,month}:{locale:'zh'|'en';quoteId:string;archived:boolean;revision:number;company:string;month:string}){
  const zh=locale==='zh',lock=useRef(false),target=!archived;const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<z.infer<typeof receiptSchema>['receipt']|null>(null);
  const record=`/${locale}/operations/pricing?${new URLSearchParams({company,month,archived:'yes'})}#quote-${quoteId}`;
+ useRecordSwitchLock(busy||unknown);
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||receipt)return;const data=new FormData(event.currentTarget),note=String(data.get('note')||'').trim();
   if(note.length<3||note.length>1000||data.get('confirm')!=='on'){setMessage(zh?'请填写操作说明并勾选确认。':'Enter a reason and confirm.');return;}

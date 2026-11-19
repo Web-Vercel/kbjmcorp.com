@@ -7,7 +7,7 @@ const id=(n:number)=>`b0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
 it('distinguishes two pending applications and sends only the selected ten-yuan ID',async()=>{
  const refunds=[{id:id(20),gross_minor:'2000',net_minor:'1900'},{id:id(10),gross_minor:'1000',net_minor:'900'}].map(r=>({...r,wallet_id:id(1),organization_id:id(2),company:'FICTIONAL COMPANY',fee_minor:'100',policy_snapshot:{mode:'fixed',value:100,agreement:'TEST FEE'},reason:'TEST ONLY',status:'requested',review_note:null,assessment:null,prepared_by_me:null,requested_by_me:true,created_at:'2026-11-18T23:00:00Z',paid_at:null}));
- const client={rpc:async()=>({data:{staff:false,owner:false,wallets:[],refunds,payments:[]},error:null})} as unknown as SupabaseClient;
+ const client={rpc:async()=>({data:{staff:false,owner:false,wallets:[{id:id(1),organization_id:id(2),name:'FICTIONAL COMPANY',currency:'CNY',can_request:false,balance_minor:'70323',held_minor:'3000',available_minor:'67323',policy:null}],refunds,payments:[]},error:null})} as unknown as SupabaseClient;
  const fetcher=vi.fn().mockResolvedValue(Response.json({ok:true,receipt:{id:id(10),action:'refund_cancel'}}));vi.stubGlobal('fetch',fetcher);
  const {container}=render(await Workspace({client,locale:'zh'}));
  const selector=screen.getByRole('combobox',{name:'选择退款申请'});expect(within(selector).getByRole('option',{name:/CNY 10.00/})).toBeTruthy();expect(container.querySelector('#refund-'+id(10))).toBeNull();

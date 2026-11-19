@@ -1,4 +1,5 @@
 'use client';
+import {useRecordSwitchLock} from '@/components/workspace/useRecordSwitchLock';
 import Link from 'next/link';
 import {useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {z} from 'zod';
@@ -7,6 +8,7 @@ export default function MonthlySettlementForm({locale,mode,draftId,company,month
  const [busy,setBusy]=useState(false),[receipt,setReceipt]=useState<string|null>(null),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[decision,setDecision]=useState('');
  const query=new URLSearchParams({...company?{company}:{},...month?{month}:{}});
  const record=(id?:string)=>`/${locale}/operations/settlements?${query}#${id?'draft-'+id:'settlement-drafts'}`;
+ useRecordSwitchLock(busy||unknown);
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||receipt)return;
   const input=Object.fromEntries(new FormData(event.currentTarget).entries());
