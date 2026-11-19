@@ -51,6 +51,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
     const zh = locale === 'zh';
     const links = [
       ['access', zh ? '客户总览' : 'Client overview'],
+      ['account/transactions', zh ? '余额与流水' : 'Balance and transactions'],
       ['account/statements', zh ? '账单与下载' : 'Statements and downloads'],
       ['account/funds', zh ? '月度资金对账' : 'Monthly funds statements'],
       ['access/analytics', zh ? '广告与费用分析' : 'Advertising and cost analysis'],
@@ -58,7 +59,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
       ['account/refunds', zh ? '申请退款' : 'Balance refunds'],
       ['access/security', zh ? '账号安全' : 'Account security'],
     ];
-    const clientMenuPath=[`/${locale}/account/payment-notices`,`/${locale}/account/transactions`].includes(path)?`/${locale}/access`:path;
+    const clientMenuPath=path===`/${locale}/account/payment-notices`?`/${locale}/account/transactions`:path;
     const selected = links.find(([route]) => clientMenuPath === `/${locale}/${route}`);
     return <div className={styles.bar}>
       <nav aria-label={zh ? '当前位置' : 'Breadcrumb'} className={styles.path}>

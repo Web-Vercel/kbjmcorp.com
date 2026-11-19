@@ -105,3 +105,17 @@ it('shows the management workspace switch outside the collapsed menu only after 
  expect(support).toContain('href="/en/admin"');expect(support).toContain('Business management center');
  expect(renderToStaticMarkup(<Navigation locale="zh" section="account" role="client" canAdminWorkspace/>)).not.toContain('href="/zh/admin"');
 });
+
+it.each(['zh','en'] as const)('exposes balances in the client menu and highlights balances and payment notices (%s)',locale=>{
+ for(const page of ['transactions','payment-notices']){
+  m.path=`/${locale}/account/${page}`;
+  const html=renderToStaticMarkup(<Navigation locale={locale} section="account" role="client"/>);
+  expect(html).toContain(`aria-current="page" href="/${locale}/account/transactions"`);
+  expect(html).not.toContain(`aria-current="page" href="/${locale}/access"`);
+  expect(html).toContain(locale==='zh'?'余额与流水':'Balance and transactions');
+ }
+ m.path=`/${locale}/access`;
+ const overview=renderToStaticMarkup(<Navigation locale={locale} section="access" role="client"/>);
+ expect(overview).toContain(`href="/${locale}/account/transactions"`);
+ expect(overview).toContain(`aria-current="page" href="/${locale}/access"`);
+});
