@@ -12,8 +12,8 @@ it('distinguishes two pending applications and sends only the selected ten-yuan 
  const {container}=render(await Workspace({client,locale:'zh'}));
  const selector=screen.getByRole('combobox',{name:'选择退款申请'});expect(within(selector).getByRole('option',{name:/CNY 10.00/})).toBeTruthy();expect(container.querySelector('#refund-'+id(10))).toBeNull();
  fireEvent.change(selector,{target:{value:id(10)}});expect(container.querySelector('#refund-'+id(20))).toBeNull();
- const card=container.querySelector('#refund-'+id(10))! as HTMLElement;fireEvent.click(within(card).getByText('取消这笔 CNY 10.00 申请'));
- fireEvent.click(within(card).getByRole('checkbox'));fireEvent.change(within(card).getByLabelText('取消 CNY 10.00 申请的原因'),{target:{value:'TEST cancel ten only'}});
+ const card=screen.getByRole('region',{name:'所选申请操作'});expect(selector.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();expect(container.querySelector('#refund-'+id(10))!.compareDocumentPosition(card)&Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+ fireEvent.click(within(card).getByRole('checkbox'));fireEvent.change(within(card).getByLabelText('取消原因'),{target:{value:'TEST cancel ten only'}});
  fireEvent.click(within(card).getByRole('button',{name:'确认取消 CNY 10.00 申请'}));
  await waitFor(()=>expect(fetcher).toHaveBeenCalledOnce());expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({id:id(10),action:'refund_cancel'});
  vi.spyOn(window,'confirm').mockReturnValue(true);fireEvent.change(selector,{target:{value:id(20)}});expect(container.querySelector('#refund-'+id(10))).toBeNull();expect(container.querySelector('#refund-'+id(20))).toBeTruthy();expect(screen.queryByText('TEST cancel ten only')).toBeNull();vi.restoreAllMocks();
