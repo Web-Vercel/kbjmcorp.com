@@ -29,3 +29,6 @@
 .preparation select {width:100%;}
 @media(max-width:640px){.request {padding:16px;}.request .metrics {grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.request .metrics > div + div {border-top:0;border-left:1px solid #e0e7e0;padding:0 0 0 8px;}.request .metrics dd {font-size:15px;}}
 @media(max-width:640px){.wallet .metrics {grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.wallet .metrics > div + div {border-top:0;border-left:1px solid #e0e7e0;padding:0 0 0 8px;}.wallet .metrics dt {font-size:12px;}.wallet .metrics dd {font-size:14px;white-space:nowrap;}}
+
+.reference {margin-block:16px;border-top:1px solid #e0e7e0;padding-top:12px;}
+.reference > summary {font-size:14px;color:#62716c;}
