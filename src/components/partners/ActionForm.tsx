@@ -1,8 +1,11 @@
 'use client';
-import {useRef,useState,type FormEvent} from 'react';
+import {useContext,useEffect,useId,useRef,useState,type FormEvent} from 'react';
+import {RecordSwitchContext} from './RefundRecordSelector';
 import {actionReceipt,parseAmount} from '@/lib/partners/model';
 export default function ActionForm({action,data={},button,children,noteLabel='办理说明／核实依据',noteDefault,disabled=false}:{action:string;data?:Record<string,unknown>;button:string;children?:React.ReactNode;noteLabel?:string;noteDefault?:string;disabled?:boolean}){
  const request=useRef(''),lock=useRef(false);const [busy,setBusy]=useState(false),[saved,setSaved]=useState(false),[unknown,setUnknown]=useState(false),[message,setMessage]=useState('');
+ const switchLock=useContext(RecordSwitchContext),lockId=useId();
+ useEffect(()=>{switchLock?.(lockId,busy||unknown);return ()=>switchLock?.(lockId,false);},[switchLock,lockId,busy,unknown]);
  async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();if(lock.current||saved)return;const fields=Object.fromEntries(new FormData(e.currentTarget));const values:Record<string,unknown>={...data,...fields};for(const key of ['active','accepted'])if(key in values)values[key]=values[key]==='true'||values[key]==='on'||values[key]===true;
  try{if(action==='assignment_save'){values.from=String(values.fromMonth)+'-01';values.until=values.untilMonth?String(values.untilMonth)+'-01':'';}if(action==='assignment_end')values.until=String(values.untilMonth)+'-01';if(action==='settlement_prepare')values.period=String(values.monthDisplay)+'-01';if(action==='refund_policy')values.value=Number(parseAmount(String(values.valueDisplay)));if(action==='assignment_save')values.rateBps=Number(parseAmount(String(values.ratePercent)));if(action==='payment_record')values.amountMinor=parseAmount(String(values.paymentAmount)).toString();if(action==='commission_adjust')values.amountMinor=(-parseAmount(String(values.adjustmentAmount))).toString();}catch{setMessage('请填写有效金额或百分比，最多两位小数。');return;}
  if(!request.current)request.current=crypto.randomUUID();lock.current=true;setBusy(true);setMessage('');const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);

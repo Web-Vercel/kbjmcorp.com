@@ -11,6 +11,9 @@
 .unavailable button {font-size:14px;padding:12px 18px;}
 
 .request {scroll-margin-top:190px;}
-.requestLinks {display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-block:16px;}
-.requestLinks a {padding:10px 14px;border:1px solid #dce6e0;border-radius:8px;}
 .cancel {border-top:1px solid #dce6e0;padding-top:16px;margin-top:16px;}
+
+.selector {display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:16px 0;}
+.selector label {display:grid;gap:8px;flex:1;min-width:0;font-weight:600;}
+.selector select {width:100%;min-width:0;max-width:100%;}
+.selector > span {font-size:14px;color:#62716c;padding-bottom:12px;}
