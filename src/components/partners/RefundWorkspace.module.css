@@ -17,3 +17,14 @@
 .selector label {display:grid;gap:8px;flex:1;min-width:0;font-weight:600;}
 .selector select {width:100%;min-width:0;max-width:100%;}
 .selector > span {font-size:14px;color:#62716c;padding-bottom:12px;}
+
+.request {padding:20px 24px;}
+.request h2 {font-size:18px;margin:0 0 10px;}
+.request p {margin-block:10px;}
+.request .metrics {margin-block:16px;gap:16px;}
+.request .metrics dd {font-size:18px;margin-top:4px;}
+.material {margin-block:12px;}
+.preparation {border-top:1px solid #e0e7e0;padding-top:14px;margin-top:14px;}
+.preparation > label {display:grid;gap:6px;max-width:480px;}
+.preparation select {width:100%;}
+@media(max-width:640px){.request {padding:16px;}.request .metrics {grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.request .metrics > div + div {border-top:0;border-left:1px solid #e0e7e0;padding:0 0 0 8px;}.request .metrics dd {font-size:15px;}}
