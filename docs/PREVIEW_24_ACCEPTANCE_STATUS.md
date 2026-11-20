@@ -27,13 +27,13 @@
 |17|账单问题与客户确认|完成|已有查阅确认、关联工单、回复解决、重开再解决证据|
 |18|合同与合作文件|部分|即时显示、下载、版本保留、移除恢复及客户甲forbidden已通过；其他代理及合同范围待验收|
 |19|手工报表与来源异常|部分|管理员V1提交退回、V2修订及历史保留、050汇率登记、V2生成CNY4.65草稿及中国复核员独立复核已通过；051发布衔接待执行及线上验收，异常分支未闭环|
-|20|CRM、企业申请及广告项目操作|待验收|已开放功能的写入及协作|
+|20|CRM、企业申请及广告项目操作|部分|CRM备注、项目创建/预算修正/阶段同步、需求审核、创意确认退回修订及版本保留、B访问A项目404已通过；申请功能未开放，不宣称写入验收|
 |21|最新 UI 的线上检查|部分|最新部署多角色、手机及反馈统一回归|
 |22|月度资金摘要报错|完成|已有修复后恢复证据；不代表所有时区边界通过|
 |23|11 月客户资金对账单|等待|温哥华时间进入 12 月后核对完整月|
 |24|上线配置核对|待验收|部署配置、数据库分离及文件权限配置证据|
 
-合计：完成 4，部分 13，待验收 6，等待 1；未完全关闭 20。
+合计：完成 4，部分 14，待验收 5，等待 1；未完全关闭 20（分组数，不是20个单独操作）。
 
 历史截图说明见 /workspace/shared/acceptance-2026-11-17/HOSTED_PROGRESS.md（其中早期“尚未验证”描述需结合后续用户截图，不单独作为最新结论）。
 
@@ -155,3 +155,12 @@ CRM：虚构企业36d7cb6f备注第1版→第2版保存截图可见；不要把�
 - Both company/application routes now open in customer workspace. Screenshot identity is client B, not A. Application disabled notice accurately shown; no application persistence test claimed.
 - Company page still falsely showed unassociated despite verified B identity: get_my_company_profiles used legacy memberships only. Migration 053 reuses authenticated client project scope; contracts list filters by retrieved company IDs while existing finance/visibility RLS remains enforced. No internal notes exposed, no new financial grants.
 - Local typecheck and 18 tests passed including own-company profile, cross-company/hidden/draft contract exclusion, paused/sales/investor denial. Hosted migration 053 and company profile readback pending.
+
+
+### 2026-11-19 用户授权接管剩余自动验收
+- 用户要求剩余测试自主完成，不再逐项人工截图。只测试可授权功能；本地通过不冒充线上通过，不变更 Production 或等待期。
+- 用户截图已确认 053 后 A 显示财务流程验收企业（虚构）、888/CN，B 显示测试企业B、987654321/CN，各自无其他公司。两人申请页均正确显示未开放。B项目页显示本公司1/项目0，与A项目隔离。
+- 当前环境有配置好的A/B/代理测试凭证和Vercel automation保护访问凭证（未输出其值）。浏览器经配置代理成功打开 Preview 登录页，200；正常 Cloudflare 真人验证尚未完成，未提交账号登录、未创建线上业务写入。Vercel保护访问凭证未用于绕过应用验证码/MFA。
+- 上传的9月4.65元HTML已由本地 Chromium打印为2页A4 PDF，逐页检查中文、金额、不可付款标识及未提供指标，无横向溢出、截断重叠或额外空白页。是用户上传HTML的打印检查，不是新下载线上PDF。
+- 本轮最终全套：229文件、1184测试全部通过，失败0、跳过0，8个全新顺序批次，逐个核对发现文件覆盖；此前失败批次不计通过。另本地已构建应用110项匿名路由/手机桌面检查通过，类型、SQL初始化一致性及构建通过。
+- 结果详见 `docs/AUTONOMOUS_ACCEPTANCE_2026-11-19.md`；机器证据 `/workspace/shared/autonomous-2026-11-19/verified-tests/summary.json`。保持线上分组与本地测试独立，不据此将20组未完全关闭的线上验收全部标记完成。无需用户重复已通过截图步骤。

@@ -34,8 +34,8 @@ it('limits contract detail to personal companies, released documents and non-dra
  expect(filters).toContainEqual({table:'client_contracts',method:'in',args:['organization_id',['company-A']]});expect(filters).toContainEqual({table:'client_contracts',method:'eq',args:['client_visible',true]});expect(filters).toContainEqual({table:'client_contracts',method:'neq',args:['status','draft']});
 });
 it('does not query the contract list without a personal finance grant',async()=>{render(await Company({params:Promise.resolve({locale:'zh'})}));expect(screen.getByText(/暂无已开放的合作登记/)).toBeTruthy();expect(mocks.from).not.toHaveBeenCalledWith('client_contracts');});
-it('filters contract lists by personal finance scope instead of employee-wide access',async()=>{
- mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});mocks.query.mockResolvedValue({data:[],error:null});render(await Company({params:Promise.resolve({locale:'zh'})}));expect(filters).toContainEqual({table:'client_contracts',method:'in',args:['organization_id',['company-A']]});
+it('filters contract lists by authenticated company RPC scope instead of employee-wide access',async()=>{
+ mocks.rpc.mockResolvedValue({data:[{id:'company-A',name:'Company A'}],error:null});mocks.query.mockResolvedValue({data:[],error:null});render(await Company({params:Promise.resolve({locale:'zh'})}));expect(filters).toContainEqual({table:'client_contracts',method:'in',args:['organization_id',['company-A']]});
 });
 it('shows a retry state rather than treating a failed scope lookup as granted access or a missing document',async()=>{
  mocks.scope.mockResolvedValue({data:null,error:{code:'unavailable'}});render(await Report({params:Promise.resolve({locale:'zh',id})}));expect(screen.getByText('暂时无法读取完整月报，请联系业务人员核实。')).toBeTruthy();expect(mocks.query).not.toHaveBeenCalled();
@@ -49,7 +49,7 @@ it('allows a personally authorized released contract to render',async()=>{
  mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});mocks.query.mockResolvedValue({data:{id,organization_id:'company-A'},error:null});render(await Contract({params:Promise.resolve({locale:'zh',id})}));expect(screen.getByText('Authorized contract content')).toBeTruthy();
 });
 it('shows only service registration metadata without a full-contract link',async()=>{
- mocks.scope.mockResolvedValue({data:[{organization_id:'company-A'}],error:null});
+ mocks.rpc.mockResolvedValue({data:[{id:'company-A',name:'Company A'}],error:null});
  mocks.query.mockResolvedValue({data:[{id,organization_id:'company-A',title:'Service register A',status:'sent',starts_on:'2026-01-01',ends_on:'2026-12-31'}],error:null});
  render(await Company({params:Promise.resolve({locale:'zh'})}));
  expect(screen.getByText('Service register A')).toBeTruthy();
