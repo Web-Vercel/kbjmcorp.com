@@ -6,8 +6,10 @@ Production base: 7159369. Fixed application candidate: 2302103. Release branch a
 
 Candidate local verification: 235 files / 1223 tests, 0 failed / skipped; optimized build; 110 anonymous boundary checks; eight public browser scenarios. Original batch-5 V8 JIT crash was not counted; remaining files passed in smaller fresh processes with complete unique-file coverage. New Production-baseline integration is additionally built in production mode before publication; this local build is not proof of Vercel variable scope or hosted configuration.
 
-Owner confirmed Production SUPABASE_URL points to rywmjguhvnppfxwhherl.supabase.co. Before push, still require confirmation CLIENT_EMAIL_TEST_LOGIN_ENABLED and DEMO_LOGIN_ENABLED are not true and COLLECTIONS_TEST_ORGANIZATION_ID is absent. Real AI model configuration, online payments, SMS/self-service and unconfigured Ads integration are not activated by this release.
+Owner confirmed Production SUPABASE_URL points to rywmjguhvnppfxwhherl.supabase.co. Owner subsequently confirmed and supplied environment-scope screenshots: CLIENT_EMAIL_TEST_LOGIN_ENABLED, DEMO_LOGIN_ENABLED and COLLECTIONS_TEST_ORGANIZATION_ID are Preview-only and absent from Production. These release-blocking scope checks are satisfied by owner evidence; secret values were neither shown nor copied. Real AI model configuration, online payments, SMS/self-service and unconfigured Ads integration are not activated by this release.
 
 Publishing uses a normal push to next-rebuild, triggering a new build with Vercel Production bindings. Do not Promote a Preview artifact. No DNS/domain/environment variable changes or further SQL execution are part of the push. Hosted Ready/commit and real-role login/MFA/scope/idle tests must still be recorded. Do not open actual financial processing based only on these local and metadata results.
 
 Rollback: revert the isolated release commit normally; do not reverse/drop schema053 or restore an old database over later business writes. Preserve the latest compatible code/data while diagnosing any post-release issue.
+
+Production-baseline integration build passed. Application code is 87bb598, byte-identical to fixed 2302103 in the reviewed application path list; this follow-up commit records configuration evidence only. Hosted deployment and real-account behavior remain pending.
