@@ -34,3 +34,6 @@ The owner requested a quieter partnership presence and an honest customer-focuse
 
 ## Visual budget explanation — 2026-11-12
 The owner requested replacing the lengthy customer-benefit copy with concise visual explanations of receipts, spending and records. Use accessible interactive schematic diagrams without fabricated monetary amounts or performance charts. Preview review first; retain the quieter partnership entry and existing brand.
+
+## Public frontend synchronization — 2026-11-20
+The owner approved synchronizing today's reviewed public advertising/commerce frontend and subsequent small public frontend edits to both Preview and Production. Add a client/agent sign-in pair in the public header, pointing to the existing unified external `/access/login`, and a small employee `/admin/login` link inside the homepage contact area. No employee link in the top header. Publish only isolated public frontend file allowlists from the current Production baseline; never merge Preview wholesale. Backend development, authentication behavior, business workspaces and database upgrades remain excluded and paused for Production.
