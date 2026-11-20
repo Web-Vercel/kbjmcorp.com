@@ -34,3 +34,6 @@ The owner requested a quieter partnership presence and an honest customer-focuse
 
 ## Visual budget explanation — 2026-11-12
 The owner requested replacing the lengthy customer-benefit copy with concise visual explanations of receipts, spending and records. Use accessible interactive schematic diagrams without fabricated monetary amounts or performance charts. Preview review first; retain the quieter partnership entry and existing brand.
+
+## Explicit user exception — 2026-11-20
+The owner supplied FAQ.pages and requested prominent ChatGPT advertising and commerce information, specifically including the homepage upper-right ChatGPT artwork area. Authorized scope: two accessible service links in that card, a homepage services overview/comparison, bilingual commerce detail and FAQ information, and relevant introductory copy. Preserve the brand, original headline, green-and-white identity and unrelated sections. Preview review only; Production database upgrade remains paused while outstanding Preview tasks are completed.
