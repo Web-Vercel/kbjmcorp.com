@@ -1,0 +1,14 @@
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+import {beforeAll,afterAll,it,expect} from 'vitest';
+import {fixturePrelude} from '../scripts/prepare-production-upgrade.mjs';
+import {applyMigrationsThrough} from './fixtures/migrations';
+let db:PGlite,sql:string;
+type Row={check_group:string;item:string;status:string;detail:string};
+const rows=async()=>(await db.query<Row>(sql)).rows;
+beforeAll(async()=>{db=new PGlite();await db.exec(fixturePrelude);await applyMigrationsThrough(db,53);sql=await readFile(new URL('../supabase/verification/production_post_upgrade_summary.sql',import.meta.url),'utf8');},30000);
+afterAll(async()=>{await db?.close();});
+it('returns one result set inside a read-only transaction, without claiming policy inventory is automatic acceptance',async()=>{await db.exec('begin read only');const result=await rows();await db.exec('rollback');expect(result.filter(r=>r.status==='FAIL')).toEqual([]);expect(result.filter(r=>r.check_group==='01_tables_rls')).toHaveLength(17);expect(result.filter(r=>r.status==='REVIEW')).toHaveLength(2);});
+it('detects a column-only direct write grant as well as a table grant',async()=>{await db.exec('begin;grant update(description) on public.wallet_entries to authenticated');expect((await rows()).find(r=>r.check_group==='02_no_direct_financial_writes'&&r.item==='wallet_entries')?.status).toBe('FAIL');await db.exec('rollback');});
+it('detects disabled history enforcement',async()=>{await db.exec('begin;alter table public.wallet_entries disable trigger immutable_money');expect((await rows()).find(r=>r.item==='wallet_entries.immutable_money')?.status).toBe('FAIL');await db.exec('rollback');});
+it('detects a public private-document bucket',async()=>{await db.exec("begin;update storage.buckets set public=true where id='partner-documents'");expect((await rows()).find(r=>r.item==='partner-documents private bucket')?.status).toBe('FAIL');await db.exec('rollback');});
