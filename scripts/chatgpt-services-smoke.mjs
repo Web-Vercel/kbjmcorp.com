@@ -15,7 +15,7 @@ try{
   for(const link of [ad,commerce]){await link.scrollIntoViewIfNeeded();await expect(link).toBeVisible();assert(await link.evaluate(el=>{const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return hit&&el.contains(hit);}),'hero service link must be clickable');}
   assert(await page.evaluate(()=>{const copy=document.querySelector('.hero-copy').getBoundingClientRect(),card=document.querySelector('aside.hero-visual>div:last-child').getBoundingClientRect();return card.left>=copy.right||card.top>=copy.bottom;}),'hero must not overlap copy '+locale+'/'+width);
   if(locale==='zh')await expect(page.locator('h1')).toHaveText('让中国品牌，被世界看见。');
-  await page.locator('#chatgpt-services summary').click();await expect(page.locator('#chatgpt-services table')).toBeVisible();await expect(page.locator('#chatgpt-services tbody tr')).toHaveCount(4);
+  await expect(page.locator('#chatgpt-services table')).toBeVisible();await expect(page.locator('#chatgpt-services tbody tr')).toHaveCount(4);
   if(width===375||width===1440){await page.screenshot({path:out+'/'+locale+'-home-'+width+'.png',fullPage:true});}
   await commerce.click();await expect(page).toHaveURL(new RegExp('/'+locale+'/services/chatgpt-commerce$'));await expect(page.locator('h1')).toBeVisible();await expect(page.locator('main')).toContainText('Product Feed');await expect(page.locator('main')).toContainText('ACP');await expect(page.locator('main')).toContainText('Instant Checkout');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'commerce page overflow');
