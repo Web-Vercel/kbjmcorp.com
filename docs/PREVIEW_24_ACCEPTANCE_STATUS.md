@@ -149,3 +149,9 @@ CRM：虚构企业36d7cb6f备注第1版→第2版保存截图可见；不要把�
 - Frontend list/detail use server scope; failures remain errors, not empty association. No membership grants, service-role queries or financial changes.
 - Local typecheck and 41 tests passed, including database own/other-company, sales/investor/paused rejection, client review and duplicate review rejection. Bootstrap regenerated locally only.
 - Hosted migration 052 execution, project visibility and creative confirmation remain pending. Execute only in Preview SQL Editor; do not run bootstrap against an existing database.
+
+### 2026-11-19 项目在线验收与企业资料回读
+- User screenshots: creative V1 approved, V2 changes_requested, V3 approved; historical V1/V2 decisions/feedback/timestamps retained. Client brief V1 submitted and staff approved. Client page shows creative stage after administrator change. Client B opening A project returned 404 per user.
+- Both company/application routes now open in customer workspace. Screenshot identity is client B, not A. Application disabled notice accurately shown; no application persistence test claimed.
+- Company page still falsely showed unassociated despite verified B identity: get_my_company_profiles used legacy memberships only. Migration 053 reuses authenticated client project scope; contracts list filters by retrieved company IDs while existing finance/visibility RLS remains enforced. No internal notes exposed, no new financial grants.
+- Local typecheck and 18 tests passed including own-company profile, cross-company/hidden/draft contract exclusion, paused/sales/investor denial. Hosted migration 053 and company profile readback pending.

@@ -100,3 +100,11 @@ it('connects dedicated clients to only their own projects and version-specific r
  await expect(as(10,"select public.review_project_content($1,$2,'approved','Repeat')",[project,submission],'aal1')).rejects.toThrow();
  await set(10,'client',false,1);await expect(as(10,'select public.get_client_project_scope()',[],'aal1')).rejects.toThrow();expect((await as(10,'select public.can_collaborate($1) allowed',[org],'aal1'))[0].allowed).toBe(false);
 });
+
+it('shows dedicated clients their own company profile and only visible non-draft contracts',async()=>{
+ const scope=(await as(11,'select * from public.get_my_company_profiles()',[],'aal1'));expect(scope.map(r=>r.id)).toEqual([other]);expect(JSON.stringify(scope)).not.toContain('Original notes');
+ const title='FICTIONAL COMPANY B CONTRACT';
+ for(const [target,label,visible,status] of [[other,title,true,'sent'],[org,'PRIVATE A CONTRACT',true,'sent'],[other,'PRIVATE DRAFT',false,'draft'],[other,'HIDDEN CONTRACT',false,'sent']] as const)await db.query("insert into public.client_contracts(organization_id,title,client_visible,status,created_by,template_body,client_legal_name,provider_legal_name,service_scope,pricing_terms,refund_terms,starts_on,ends_on) values($1,$2,$3,$4,$5,'FICTIONAL CONTRACT TEMPLATE ONLY','FICTIONAL CLIENT','FICTIONAL PROVIDER','FICTIONAL scope only','FICTIONAL pricing only','FICTIONAL refund only','2026-01-01','2026-12-31')",[target,label,visible,status,uid(1)]);
+ expect((await as(11,'select title from public.client_contracts',[],'aal1')).map(r=>r.title)).toEqual([title]);
+ for(const n of [10,12,13])await expect(as(n,'select * from public.get_my_company_profiles()')).rejects.toThrow();
+});

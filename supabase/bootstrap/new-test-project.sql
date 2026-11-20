@@ -57,6 +57,7 @@
 -- 050_manual_settlement_fx_registration.sql 097e66605b3006f1ca0e2e532b196cbe7e2580276ff084cd0146d4fc4a040dcb
 -- 051_manual_statement_publication.sql 8559a3a313a235abb63d08853b9ed7f87fd013f3f22239fa97c04f82b73b9158
 -- 052_live_client_projects.sql f5ea506f7a7ecaaf9eed04e89b291374b1839c6d96742ec5bef1cafc714da7fa
+-- 053_live_client_company_profiles.sql 12d3471f184a2ca41a23d6a15e3b421dc1f709e66ff53dcdde23c466def68dee
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -4888,6 +4889,21 @@ language sql stable security definer set search_path='' as $$
 $$;
 notify pgrst,'reload schema';
 -- END 052_live_client_projects.sql
+
+-- START 053_live_client_company_profiles.sql
+-- Company records use the same authenticated scope as the client project workspace.
+
+create or replace function public.get_my_company_profiles() returns table(id uuid,name text,legal_name text,registration_number text,country text,website text,status text)
+language sql stable security definer set search_path='' as $$
+ select o.id,o.name,p.legal_name,p.registration_number,p.country,p.website,p.status
+ from jsonb_to_recordset(public.get_client_project_scope()) as scope(id uuid,name text,collaborate boolean)
+ join public.organizations o on o.id=scope.id
+ left join public.client_profiles p on p.organization_id=o.id;
+$$;
+-- Existing has_finance_access validates active dedicated clients and legacy finance grants.
+-- The client_visible_contracts policy remains responsible for visibility and draft exclusion.
+notify pgrst,'reload schema';
+-- END 053_live_client_company_profiles.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';
