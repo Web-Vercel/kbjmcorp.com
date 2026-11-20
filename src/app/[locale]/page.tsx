@@ -1,3 +1,4 @@
+import accessStyles from '@/components/PublicAccess.module.css';
 import ChatGPTServices from '@/components/ChatGPTServices';
 import CustomerExperience from '@/components/CustomerExperience';
 import PartnersSection from '@/components/PartnersSection';
@@ -21,6 +22,6 @@ export default async function Page({params}: {params:Promise<{locale:string}>}) 
  <section className="section wrap" id="advertising-delivery"><p className="eyebrow">{t.serviceLabel}</p><div className="section-heading"><h2>{t.serviceTitle}</h2><p>{t.serviceIntro}</p></div><div className="services">{t.services.map(([n,title,desc,meta],i)=><article key={n}><div className="card-top"><span>{n}</span><span aria-hidden="true">↗</span></div><h3>{title}</h3><p>{desc}</p><small>{meta}</small><Link className="service-link" href={`/${locale}/services/${serviceSlugs[i]}`}>{locale==="zh"?"了解服务":"Explore service"} ↗</Link></article>)}</div></section>
  <CustomerExperience locale={locale}/>
  <PlatformShowcase locale={locale}/>
- <Faq locale={locale}/><PartnersSection locale={locale}/><section className="section wrap contact" id="contact"><div><p className="eyebrow">{t.contactLabel}</p><h2>{t.contactTitle}</h2><p>{t.contactText}</p><div className="contact-mark" aria-hidden="true">Let’s<br/><em>go global.</em><span>↗</span></div></div><InquiryForm locale={locale}/></section></main>
+ <Faq locale={locale}/><PartnersSection locale={locale}/><section className="section wrap contact" id="contact"><div><p className="eyebrow">{t.contactLabel}</p><h2>{t.contactTitle}</h2><p>{t.contactText}</p><p className={accessStyles.staff}><Link href={`/${locale}/admin/login`}>{locale === "zh" ? "员工登录" : "Employee sign-in"} ↗</Link></p><div className="contact-mark" aria-hidden="true">Let’s<br/><em>go global.</em><span>↗</span></div></div><InquiryForm locale={locale}/></section></main>
  <SiteFooter locale={locale}/></>;
 }

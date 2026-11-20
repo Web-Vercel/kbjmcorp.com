@@ -37,3 +37,6 @@ The owner requested replacing the lengthy customer-benefit copy with concise vis
 
 ## Explicit user exception — 2026-11-20
 The owner supplied FAQ.pages and requested prominent ChatGPT advertising and commerce information, specifically including the homepage upper-right ChatGPT artwork area. Authorized scope: two accessible service links in that card, a homepage services overview/comparison, bilingual commerce detail and FAQ information, and relevant introductory copy. Preserve the brand, original headline, green-and-white identity and unrelated sections. Preview review only; Production database upgrade remains paused while outstanding Preview tasks are completed.
+
+## Public frontend synchronization — 2026-11-20
+The owner approved synchronizing today's reviewed public advertising/commerce frontend and subsequent small public frontend edits to both Preview and Production. Add a client/agent sign-in pair in the public header, pointing to the existing unified external `/access/login`, and a small employee `/admin/login` link inside the homepage contact area. No employee link in the top header. Publish only isolated public frontend file allowlists from the current Production baseline; never merge Preview wholesale. Backend development, authentication behavior, business workspaces and database upgrades remain excluded and paused for Production.

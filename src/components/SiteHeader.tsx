@@ -1,3 +1,4 @@
+import accessStyles from './PublicAccess.module.css';
 import PlatformNavigation from './PlatformNavigation';
 import Link from "next/link";
 import BrandLogo from "./BrandLogo";
@@ -14,7 +15,7 @@ export default function SiteHeader({ locale, path = "" }: { locale: Locale; path
       <nav aria-label={locale === "zh" ? "主导航" : "Main navigation"}>
         {t.nav.map((label, i) => <Link key={label} href={`/${locale}${["#services", "#partners", "#contact"][i]}`}>{label}</Link>)}
       </nav>
-      <div className="header-actions"><Link className="client-login" href={`/${locale}/login`}>{locale === "zh" ? "客户登录" : "Client sign-in"}</Link>
+      <div className="header-actions"><div className={accessStyles.logins}><Link className="client-login" href={`/${locale}/access/login`}>{locale === "zh" ? "客户登录" : "Client sign-in"}</Link><Link className="client-login" href={`/${locale}/access/login`}>{locale === "zh" ? "代理登录" : "Agent sign-in"}</Link></div>
       <Link className="language" href={`/${other}${path}`} lang={other === "zh" ? "zh-CN" : "en"}>{other === "en" ? "EN ⌄" : "中文 ⌄"}</Link><MobileNavigation locale={locale} /></div>
     </header>
     <PlatformNavigation locale={locale} path={path}/>
