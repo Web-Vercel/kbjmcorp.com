@@ -1,13 +1,14 @@
 "use client";
 import {notifySessionChange} from '@/lib/auth/session-sync';
 import PasswordInput from '@/components/auth/PasswordInput';
-import { useCallback,useRef,useState,type FormEvent } from "react";
+import { useCallback,useEffect,useRef,useState,type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Locale } from "@/lib/content";
 import Captcha from "@/components/Captcha";
 export default function StaffLogin({locale,enabled,siteKey,access=false}:{locale:Locale;enabled:boolean;siteKey:string;access?:boolean}){
  const zh=locale==="zh";const router=useRouter();const [token,setToken]=useState("");const [version,setVersion]=useState(0);const [busy,setBusy]=useState(false);const [message,setMessage]=useState("");const lock=useRef(false);const onToken=useCallback((value:string)=>setToken(value),[]);
+ useEffect(()=>{if(new URLSearchParams(window.location.search).get('reason')==='idle')setMessage(zh?'已因连续 15 分钟无操作退出，请重新登录。未提交内容未保存。':'Signed out after 15 minutes of inactivity. Sign in again. Unsubmitted changes were not saved.');},[zh]);
  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(lock.current)return;if(!enabled){setMessage(zh?"账号登录暂不可用，请联系管理员。":"Staff authentication is not configured.");return;}if(!token){setMessage(zh?"请完成安全验证。":"Complete security verification.");return;}const data=new FormData(event.currentTarget);lock.current=true;setBusy(true);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);try{
  const response=await fetch(access?"/api/access/login":"/api/admin/login",{method:"POST",signal:controller.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({email:data.get("email"),password:data.get("password"),captchaToken:token})});
  if(response.ok){notifySessionChange();const result=access?await response.json():null;router.replace(access?(result?.requiresMfa===false?`/${locale}/${result?.destination==='agent'?'agent':'access'}`:`/${locale}/access/security`):`/${locale}/admin/security`);router.refresh();}else {const result=await response.json().catch(()=>null);const messages:Record<string,[string,string]>={invalid_credentials:["邮箱或密码不正确，或账号暂不可用。可点击忘记密码重设。","Email or password is incorrect, or the account is unavailable. You can reset your password."],access_unavailable:["登录身份已验证，但业务权限尚未生效。请联系管理员检查账号是否已启用并分配客户或代理身份。","Your credentials were verified, but workspace access is unavailable. Ask your administrator to check activation and role assignment."],rate_limited:["尝试次数较多，请稍后再登录。","Too many attempts. Please try again later."],unavailable:["登录服务暂不可用，请稍后重试。","Sign-in is temporarily unavailable. Try again later."]};const text=access?messages[result?.error]:undefined;setMessage(text?text[zh?0:1]:(zh?"登录未完成，请核对账号或稍后重试。":"Sign-in failed. Check your account or try later."));}

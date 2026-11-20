@@ -1,0 +1,16 @@
+// @vitest-environment jsdom
+import {afterEach,beforeEach,it,expect,vi} from 'vitest';
+import {act,cleanup,fireEvent,render,screen} from '@testing-library/react';
+import IdleSession from '@/components/session/IdleSession';
+import {activityKey,idleLimitMs} from '@/lib/auth/idle';
+const sync=vi.hoisted(()=>({notifySessionChange:vi.fn(),reloadForSessionChange:vi.fn()}));vi.mock('@/lib/auth/session-sync',()=>sync);
+const fetcher=vi.fn();
+beforeEach(()=>{vi.useFakeTimers();vi.setSystemTime(new Date('2026-11-20T12:00:00Z'));localStorage.clear();vi.stubGlobal('fetch',fetcher);fetcher.mockReset();Object.defineProperty(HTMLDialogElement.prototype,'showModal',{configurable:true,value(){this.open=true;}});Object.defineProperty(HTMLDialogElement.prototype,'close',{configurable:true,value(){this.open=false;}});});
+afterEach(()=>{cleanup();vi.useRealTimers();vi.unstubAllGlobals();vi.clearAllMocks();});
+function mount(){return render(<IdleSession userId="user-a" locale="zh" internal/>);}
+it('warns at fourteen minutes and allows explicit continuation',async()=>{mount();await act(async()=>vi.advanceTimersByTime(14*60000));expect(screen.getByText(/60 秒后/)).toBeTruthy();fireEvent.click(screen.getByText('继续使用'));await act(async()=>vi.advanceTimersByTime(60000));expect(fetcher).not.toHaveBeenCalled();expect(localStorage.getItem(activityKey('user-a'))).toBe(String(Date.now()-60000));});
+it('does not expire an active second tab, but does not count background requests as activity',async()=>{mount();await act(async()=>vi.advanceTimersByTime(13*60000));localStorage.setItem(activityKey('user-a'),String(Date.now()));fireEvent(window,new StorageEvent('storage',{key:activityKey('user-a')}));await act(async()=>vi.advanceTimersByTime(2*60000));expect(fetcher).not.toHaveBeenCalled();expect(screen.queryByText(/秒后将自动退出/)).toBeNull();});
+it('checks identity before logout and locks the page when logout is unconfirmed',async()=>{fetcher.mockResolvedValueOnce({ok:true,json:async()=>({userId:'user-a'})}).mockResolvedValueOnce({ok:false,status:503});mount();await act(async()=>{vi.advanceTimersByTime(idleLimitMs);});expect(fetcher.mock.calls[0][0]).toBe('/api/auth/session-identity');expect(fetcher.mock.calls[1][0]).toBe('/api/auth/logout');expect(screen.getByText(/退出尚未确认/)).toBeTruthy();expect(sync.notifySessionChange).not.toHaveBeenCalled();expect(screen.queryByText('继续使用')).toBeNull();});
+it('never signs out a different account from a stale tab',async()=>{fetcher.mockResolvedValue({ok:true,json:async()=>({userId:'user-b'})});mount();await act(async()=>vi.advanceTimersByTime(idleLimitMs));expect(fetcher).toHaveBeenCalledTimes(1);expect(sync.reloadForSessionChange).toHaveBeenCalled();});
+it('does not reset an already expired timer on page navigation',async()=>{localStorage.setItem(activityKey('user-a'),String(Date.now()-idleLimitMs-1000));fetcher.mockRejectedValue(Error('offline'));await act(async()=>{mount();});expect(screen.getByText(/退出尚未确认/)).toBeTruthy();expect(screen.queryByText('继续使用')).toBeNull();});
+it('keeps a failed identity check locked instead of claiming successful logout',async()=>{fetcher.mockRejectedValue(Error('offline'));mount();await act(async()=>vi.advanceTimersByTime(idleLimitMs));expect(screen.getByText('重试退出')).toBeTruthy();expect(sync.notifySessionChange).not.toHaveBeenCalled();});

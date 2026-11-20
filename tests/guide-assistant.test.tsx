@@ -1,0 +1,8 @@
+// @vitest-environment jsdom
+import {afterEach,it,expect,vi} from 'vitest';
+import {cleanup,fireEvent,render,screen,waitFor} from '@testing-library/react';
+import Assistant from '@/components/session/GuideAssistant';
+vi.mock('next/link',()=>({default:({href,children}:{href:string;children:React.ReactNode})=><a href={href}>{children}</a>}));
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+it('shows guide mode honestly, plain text output and existing source links',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:true,json:async()=>({mode:'guide',answer:'<script>not executable</script> 打开退款核算与登记。',sources:[{id:'refunds',title:'退款核算指南',href:'/zh/operations/refunds'}]})}));const view=render(<Assistant locale="zh" internal/>);fireEvent.click(screen.getByText('使用指南助手'));fireEvent.click(screen.getByText('如何处理退款'));await waitFor(()=>expect(screen.getByText(/当前未使用 AI 模型/)).toBeTruthy());expect(view.container.querySelector('script')).toBeNull();expect(screen.getByText('退款核算指南 ↗').getAttribute('href')).toBe('/zh/operations/refunds');fireEvent.click(screen.getByText('关闭 ×'));expect(screen.queryByRole('region')).toBeNull();});
+it('distinguishes unauthorized requests from an empty guide result',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue({ok:false,status:401}));render(<Assistant locale="en" internal={false}/>);fireEvent.click(screen.getByText('Guide assistant'));fireEvent.click(screen.getByText('Login and logout'));await waitFor(()=>expect(screen.getByRole('alert').textContent).toContain('Sign in again'));expect(screen.queryByText(/No AI model used/)).toBeNull();});
