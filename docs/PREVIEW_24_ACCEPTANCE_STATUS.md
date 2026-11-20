@@ -136,3 +136,9 @@
 CRM：虚构企业36d7cb6f备注第1版→第2版保存截图可见；不要把保存提示单独算作刷新持久化证据。期间用户在另一企业`b1f3c378-de74-4806-a406-4263f288ed1e`误写测试备注，确认原空白并已指导清空恢复；未收到该企业恢复后的独立截图，不宣称已核验恢复。
 
 项目`5bba2b88-42d6-4b41-b5c4-2d53b0d9c74b`已创建，归属虚构验收企业，名称TEST-ONLY：广告项目保存回读测试，状态需求确认，方案尚未提交。列表显示CAD10000，用户明确要求替换为人民币CNY100000（非汇率换算）。准备`supabase/acceptance/set_fictional_project_budget_cny_100000.sql`，仅限该企业/该项目/当前CAD10000旧状态，原子替换并记录前后预算审计，同目标状态重放不重复记审计，状态冲突拒绝。尚未执行线上脚本，不宣称新预算已保存。创建表单默认改CNY、明确客户计划预算不代表收款或扣费；不更改账单、资金、采购或广告平台预算。
+
+### 2026-11-19 客户项目入口与企业页面导航
+- Hosted screenshot confirms fictional project budget CNY 100000 and creative V1 saved pending review; client confirmation still pending.
+- User could not find projects: add Advertising projects to shared client main menu and clarify overview secondary link.
+- Company/application links already target account routes; their pages included public SiteHeader/Footer. Remove these duplicate public shells, retaining account identity/navigation and existing auth/data rules. Reported homepage redirect is not independently reproduced; hosted verification remains required.
+- Local typecheck and 39 tests across business-navigation, client-workspace, live-access-page passed.
