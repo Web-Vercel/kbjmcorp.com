@@ -85,3 +85,18 @@ it('keeps two password-login clients in different companies isolated even when b
  expect((await as(5,'select public.get_client_monthly_statements(null,null,$1) data',[statementA],'aal1'))[0].data).toEqual([]);
  expect((await as(3,'select public.get_client_monthly_statements($1,null,null) data',[otherWallet],'aal1'))[0].data).toEqual([]);
 });
+
+it('connects dedicated clients to only their own projects and version-specific reviews',async()=>{
+ const project=uid(980),foreignProject=uid(981);
+ await db.query("insert into public.projects(id,organization_id,name,created_by) values($1,$2,'FICTIONAL own project',$3),($4,$5,'FICTIONAL other project',$3)",[project,org,uid(1),foreignProject,other]);
+ for(const [n,role,target] of [[10,'client',org],[11,'client',other],[12,'sales',org],[13,'investor',org]] as const){await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[uid(n),`fixture${n}@example.test`]);await set(n,role,true,0,target);await session(n);}
+ expect((await as(10,'select public.get_client_project_scope() scope',[],'aal1'))[0].scope).toEqual([{id:org,name:'FICTIONAL REMAX',collaborate:true}]);
+ expect((await as(10,'select id from public.projects',[],'aal1')).map(r=>r.id)).toContain(project);
+ expect((await as(10,'select id from public.projects',[],'aal1')).map(r=>r.id)).not.toContain(foreignProject);
+ const submission=(await as(1,"select public.submit_project_content($1,'creative','Fictional V1','Fictional content only','',0) id",[project]))[0].id;
+ await expect(as(11,"select public.review_project_content($1,$2,'approved','Fictional confirmation')",[project,submission],'aal1')).rejects.toThrow();
+ for(const n of [12,13]){await expect(as(n,'select public.get_client_project_scope()')).rejects.toThrow();expect((await as(n,'select public.can_collaborate($1) allowed',[org]))[0].allowed).toBe(false);}
+ await as(10,"select public.review_project_content($1,$2,'approved','Fictional confirmation')",[project,submission],'aal1');
+ await expect(as(10,"select public.review_project_content($1,$2,'approved','Repeat')",[project,submission],'aal1')).rejects.toThrow();
+ await set(10,'client',false,1);await expect(as(10,'select public.get_client_project_scope()',[],'aal1')).rejects.toThrow();expect((await as(10,'select public.can_collaborate($1) allowed',[org],'aal1'))[0].allowed).toBe(false);
+});

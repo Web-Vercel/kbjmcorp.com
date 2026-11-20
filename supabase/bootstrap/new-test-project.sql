@@ -56,6 +56,7 @@
 -- 049_partner_file_visibility.sql dc6d32a4aa6031e941e26ab8677b2f0d8427470b5898c6adbe5c4c301a131a01
 -- 050_manual_settlement_fx_registration.sql 097e66605b3006f1ca0e2e532b196cbe7e2580276ff084cd0146d4fc4a040dcb
 -- 051_manual_statement_publication.sql 8559a3a313a235abb63d08853b9ed7f87fd013f3f22239fa97c04f82b73b9158
+-- 052_live_client_projects.sql f5ea506f7a7ecaaf9eed04e89b291374b1839c6d96742ec5bef1cafc714da7fa
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -4858,6 +4859,35 @@ revoke all on function public.get_automatic_upstream_reconciliation(date,uuid),p
 grant execute on function public.get_upstream_reconciliation(date,uuid) to authenticated;
 notify pgrst,'reload schema';
 -- END 051_manual_statement_publication.sql
+
+-- START 052_live_client_projects.sql
+-- Connect dedicated client identities to existing versioned project collaboration.
+
+create function public.get_client_project_scope() returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype; result jsonb;
+begin
+ if exists(select 1 from public.live_access_accounts where user_id=auth.uid()) then
+  a:=public.require_live_account(true);
+  if a.role<>'client' then raise exception 'Client access required' using errcode='42501';end if;
+  select jsonb_build_array(jsonb_build_object('id',o.id,'name',o.name,'collaborate',true)) into result from public.organizations o where o.id=a.organization_id;
+  return coalesce(result,'[]'::jsonb);
+ end if;
+ if auth.uid() is null or exists(select 1 from public.staff_members where user_id=auth.uid()) then raise exception 'Client access required' using errcode='42501';end if;
+ select coalesce(jsonb_agg(jsonb_build_object('id',o.id,'name',o.name,'collaborate',m.role in ('owner','admin'))),'[]'::jsonb) into result from public.memberships m join public.organizations o on o.id=m.organization_id where m.user_id=auth.uid();
+ return result;
+end $$;
+revoke all on function public.get_client_project_scope() from public,anon;
+grant execute on function public.get_client_project_scope() to authenticated;
+create policy live_client_projects on public.projects for select to authenticated using(public.has_live_client_access(organization_id));
+create or replace function public.can_collaborate(p_organization_id uuid) returns boolean
+language sql stable security definer set search_path='' as $$
+ select not exists(select 1 from public.staff_members where user_id=auth.uid()) and
+ case when exists(select 1 from public.live_access_accounts where user_id=auth.uid()) then public.has_live_client_access(p_organization_id)
+ else exists(select 1 from public.memberships where user_id=auth.uid() and organization_id=p_organization_id and role in ('owner','admin')) end;
+$$;
+notify pgrst,'reload schema';
+-- END 052_live_client_projects.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';

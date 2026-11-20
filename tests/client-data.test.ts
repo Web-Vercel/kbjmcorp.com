@@ -1,16 +1,14 @@
-import { beforeEach,expect,it,vi } from "vitest";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { loadClientWorkspace } from "@/lib/client/data";
-const from=vi.fn();
-const client={from} as unknown as SupabaseClient;
+import {beforeEach,expect,it,vi} from 'vitest';
+import type {SupabaseClient} from '@supabase/supabase-js';
+import {loadClientWorkspace} from '@/lib/client/data';
+const rpc=vi.fn(),from=vi.fn(),scope=[{id:'b0000000-0000-4000-8000-000000000001',name:'Fixture',collaborate:true}];
+const client={rpc,from} as unknown as SupabaseClient;
 beforeEach(()=>vi.resetAllMocks());
-it("never queries projects for an unassociated session",async()=>{from.mockReturnValue({select:()=>({eq:()=>Promise.resolve({data:[],error:null})})});expect(await loadClientWorkspace(client,'user')).toEqual({error:false,organizations:[],projects:[]});expect(from).toHaveBeenCalledTimes(1);});
-it("uses explicit user and organization filters in addition to RLS",async()=>{
- const eq=vi.fn().mockResolvedValue({data:[{organization_id:'org-a'}],error:null});const orgIn=vi.fn().mockReturnValue({order:()=>Promise.resolve({data:[{id:'org-a',name:'Fixture'}],error:null})});const projectIn=vi.fn().mockReturnValue({order:()=>({limit:()=>Promise.resolve({data:[],error:null})})});
- from.mockImplementation((table:string)=>({select:()=>table==='memberships'?{eq}:table==='organizations'?{in:orgIn}:{in:projectIn}}));
- expect((await loadClientWorkspace(client,'verified-user')).error).toBe(false);expect(eq).toHaveBeenCalledWith('user_id','verified-user');expect(orgIn).toHaveBeenCalledWith('id',['org-a']);expect(projectIn).toHaveBeenCalledWith('organization_id',['org-a']);
+it('does not query projects for empty or failed authorization',async()=>{
+ for(const result of [{data:[],error:null},{data:scope,error:{code:'42501'}},{data:[{id:'invalid'}],error:null}]){rpc.mockResolvedValue(result);const data=await loadClientWorkspace(client,'user');expect(data.projects).toEqual([]);expect(from).not.toHaveBeenCalled();}
 });
-it("discards all partial data if either business query fails",async()=>{
- from.mockImplementation((table:string)=>({select:()=>table==='memberships'?{eq:()=>Promise.resolve({data:[{organization_id:'org-a'}],error:null})}:{in:()=>({order:()=>table==='organizations'?Promise.resolve({data:[{id:'org-a',name:'Fixture'}],error:null}):{limit:()=>Promise.resolve({data:null,error:{code:'unavailable'}})}})}}));
- expect(await loadClientWorkspace(client,'user')).toEqual({error:true,organizations:[],projects:[]});
+it('filters projects by authenticated scope without trusting a user supplied company',async()=>{
+ rpc.mockResolvedValue({data:scope,error:null});const filter=vi.fn().mockReturnValue({order:()=>({limit:async()=>({data:[],error:null})})});from.mockReturnValue({select:()=>({in:filter})});
+ const data=await loadClientWorkspace(client,'user');expect(data.error).toBe(false);expect(rpc).toHaveBeenCalledWith('get_client_project_scope');expect(filter).toHaveBeenCalledWith('organization_id',[scope[0].id]);
 });
+it('discards partial records on project query failure',async()=>{rpc.mockResolvedValue({data:scope,error:null});from.mockReturnValue({select:()=>({in:()=>({order:()=>({limit:async()=>({data:null,error:{code:'error'}})})})})});expect(await loadClientWorkspace(client,'user')).toEqual({error:true,organizations:[],projects:[]});});

@@ -142,3 +142,10 @@ CRM：虚构企业36d7cb6f备注第1版→第2版保存截图可见；不要把�
 - User could not find projects: add Advertising projects to shared client main menu and clarify overview secondary link.
 - Company/application links already target account routes; their pages included public SiteHeader/Footer. Remove these duplicate public shells, retaining account identity/navigation and existing auth/data rules. Reported homepage redirect is not independently reproduced; hosted verification remains required.
 - Local typecheck and 39 tests across business-navigation, client-workspace, live-access-page passed.
+
+### 2026-11-19 客户项目授权读取修复
+- Hosted client A project page showed “waiting for company” despite verified company identity. Root cause: legacy memberships-only loader/detail guard, while dedicated live identities intentionally cannot receive legacy memberships.
+- Migration 052 adds authenticated project scope and own-company project SELECT for active dedicated clients; can_collaborate uses the same dedicated-client authorization. Legacy owner/admin behavior remains. Existing review RPC version checks and author separation remain unchanged.
+- Frontend list/detail use server scope; failures remain errors, not empty association. No membership grants, service-role queries or financial changes.
+- Local typecheck and 41 tests passed, including database own/other-company, sales/investor/paused rejection, client review and duplicate review rejection. Bootstrap regenerated locally only.
+- Hosted migration 052 execution, project visibility and creative confirmation remain pending. Execute only in Preview SQL Editor; do not run bootstrap against an existing database.
