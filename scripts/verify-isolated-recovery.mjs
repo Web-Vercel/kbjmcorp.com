@@ -1,0 +1,47 @@
+// Disposable local recovery drill. Never connects to Supabase or restores over a live database.
+import {PGlite} from '@electric-sql/pglite';
+import {randomBytes,createCipheriv,createDecipheriv,createHash} from 'node:crypto';
+import {readFile,readdir,mkdir,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {resolve} from 'node:path';
+const dir=new URL('../supabase/migrations/',import.meta.url),out=resolve(process.env.RECOVERY_REPORT_DIR||'/tmp/kbjm-isolated-recovery');
+await mkdir(out,{recursive:true});
+const source=new PGlite();let restored;const started=Date.now(),uid=n=>`e0000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+try{
+ await source.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
+ create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);
+ create table auth.sessions(id uuid primary key default gen_random_uuid(),user_id uuid,created_at timestamptz default clock_timestamp());
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;
+ grant usage on schema public,auth to anon,authenticated,service_role;
+ create schema storage;grant usage on schema storage to authenticated;
+ create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,unique(bucket_id,name));alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
+ const migrations=(await readdir(dir)).filter(n=>/^\d{3}_.*\.sql$/.test(n)).sort();
+ for(const name of migrations)await source.exec(await readFile(new URL(name,dir),'utf8'));
+ await source.query("insert into auth.users(id,email,email_confirmed_at) values($1,'fictional-recovery-a@example.invalid',now()),($2,'fictional-recovery-b@example.invalid',now())",[uid(1),uid(2)]);
+ await source.query("insert into public.organizations(id,name) values($1,'FICTIONAL RECOVERY A'),($2,'FICTIONAL RECOVERY B')",[uid(101),uid(102)]);
+ await source.query("insert into public.memberships(organization_id,user_id,role) values($1,$2,'owner'),($3,$4,'owner')",[uid(101),uid(1),uid(102),uid(2)]);
+ await source.query("insert into public.finance_access(organization_id,user_id,role) values($1,$2,'manager'),($3,$4,'manager')",[uid(101),uid(1),uid(102),uid(2)]);
+ await source.query("insert into public.client_wallets(id,organization_id,currency) values($1,$2,'CNY'),($3,$4,'CNY')",[uid(201),uid(101),uid(202),uid(102)]);
+ await source.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','topup',10000,'FICTIONAL opening','RECOVERY-CREDIT'),($1,$2,'CNY','refund',-900,'FICTIONAL refund','RECOVERY-REFUND'),($1,$2,'CNY','service_fee',-100,'FICTIONAL fee','RECOVERY-FEE'),($3,$4,'CNY','topup',20000,'FICTIONAL other company','RECOVERY-OTHER')",[uid(201),uid(101),uid(202),uid(102)]);
+ const snapshot=(await source.query('select wallet_id::text,sum(amount_minor)::text balance,count(*)::int entries from public.wallet_entries group by wallet_id order by wallet_id')).rows;
+ const raw=Buffer.from(await (await source.dumpDataDir()).arrayBuffer()),key=randomBytes(32),iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
+ const encrypted=Buffer.concat([cipher.update(raw),cipher.final()]),tag=cipher.getAuthTag();
+ await writeFile(resolve(out,'fictional-db-backup.enc'),Buffer.concat([iv,tag,encrypted]),{mode:0o600});
+ const open=bytes=>{const d=createDecipheriv('aes-256-gcm',key,iv);d.setAuthTag(tag);return Buffer.concat([d.update(bytes),d.final()]);};
+ const corrupted=Buffer.from(encrypted);corrupted[0]^=1;assert.throws(()=>open(corrupted));
+ await source.query("insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values($1,$2,'CNY','topup',50,'FICTIONAL post-backup event','AFTER-BACKUP')",[uid(201),uid(101)]);
+ restored=new PGlite({loadDataDir:new Blob([open(encrypted)])});
+ const actual=(await restored.query('select wallet_id::text,sum(amount_minor)::text balance,count(*)::int entries from public.wallet_entries group by wallet_id order by wallet_id')).rows;assert.deepEqual(actual,snapshot);
+ assert.equal((await restored.query("select count(*)::int n from public.wallet_entries where source_reference='AFTER-BACKUP'")).rows[0].n,0);
+ assert.equal((await source.query("select sum(amount_minor)::text n from public.wallet_entries where wallet_id=$1",[uid(201)])).rows[0].n,'9050');
+ for(const fn of ['get_client_project_scope','get_my_company_profiles','publish_manual_statement','partner_finance_action'])assert.equal((await restored.query('select count(*)::int n from pg_proc p join pg_namespace s on s.oid=p.pronamespace where s.nspname=$1 and p.proname=$2',['public',fn])).rows[0].n,1);
+ assert.equal((await restored.query("select count(*)::int n from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and not c.relrowsecurity")).rows[0].n,0);
+ await assert.rejects(restored.exec("update public.wallet_entries set amount_minor=1"),/immutable|immutable_money|Posted money/i);
+ await restored.exec(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${uid(1)}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);`);
+ const own=(await restored.query('select id,amount_minor from public.wallet_entries')).rows;assert.equal(own.length,3);assert.equal(own.reduce((a,r)=>a+Number(r.amount_minor),0),9000);await restored.exec('rollback');
+ await restored.exec(`begin;set local role authenticated;select set_config('request.jwt.claim.sub','${uid(2)}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);`);assert.equal((await restored.query('select amount_minor from public.wallet_entries')).rows.length,1);await restored.exec('rollback');
+ const report={passed:true,localOnly:true,authIsFixture:true,encryptionKeyPersisted:false,artifactPurpose:'ephemeral local drill',storageFileBytesCovered:false,externalConfigurationCovered:false,migrations:migrations.length,encryptedBackupSha256:createHash('sha256').update(encrypted).digest('hex'),archiveBytes:raw.length,restoredLedgerMatches:true,postBackupGapDetected:true,sourcePreserved:true,rlsRestored:true,immutabilityRestored:true,companyIsolationRestored:true,tamperRejected:true,elapsedMs:Date.now()-started};
+ await writeFile(resolve(out,'result.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
+}finally{await restored?.close();await source.close();}

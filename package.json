@@ -30,7 +30,10 @@
     "test:analytics": "vitest run tests/analytics-model.test.ts tests/analytics-server.test.ts tests/analytics-api.test.ts tests/analytics-ui.test.tsx tests/analytics-page.test.tsx tests/live-access-database.test.ts",
     "test:live-access": "vitest run tests/investor-business-page.test.tsx tests/live-access-page.test.tsx tests/live-access-database.test.ts tests/live-access-api.test.ts tests/live-access-login.test.ts tests/live-account-create.test.ts tests/staff-auth.test.ts tests/admin-ui.test.tsx",
     "test:autonomous": "node scripts/autonomous-tests.mjs",
-    "test:autonomous-access": "node scripts/autonomous-access-smoke.mjs"
+    "test:autonomous-access": "node scripts/autonomous-access-smoke.mjs",
+    "verify:financial-gates": "node scripts/verify-postgres-financial-gates.mjs",
+    "verify:isolated-recovery": "node scripts/verify-isolated-recovery.mjs",
+    "check:production-boundaries": "node scripts/check-production-boundaries.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
