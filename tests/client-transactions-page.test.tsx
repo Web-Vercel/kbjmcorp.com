@@ -1,0 +1,14 @@
+import {it,expect,vi,beforeEach} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({context:vi.fn(),billing:vi.fn()}));
+vi.mock('@/lib/live-access/server',()=>({getLiveContext:m.context}));
+vi.mock('@/lib/billing/data',()=>({loadBilling:m.billing}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw Error('NOT_FOUND');},redirect:()=>{throw Error('REDIRECT');}}));
+vi.mock('@/components/collections/CollectionInstructions',()=>({default:()=>null}));
+import Page from '@/app/[locale]/account/transactions/page';
+const wallet='b0000000-0000-4000-8000-000000000001';
+const render=(id=wallet)=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({wallet:id})}).then(renderToStaticMarkup);
+beforeEach(()=>{vi.clearAllMocks();m.context.mockResolvedValue({context:{role:'client'},client:{}});m.billing.mockResolvedValue({error:false,wallets:[{id:wallet,organization_name:'TEST COMPANY',currency:'CNY',balance_minor:'70323'}],entries:[{id:'test',wallet_id:wallet,amount_minor:'1000',description:'TEST-REFERENCE',kind:'topup',posted_at:'2026-11-17T10:00:00Z'},{id:'other',wallet_id:'other',description:'PRIVATE-OTHER'}]});});
+it('shows scoped saved notices with anchors and a return to current overview',async()=>{const html=await render();expect(html).toContain('TEST-REFERENCE');expect(html).toContain('CNY 703.23');expect(html).toContain('预付款到账');expect(html).toContain('/zh/access');expect(html).not.toContain('PRIVATE-OTHER');});
+it('refuses an inaccessible wallet and nonclient role',async()=>{await expect(render('b0000000-0000-4000-8000-000000000002')).rejects.toThrow('NOT_FOUND');m.context.mockResolvedValue({context:{role:'agent'}});m.billing.mockClear();await expect(render()).rejects.toThrow('NOT_FOUND');expect(m.billing).not.toHaveBeenCalled();});
+it('distinguishes read failures from an empty notice list',async()=>{m.billing.mockResolvedValue({error:true,wallets:[],entries:[]});expect(await render()).toContain('资金记录暂不可用');});

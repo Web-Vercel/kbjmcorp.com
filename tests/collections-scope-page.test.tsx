@@ -15,3 +15,7 @@ it('anchors receipt records and only offers independent review on pending record
  status='credited';html=await render();expect(html).toContain('已复核入账');expect(html).not.toContain('确认复核结果');
  status='pending';preparedBy='user';html=await render();expect(html).toContain('制单人不能审核自己的到账记录');expect(html).not.toContain('确认复核结果');
 });
+it('keeps reviewer accounts out of receipt preparation and bank-account configuration',async()=>{
+ m.operations.mockResolvedValue({context:{owner:false,canPrepare:false,canReview:true},user:{id:'reviewer'},client:{from:m.from}});
+ const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org})}));expect(html).toContain('到账核对记录');expect(html).not.toContain('登记实际到账');expect(html).not.toContain('收款配置（首次设置或变更时使用）');
+});

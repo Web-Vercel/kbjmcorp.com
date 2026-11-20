@@ -1,0 +1,12 @@
+.amounts {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0;max-width:650px;}
+.amounts > div {padding:14px 16px;border:1px solid #dce5dc;border-radius:10px;}
+.amounts dt {font-size:14px;color:#62716c;}
+.amounts dd {margin:6px 0 0;font-size:22px;font-weight:600;}
+.details,.history {margin:16px 0;color:#62716c;}
+.details p {overflow-wrap:anywhere;}
+.test {font-size:14px;color:#62716c;margin:0 0 8px;}
+@media(max-width:600px) {.amounts {grid-template-columns:1fr;}}
+.history :global(.admin-notice) {padding:16px;margin:12px 0;}
+.history :global(.admin-notice) h4 {margin:0 0 8px;}
+.history :global(.admin-notice) p {margin:8px 0;}
+.history :global(.admin-notice) > :global(.service-link),.history :global(.admin-notice) > p:last-child {display:inline-block;margin:8px 20px 0 0;}

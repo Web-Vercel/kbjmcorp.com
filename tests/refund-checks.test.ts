@@ -1,0 +1,9 @@
+import {it,expect} from 'vitest';
+import {refundChecks,refundNext} from '@/lib/partners/refund-checks';
+import type {RefundWorkspace} from '@/lib/partners/model';
+const refund={id:'refund',gross_minor:'10000',fee_minor:'200',net_minor:'9800',status:'approved'} as RefundWorkspace['refunds'][number];
+const payment={id:'payment',kind:'refund',target_id:'refund',amount_minor:'9800',status:'pending'} as RefundWorkspace['payments'][number];
+it('separates approved arrangements from completed payments and names the responsible next step',()=>{expect(refundChecks(refund,[])).toEqual([]);expect(refundNext(refund)).toContain('实际付款后登记');expect(refundNext({...refund,status:'payment_pending'})).toContain('勿重复付款');});
+it('checks exact amounts and ignores unrelated commissions and other refunds',()=>{expect(refundChecks(refund,[{...payment,kind:'commission'},{...payment,target_id:'other'}])).toEqual([]);expect(refundChecks({...refund,fee_minor:'201'},[])).toContain('申请金额与手续费、实退金额不一致');expect(refundChecks({...refund,status:'payment_pending'},[{...payment,amount_minor:'9801'}])).toContain('付款登记金额与应退金额不一致');});
+it('identifies missing records, duplicate valid payments and mismatched completion states',()=>{expect(refundChecks({...refund,status:'payment_pending'},[])).toHaveLength(1);expect(refundChecks({...refund,status:'paid'},[])).toHaveLength(1);expect(refundChecks({...refund,status:'payment_pending'},[payment,{...payment,id:'second'}])).toContain('同一申请存在多笔有效付款记录');expect(refundChecks(refund,[{...payment,status:'verified'}])).toContain('付款已核实，但申请状态尚未对应');expect(refundChecks({...refund,status:'paid'},[{...payment,status:'verified'}])).toEqual([]);});
+it('does not interpret a rejected payment registration as proof that money never left the bank',()=>{expect(refundChecks(refund,[{...payment,status:'rejected'}])).toContain('付款登记曾被退回，先核实原银行流水，勿重复付款');});

@@ -1,0 +1,13 @@
+# Production backend release — November 20, 2026 (Vancouver)
+
+Owner resumed staged backend release and personally executed the reviewed Production 040→053 upgrade. Pre-upgrade backup shown at 2026-11-19 21:50:08 UTC; owner explicitly confirmed no subsequent business writes and no writes during upgrade. Upgrade screenshot returned `040_to_053_complete`. Six required functions are present. Uploaded 08 CSV SHA256 `74fe81a18343e0cb24a33f889a77c4f18ccf24ac05560d7a848babd0f03bcb96` contains 40 PASS, no FAIL, two storage policy inventories reviewed against the exact 053 baseline. These are metadata checks, not authenticated workflow acceptance.
+
+Production base: 7159369. Fixed application candidate: 2302103. Release branch applies the explicit application/test/schema-source path list from this fixed candidate onto current Production history. src, public, scripts, tests, supabase and project configuration/package sources are byte-identical to the fixed tested candidate. No environment files, Auth accounts, role UUID assignments, passwords or business records are copied. Repository SQL is included for traceability, never executed by deployment. Existing recovery-session/rate-limit implementation, deployment settings and dependency lock are preserved.
+
+Candidate local verification: 235 files / 1223 tests, 0 failed / skipped; optimized build; 110 anonymous boundary checks; eight public browser scenarios. Original batch-5 V8 JIT crash was not counted; remaining files passed in smaller fresh processes with complete unique-file coverage. New Production-baseline integration is additionally built in production mode before publication; this local build is not proof of Vercel variable scope or hosted configuration.
+
+Owner confirmed Production SUPABASE_URL points to rywmjguhvnppfxwhherl.supabase.co. Before push, still require confirmation CLIENT_EMAIL_TEST_LOGIN_ENABLED and DEMO_LOGIN_ENABLED are not true and COLLECTIONS_TEST_ORGANIZATION_ID is absent. Real AI model configuration, online payments, SMS/self-service and unconfigured Ads integration are not activated by this release.
+
+Publishing uses a normal push to next-rebuild, triggering a new build with Vercel Production bindings. Do not Promote a Preview artifact. No DNS/domain/environment variable changes or further SQL execution are part of the push. Hosted Ready/commit and real-role login/MFA/scope/idle tests must still be recorded. Do not open actual financial processing based only on these local and metadata results.
+
+Rollback: revert the isolated release commit normally; do not reverse/drop schema053 or restore an old database over later business writes. Preserve the latest compatible code/data while diagnosing any post-release issue.

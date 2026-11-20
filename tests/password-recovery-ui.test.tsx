@@ -33,3 +33,11 @@ it("shows an actionable MFA error and permits retry on the same page", async () 
   fireEvent.change(screen.getByLabelText('现有验证器验证码（已绑定的账户必填）'),{target:{value:'123456'}});fireEvent.click(screen.getByText('设置新密码'));
   await waitFor(()=>expect(screen.getByRole('status').textContent).toContain('密码已更新'));expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+it('sends the recovery language and offers both sign-in portals without requiring client MFA',async()=>{
+ const fetcher=vi.fn().mockResolvedValue({ok:true});vi.stubGlobal('fetch',fetcher);
+ render(<Recovery locale="en" enabled siteKey="fixture"/>);
+ fireEvent.change(screen.getByLabelText('Account email'),{target:{value:'fixture@example.test'}});fireEvent.click(screen.getByText('Verify fixture'));fireEvent.click(screen.getByText('Send recovery email'));
+ await waitFor(()=>expect(fetcher).toHaveBeenCalledTimes(1));expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({action:'request',locale:'en',email:'fixture@example.test'});
+ expect(screen.getByRole('link',{name:'Client and partner sign-in'}).getAttribute('href')).toBe('/en/access/login');expect(screen.getByRole('link',{name:'Employee sign-in'}).getAttribute('href')).toBe('/en/admin/login');
+});

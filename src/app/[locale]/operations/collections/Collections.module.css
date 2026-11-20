@@ -1,0 +1,12 @@
+.company {margin:12px 0;color:#62716c;}
+.guide {margin:16px 0 24px;color:#62716c;}
+.header {display:flex;justify-content:space-between;align-items:flex-start;gap:24px;}
+.header h3 {margin:0 0 8px;font-size:17px;}
+.header p {margin:6px 0;font-size:14px;color:#62716c;}
+.amount {text-align:right;flex-shrink:0;}
+.amount strong {font-size:22px;}
+.details {margin-top:14px;color:#62716c;}
+.details dl {margin:16px 0 0;}
+.details dl > div {display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:7px 0;}
+.details dd {margin:0;overflow-wrap:anywhere;white-space:pre-wrap;}
+@media(max-width:640px) {.header {flex-direction:column;gap:8px;}.amount {text-align:left;}.details dl > div {grid-template-columns:1fr;gap:4px;}}

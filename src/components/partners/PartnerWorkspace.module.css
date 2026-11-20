@@ -1,0 +1,23 @@
+.workspace { color: #52616a; }
+.workspace h1 { color: #173e35; font-size: clamp(1.6rem,3vw,2.1rem); letter-spacing: -.025em; margin-bottom: 1rem; }
+.workspace h2 { color: #173e35; font-size: 1.2rem; letter-spacing: 0; margin: 1.5rem 0 .75rem; }
+.workspace h3 { color: #173e35; font-size: 1.05rem; letter-spacing: 0; margin: 0; }
+.workspace p { font-size: .93rem; line-height: 1.65; margin-block: .65rem; overflow-wrap: anywhere; }
+.workspace :global(.admin-panel) { padding: 1.25rem; margin-block: 1rem; }
+.workspace :global(.admin-panel)>h2 { font-size: 1.1rem; margin-top: 0; }
+.workspace input,.workspace select,.workspace textarea { color: #205481; }
+.workspace label { color: #52616a; }
+.workspace details>summary { font-size: .9rem; color: #52616a; }
+.workspace details>p { max-width: 76ch; }
+.value { color: #205481; font-weight: 600; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.cardHeading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.status { color: #52616a; font-size: .85rem; font-weight: 400; }
+.facts { display: flex; flex-wrap: wrap; gap: .75rem 2rem; margin: .85rem 0; }
+.facts div { min-width: 8rem; }
+.facts dt { font-size: .8rem; margin-bottom: .25rem; }
+.facts dd { margin: 0; }
+.testNotice { font-size: .85rem; color: #52616a; }
+.workspace .footer { margin-top: 1.5rem; font-size: .8rem; }
+@media(max-width:600px) { .cardHeading { align-items: flex-start; } .facts { gap: .65rem 1rem; } .workspace :global(.admin-panel) { padding: 1rem; } }
+
+.cardHeading h2 { margin: 0; }

@@ -35,7 +35,7 @@ describe("Chinese phone login interaction", () => {
     expect(screen.getByRole("status").textContent).toContain("请求已受理");
     const resend = screen.getByRole("button", { name: /秒后可重新获取/ }); expect(resend.hasAttribute("disabled")).toBe(true);
     await user.type(code, "123456"); await user.click(screen.getByRole("button", { name: /验证并登录/ }));
-    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/zh/account"));
+    await waitFor(() => expect(navigation.replace).toHaveBeenCalledWith("/zh/access"));
     expect(fetchMock).toHaveBeenLastCalledWith("/api/auth/verify", expect.objectContaining({ body: JSON.stringify({ phone: "13800138000", code: "123456" }) }));
   });
   it("does not show sent or OTP input after provider rejection", async () => {
@@ -62,6 +62,6 @@ it('returns verified application sign-ins to the application page without changi
 
 it.each([`/zh/account/funds?wallet=b0000000-0000-4000-8000-000000000001&month=2026-10`,`/zh/account/statements?statement=b0000000-0000-4000-8000-000000000001#statement-b0000000-0000-4000-8000-000000000001`,`/zh/account/service?ticket=b0000000-0000-4000-8000-000000000002&statement=b0000000-0000-4000-8000-000000000001#service-request-b0000000-0000-4000-8000-000000000002`,'https://evil.example'])('returns to an authorized-type destination only after verified login (%s)',async returnTo=>{
  fetchMock.mockResolvedValue(new Response('{}',{status:200}));render(<PhoneLogin locale="zh" enabled siteKey="fixture" codeLength={6} returnTo={returnTo}/>);
- const user=await fill();await user.click(screen.getByText('Complete test CAPTCHA'));await user.click(screen.getByRole('button',{name:/获取短信验证码/}));await user.type(await screen.findByLabelText('短信验证码'),'123456');expect(navigation.replace).not.toHaveBeenCalled();await user.click(screen.getByRole('button',{name:/验证并登录/}));await waitFor(()=>expect(navigation.replace).toHaveBeenCalledWith(returnTo.startsWith('/zh/account/')?returnTo:'/zh/account'));
+ const user=await fill();await user.click(screen.getByText('Complete test CAPTCHA'));await user.click(screen.getByRole('button',{name:/获取短信验证码/}));await user.type(await screen.findByLabelText('短信验证码'),'123456');expect(navigation.replace).not.toHaveBeenCalled();await user.click(screen.getByRole('button',{name:/验证并登录/}));await waitFor(()=>expect(navigation.replace).toHaveBeenCalledWith(returnTo.startsWith('/zh/account/')?returnTo:'/zh/access'));
  expect(JSON.parse(fetchMock.mock.calls.at(-1)![1].body)).toEqual({phone:'13800138000',code:'123456'});
 });

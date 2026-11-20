@@ -1,0 +1,44 @@
+.wallet {padding:20px 24px;margin-block:14px;}
+.wallet h2 {font-size:17px;margin:0 0 16px;}
+.metrics {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin:0;}
+.metrics > div + div {border-left:1px solid #e0e7e0;padding-left:20px;}
+.metrics dt {font-size:14px;color:#62716c;}
+.metrics dd {margin:7px 0 0;font-size:21px;font-weight:600;}
+.wallet details {margin-top:16px;}
+@media(max-width:640px) {.metrics {grid-template-columns:1fr;gap:12px;}.metrics > div + div {border-left:0;border-top:1px solid #e0e7e0;padding:12px 0 0;}.wallet {padding:18px;}}
+.unavailable {display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;border-top:1px solid #e0e7e0;margin-top:20px;padding-top:16px;}
+.unavailable p {margin:0;color:#62716c;font-size:14px;}
+.unavailable button {font-size:14px;padding:12px 18px;}
+
+.request {scroll-margin-top:190px;}
+.cancel {border-top:1px solid #dce6e0;padding-top:16px;margin-top:16px;}
+
+.selector {display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:16px 0;}
+.selector label {display:grid;gap:8px;flex:1;min-width:0;font-weight:600;}
+.selector select {width:100%;min-width:0;max-width:100%;}
+.selector > span {font-size:14px;color:#62716c;padding-bottom:12px;}
+
+.request {padding:20px 24px;}
+.request h2 {font-size:18px;margin:0 0 10px;}
+.request p {margin-block:10px;}
+.request .metrics {margin-block:16px;gap:16px;}
+.request .metrics dd {font-size:18px;margin-top:4px;}
+.material {margin-block:12px;}
+.preparation {border-top:1px solid #e0e7e0;padding-top:14px;margin-top:14px;}
+.preparation > label {display:grid;gap:6px;max-width:480px;}
+.preparation select {width:100%;}
+@media(max-width:640px){.request {padding:16px;}.request .metrics {grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.request .metrics > div + div {border-top:0;border-left:1px solid #e0e7e0;padding:0 0 0 8px;}.request .metrics dd {font-size:15px;}}
+@media(max-width:640px){.wallet .metrics {grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}.wallet .metrics > div + div {border-top:0;border-left:1px solid #e0e7e0;padding:0 0 0 8px;}.wallet .metrics dt {font-size:12px;}.wallet .metrics dd {font-size:14px;white-space:nowrap;}}
+
+.reference {margin-block:16px;border-top:1px solid #e0e7e0;padding-top:12px;}
+.reference > summary {font-size:14px;color:#62716c;}
+
+.accountSelector {background:#f1f6f3;border:1px solid #d8e3db;border-radius:12px;padding:16px 18px;margin:20px 0;}
+.accountSelector select {background:#fff;border:1px solid #d2ded6;border-radius:8px;min-height:44px;padding:10px 12px;}
+.requestGroup {border-top:2px solid #dce5df;margin-top:28px;padding-top:22px;}
+.groupHeading {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.groupHeading h2 {font-size:18px;margin:0;color:#173e35;}
+.groupHeading span {font-size:13px;color:#62716c;}
+.requestSelector {background:#fff;border:1px solid #e0e7e2;border-radius:10px;padding:14px 16px;margin:0 0 16px;}
+.requestSelector select {min-height:44px;border:1px solid #d5dfd9;border-radius:7px;padding:10px 12px;background:#fff;}
+@media(max-width:640px){.accountSelector {padding:14px;}.requestGroup {margin-top:24px;padding-top:18px;}.requestSelector {padding:12px;}.groupHeading {align-items:baseline;}.groupHeading span {font-size:12px;}}

@@ -12,5 +12,5 @@ export default async function Project({ params }: { params: Promise<{ locale: st
  if (error) return <p className="admin-error">{locale === "zh" ? "暂时无法读取项目，请重试。" : "Project unavailable. Try again later."}</p>;
  if (!project) notFound();
  const data = await loadWorkflow(client, id);
- return <><Link className="service-link" href={`/${locale}/admin/projects`}>← {locale === "zh" ? "项目列表" : "Projects"}</Link><div className="admin-page-heading"><h1>{project.name}</h1><span className="admin-badge">{statusText(project.status, locale)}</span></div><ProjectWorkflow locale={locale} projectId={id} role="staff" data={data} completed={project.status === "completed"}/></>;
+ return <><Link className="service-link" href={`/${locale}/admin/projects`}>← {locale === "zh" ? "项目列表" : "Projects"}</Link><div className="admin-page-heading"><h1><span data-workspace-value>{project.name}</span></h1><span className="admin-badge">{statusText(project.status, locale)}</span></div><ProjectWorkflow locale={locale} projectId={id} role="staff" data={data} completed={project.status === "completed"}/></>;
 }

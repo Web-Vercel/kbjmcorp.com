@@ -1,0 +1,7 @@
+.groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin:1.5rem 0 2rem; }
+.groups section { background:white; border:1px solid #dce6d9; border-radius:12px; padding:1.25rem; }
+.groups h2 { font-size:1.1rem; margin:0 0 .75rem; }
+.groups a { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.4rem 1rem; border-top:1px solid #edf1e9; padding:.85rem 0; }
+.groups small { color:#61756a; line-height:1.5; }
+.groups a:hover strong { text-decoration:underline; }
+@media(max-width:700px) { .groups { grid-template-columns:1fr; } }

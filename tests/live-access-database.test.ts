@@ -70,3 +70,41 @@ it('analytics deduplicates overlapping source days, preserves units and limits c
  await expect(as(2,"select public.get_business_analytics('2025-01-01','2026-12-31')")).rejects.toThrow(/range/);await expect(as(2,"select public.get_business_analytics('2026-11-01','2026-11-30')",[],'aal1')).rejects.toThrow(/verification/);
  await set(2,'investor',false,3);await expect(read(2)).rejects.toThrow(/unavailable/);await set(2,'investor',true,4);await expect(read(2)).rejects.toThrow(/sign-in/);await session(2);
 });
+
+it('keeps two password-login clients in different companies isolated even when both wallets use CNY',async()=>{
+ const {readFile,readdir}=await import('node:fs/promises');const dir=new URL('../supabase/migrations/',import.meta.url);
+ for(const name of (await readdir(dir)).filter(name=>/^\d{3}_/.test(name)&&Number(name.slice(0,3))>=41).sort())await db.exec(await readFile(new URL(name,dir),'utf8'));
+ await set(5,'client',true,0,other);await session(5);
+ const a=(await as(3,'select public.get_live_account_context(false) data',[],'aal1'))[0].data;
+ const b=(await as(5,'select public.get_live_account_context(false) data',[],'aal1'))[0].data;
+ expect(a).toMatchObject({user_id:uid(3),organization_id:org,role:'client'});expect(b).toMatchObject({user_id:uid(5),organization_id:other,role:'client'});
+ const walletsA=await as(3,'select * from public.get_client_wallets()',[],'aal1'),walletsB=await as(5,'select * from public.get_client_wallets()',[],'aal1');
+ expect(walletsA.map(w=>w.id)).toEqual([wallet]);expect(walletsB.map(w=>w.id)).toEqual([otherWallet]);expect(walletsA[0].currency).toBe('CNY');expect(walletsB[0].currency).toBe('CNY');expect(walletsB[0].organization_name).toBe('UNAUTHORIZED COMPANY');
+ const statementA=uid(929);expect((await as(3,'select public.get_client_monthly_statements() data',[],'aal1'))[0].data).toHaveLength(1);
+ expect((await as(5,'select public.get_client_monthly_statements() data',[],'aal1'))[0].data).toEqual([]);
+ expect((await as(5,'select public.get_client_monthly_statements(null,null,$1) data',[statementA],'aal1'))[0].data).toEqual([]);
+ expect((await as(3,'select public.get_client_monthly_statements($1,null,null) data',[otherWallet],'aal1'))[0].data).toEqual([]);
+});
+
+it('connects dedicated clients to only their own projects and version-specific reviews',async()=>{
+ const project=uid(980),foreignProject=uid(981);
+ await db.query("insert into public.projects(id,organization_id,name,created_by) values($1,$2,'FICTIONAL own project',$3),($4,$5,'FICTIONAL other project',$3)",[project,org,uid(1),foreignProject,other]);
+ for(const [n,role,target] of [[10,'client',org],[11,'client',other],[12,'sales',org],[13,'investor',org]] as const){await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[uid(n),`fixture${n}@example.test`]);await set(n,role,true,0,target);await session(n);}
+ expect((await as(10,'select public.get_client_project_scope() scope',[],'aal1'))[0].scope).toEqual([{id:org,name:'FICTIONAL REMAX',collaborate:true}]);
+ expect((await as(10,'select id from public.projects',[],'aal1')).map(r=>r.id)).toContain(project);
+ expect((await as(10,'select id from public.projects',[],'aal1')).map(r=>r.id)).not.toContain(foreignProject);
+ const submission=(await as(1,"select public.submit_project_content($1,'creative','Fictional V1','Fictional content only','',0) id",[project]))[0].id;
+ await expect(as(11,"select public.review_project_content($1,$2,'approved','Fictional confirmation')",[project,submission],'aal1')).rejects.toThrow();
+ for(const n of [12,13]){await expect(as(n,'select public.get_client_project_scope()')).rejects.toThrow();expect((await as(n,'select public.can_collaborate($1) allowed',[org]))[0].allowed).toBe(false);}
+ await as(10,"select public.review_project_content($1,$2,'approved','Fictional confirmation')",[project,submission],'aal1');
+ await expect(as(10,"select public.review_project_content($1,$2,'approved','Repeat')",[project,submission],'aal1')).rejects.toThrow();
+ await set(10,'client',false,1);await expect(as(10,'select public.get_client_project_scope()',[],'aal1')).rejects.toThrow();expect((await as(10,'select public.can_collaborate($1) allowed',[org],'aal1'))[0].allowed).toBe(false);
+});
+
+it('shows dedicated clients their own company profile and only visible non-draft contracts',async()=>{
+ const scope=(await as(11,'select * from public.get_my_company_profiles()',[],'aal1'));expect(scope.map(r=>r.id)).toEqual([other]);expect(JSON.stringify(scope)).not.toContain('Original notes');
+ const title='FICTIONAL COMPANY B CONTRACT';
+ for(const [target,label,visible,status] of [[other,title,true,'sent'],[org,'PRIVATE A CONTRACT',true,'sent'],[other,'PRIVATE DRAFT',false,'draft'],[other,'HIDDEN CONTRACT',false,'sent']] as const)await db.query("insert into public.client_contracts(organization_id,title,client_visible,status,created_by,template_body,client_legal_name,provider_legal_name,service_scope,pricing_terms,refund_terms,starts_on,ends_on) values($1,$2,$3,$4,$5,'FICTIONAL CONTRACT TEMPLATE ONLY','FICTIONAL CLIENT','FICTIONAL PROVIDER','FICTIONAL scope only','FICTIONAL pricing only','FICTIONAL refund only','2026-01-01','2026-12-31')",[target,label,visible,status,uid(1)]);
+ expect((await as(11,'select title from public.client_contracts',[],'aal1')).map(r=>r.title)).toEqual([title]);
+ for(const n of [10,12,13])await expect(as(n,'select * from public.get_my_company_profiles()')).rejects.toThrow();
+});

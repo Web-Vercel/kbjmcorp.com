@@ -21,3 +21,15 @@ it('loads a saved quote for revision and submits a fresh request with parent pro
  const seed=restoreQuoteSeed(buildQuoteSnapshot(originalInput),{id:original,organizationId:originalInput.organizationId,period:originalInput.period});const fetcher=vi.fn().mockResolvedValue({ok:true,json:async()=>({ok:true,id:'d0000000-0000-4000-8000-000000000002'})});vi.stubGlobal('fetch',fetcher);vi.stubGlobal('crypto',{randomUUID:()=>newRequest});
  try{const user=userEvent.setup();render(<AgencyQuoteCalculator locale="zh" companies={[{id:seed.organizationId,name:'虚构企业'}]} initial={seed}/>);expect((screen.getByLabelText('平台原始广告费（CAD）') as HTMLInputElement).value).toBe('1000.00');expect((screen.getByLabelText('报价月份') as HTMLInputElement).value).toBe('2026-11');await user.clear(screen.getByLabelText('平台原始广告费（CAD）'));await user.type(screen.getByLabelText('平台原始广告费（CAD）'),'2000');await user.click(screen.getByRole('button',{name:'试算两家公司费用'}));expect(screen.getByText('CNY 12,020.00')).toBeTruthy();await user.click(screen.getByRole('button',{name:'保存为新报价版本（保留原报价）'}));const sent=JSON.parse(fetcher.mock.calls[0][1].body);expect(sent.parentQuoteId).toBe(original);expect(sent.requestId).toBe(newRequest);expect(originalInput.sourceCadMinor).toBe('100000');}finally{vi.unstubAllGlobals();}
 });
+it('preserves fee and transfer parameters when switching compact modes',async()=>{
+ const user=userEvent.setup();render(<AgencyQuoteCalculator locale="zh"/>);
+ const methods=screen.getAllByLabelText('收费方式');
+ const percent=screen.getAllByLabelText('比例（%，未约定填0）')[0];await user.clear(percent);await user.type(percent,'25');
+ await user.selectOptions(methods[0],'fixed');const fixed=screen.getAllByLabelText('固定月费')[0];await user.clear(fixed);await user.type(fixed,'500');
+ await user.selectOptions(methods[0],'percentage');expect((screen.getAllByLabelText('比例（%，未约定填0）')[0] as HTMLInputElement).value).toBe('25');
+ await user.selectOptions(methods[0],'fixed');expect((screen.getAllByLabelText('固定月费')[0] as HTMLInputElement).value).toBe('500');
+ await user.selectOptions(screen.getByLabelText('成本方式'),'markup');await user.selectOptions(screen.getByLabelText('成本承担'),'customer');
+ const cost=screen.getByLabelText('服务商费用比例（%）');await user.clear(cost);await user.type(cost,'15');
+ await user.selectOptions(screen.getByLabelText('成本方式'),'none');await user.selectOptions(screen.getByLabelText('成本方式'),'markup');
+ expect((screen.getByLabelText('成本承担') as HTMLSelectElement).value).toBe('customer');expect((screen.getByLabelText('服务商费用比例（%）') as HTMLInputElement).value).toBe('15');
+});

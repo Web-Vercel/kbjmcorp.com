@@ -1,0 +1,12 @@
+import styles from './AccountCard.module.css';
+import {formatDate} from '@/lib/admin/content';
+type Account={platform:string;external_id:string;organization_id:string};
+export type AccountRead={created_at:string;provenance?:unknown};
+export default function AccountReadStatus({account,recent,canRead,unavailable,zh}:{account:Account;recent?:AccountRead;canRead:boolean;unavailable:boolean;zh:boolean}){
+ const locale=zh?'zh':'en';const reserved=account.platform==='openai_ads'&&account.external_id.startsWith('adacct_acceptance_');
+ const p=recent?.provenance as {kind?:string;targetOrganizationId?:string}|undefined;
+ const copy=reserved&&p?.kind==='acceptance-copy-not-payable'&&p.targetOrganizationId===account.organization_id;
+ const api=!!recent&&!reserved;
+ const status=copy?(zh?'测试副本 · 不连接平台':'Test copy · no platform connection'):reserved?(zh?'测试账户标识 · 副本记录待核实':'Test account identifier · copy record unverified'):api?(zh?'已读取并保存广告数据':'Advertising data read and saved'):!canRead?(zh?'平台读取记录仅管理员可见':'Platform read history is administrator-only'):unavailable?(zh?'平台读取记录暂不可用':'Platform read history unavailable'):(zh?'暂无平台读取记录':'No platform read record found');
+ return <><p className={styles.status}>{status}</p><dl className={styles.facts}><div><dt>{zh?'数据来源':'Data source'}</dt><dd>{copy?(zh?'验收来源副本':'Financial acceptance source copy'):api?(zh?'平台 API 读取':'Platform API read'):reserved?(zh?'测试资料，非真实广告账户':'Test data, not a real advertising account'):!canRead||unavailable?(zh?'暂无法确认':'Unable to confirm'):(zh?'未查到平台读取记录':'No platform read record found')}</dd></div><div><dt>{copy?(zh?'副本生成时间':'Copy created'):zh?'最近成功读取':'Last successful read'}</dt><dd data-workspace-value>{copy||api?formatDate(recent!.created_at,locale):reserved?(zh?'不适用平台同步':'Platform sync not applicable'):!canRead?(zh?'需管理员查看':'Administrator access required'):unavailable?(zh?'暂无法确认':'Unable to confirm'):(zh?'未查到成功读取记录':'No successful read record found')}</dd></div></dl>{reserved&&<p className={styles.note}>{zh?'虚构验收专用，非投放或付款凭证。':'Fictional financial acceptance only; not evidence of advertising or payment.'}</p>}</>;
+}

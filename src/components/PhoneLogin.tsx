@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {notifySessionChange} from '@/lib/auth/session-sync';
 import {clientReturnTo} from "@/lib/auth/client-return";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -53,7 +54,7 @@ export default function PhoneLogin({ locale, enabled, siteKey, codeLength, appli
     try {
       const response = await fetch("/api/auth/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phone, code }) });
       if (!response.ok) { setStatus(response.status === 503 ? text.unavailable : response.status === 429 ? text.limited : text.invalid); return; }
-      setCode(""); router.replace(returnTarget||`/${locale}/account${applicationFlow ? "/application" : ""}`); router.refresh();
+      notifySessionChange();setCode(""); router.replace(returnTarget||(applicationFlow?`/${locale}/account/application`:`/${locale}/access`)); router.refresh();
     } catch { setStatus(text.retry); }
     finally { lock.current = false; setBusy(false); }
   }

@@ -1,0 +1,13 @@
+import {expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {workspaceGroups} from '@/lib/operations/workspace-navigation';
+import {workflowGroups,workflowPages} from '@/lib/operations/workflow-groups';
+const m=vi.hoisted(()=>({path:'/zh/operations/settlements',query:'company=company-id&month=2026-09&ticket=private-ticket&edit=private-quote'}));
+vi.mock('next/navigation',()=>({usePathname:()=>m.path,useSearchParams:()=>new URLSearchParams(m.query)}));
+import Tabs from '@/components/operations/WorkflowNavigation';
+import Navigation from '@/components/workspace/InternalNavigation';
+const context={owner:false,roles:[],canPrepare:true,canReview:false,canSource:false,canSupport:false};
+it('keeps allowed details accessible in compact groups without broadening scope',()=>{for(const c of [context,{...context,canPrepare:false,canReview:true}]){const groups=workspaceGroups('zh',c,false,false);expect(groups.flatMap(g=>g.items)).toHaveLength(8);expect(workflowGroups.flatMap(g=>workflowPages(g,c).map(p=>p[0]))).toContain('manual-finance');expect(workflowGroups.flatMap(g=>workflowPages(g,c).map(p=>p[0]))).not.toContain('upstream');}});
+it('retains company and month but never carries ticket, quote edit or credentials between tabs',()=>{const html=renderToStaticMarkup(<Tabs locale="zh" context={context}/>);expect(html).toContain('month-close?company=company-id&amp;month=2026-09');expect(html).toMatch(/aria-current="page"[^>]*>制单与复核/);expect(html).not.toContain('private-ticket');expect(html).not.toContain('private-quote');});
+it('highlights unified sidebar entry on an existing detail route',()=>{const html=renderToStaticMarkup(<Navigation locale="zh" context={context} canManage={false} admin={false}/>);expect(html).toMatch(/aria-current="page"[^>]*>月结办理/);expect(html).toContain('href="/zh/operations/month-close"');});
+it('keeps source-only employees out of financial completeness and draft tabs',()=>{m.path='/en/operations/manual-sources';const html=renderToStaticMarkup(<Tabs locale="en" context={{...context,canPrepare:false,canSource:true}}/>);expect(html).toContain('/en/operations/manual-sources');expect(html).not.toContain('/operations/manual-finance');expect(html).not.toContain('/operations/source-checks');m.path='/zh/operations/settlements';});

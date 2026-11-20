@@ -1,0 +1,15 @@
+.steps, .connection, .period, .amounts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.steps { grid-template-columns: repeat(3,minmax(0,1fr)); padding: 0; list-style: none; }
+.steps li { padding: 12px 14px; border: 1px solid #dce5df; border-radius: 8px; }
+.connection { margin-block: 14px; }
+.connection p { margin: 4px 0; }
+.period > label { min-width: 0; }
+.amounts { margin-block: 12px; }
+.amounts dd { margin: 4px 0 0; font-weight: 600; }
+@media(max-width:650px) { .steps, .connection, .period { grid-template-columns:1fr; } }
+
+.ownership { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 14px 24px; padding: 14px 16px; margin-block: 16px; border: 1px solid #dce5df; border-radius: 8px; }
+.ownership dt { font-size: 13px; color: #607079; margin-bottom: 4px; }
+.ownership dd { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.ownership .access { color: #607079; font-size: 15px; font-weight: 400; }
+@media(max-width:650px) { .ownership { grid-template-columns: 1fr; } }

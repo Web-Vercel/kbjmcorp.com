@@ -1,0 +1,8 @@
+.bar { position: sticky; top: 0; z-index: 30; padding: .85rem max(1rem,calc((100vw - 1200px)/2)); background: #f0f6ed; border-bottom: 1px solid #d4e2ce; color: #52616a; font-size: .9rem; line-height: 1.6; }
+.bar > div { display: grid; gap: .3rem; min-width: 0; overflow-wrap: anywhere; }
+.bar strong { font-weight: 600; }
+.bar [data-workspace-value] { color: #205481; font-weight: 600; }
+.role { display: inline-block; margin-left: 1.5rem; }
+.role b { color: #173d33; font-weight: 500; }
+@media(max-width:600px) { .bar { font-size: .8rem; } .role { display: block; margin-left: 0; } }
+@media print { .bar { display: none; } }

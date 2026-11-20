@@ -23,3 +23,18 @@ it('returns action-bound receipts and rejects malformed create IDs',async()=>{
  r=await POST(req({action:'reversal_submit',paymentId:id,requestId:id,reason:'Correct original allocation',evidence:'Original reversal record',hash:'b'.repeat(64),confirm:'on'}));expect((await r.json()).receipt).toEqual({id,action:'reversal_submit',stage:'registered',paymentId:id});
  for(const data of [null,'invalid',{id}]){m.rpc.mockResolvedValueOnce({data,error:null});expect((await POST(req(input))).status).toBe(502);}
 });
+
+it('limits fictional mode to the configured Preview company and verifies its name and PDF fingerprint',async()=>{
+ const {createHash}=await import('node:crypto');const {upstreamTestPdf,upstreamTestNotice}=await import('@/lib/billing/upstream-test-fixture');
+ vi.stubEnv('VERCEL_ENV','preview');vi.stubEnv('COLLECTIONS_TEST_ORGANIZATION_ID',id);
+ const maybeSingle=vi.fn().mockResolvedValue({data:{name:'财务流程验收企业（虚构）'},error:null});const chain={select:()=>chain,eq:()=>chain,maybeSingle};
+ m.guard.mockResolvedValue({role:'operator',client:{rpc:m.rpc,from:()=>chain}});
+ const test={...input,testMode:'on',bankReference:'TEST-UPSTREAM-acceptance',evidence:upstreamTestNotice,note:upstreamTestNotice};const hash=createHash('sha256').update(upstreamTestPdf(test.bankReference,test.receivedOn,test.received)).digest('hex');
+ try{
+  expect((await POST(req({...test,hash}))).status).toBe(200);
+  m.rpc.mockClear();expect((await POST(req({...test,hash:'a'.repeat(64)}))).status).toBe(400);expect(m.rpc).not.toHaveBeenCalled();
+  expect((await POST(req(input))).status).toBe(400);
+  maybeSingle.mockResolvedValue({data:{name:'Real company'},error:null});expect((await POST(req({...test,hash}))).status).toBe(403);
+  vi.stubEnv('VERCEL_ENV','production');expect((await POST(req({...test,hash}))).status).toBe(403);
+ }finally{vi.unstubAllEnvs();}
+});

@@ -28,7 +28,14 @@
     "verify:business-loop": "npm run typecheck && npm test && npm run db:bundle:check && npm run build",
     "test:demo": "vitest run tests/demo-session.test.ts tests/demo-login-api.test.ts tests/demo-workspace.test.tsx tests/demo-pages.test.tsx tests/demo-rate-limit.test.ts tests/demo-login-form.test.tsx tests/demo-production-boundary.test.ts tests/employee-training.test.tsx tests/session.test.ts tests/investor-roadshow.test.tsx",
     "test:analytics": "vitest run tests/analytics-model.test.ts tests/analytics-server.test.ts tests/analytics-api.test.ts tests/analytics-ui.test.tsx tests/analytics-page.test.tsx tests/live-access-database.test.ts",
-    "test:live-access": "vitest run tests/investor-business-page.test.tsx tests/live-access-page.test.tsx tests/live-access-database.test.ts tests/live-access-api.test.ts tests/live-access-login.test.ts tests/live-account-create.test.ts tests/staff-auth.test.ts tests/admin-ui.test.tsx"
+    "test:live-access": "vitest run tests/investor-business-page.test.tsx tests/live-access-page.test.tsx tests/live-access-database.test.ts tests/live-access-api.test.ts tests/live-access-login.test.ts tests/live-account-create.test.ts tests/staff-auth.test.ts tests/admin-ui.test.tsx",
+    "test:autonomous": "node scripts/autonomous-tests.mjs",
+    "test:autonomous-access": "node scripts/autonomous-access-smoke.mjs",
+    "verify:financial-gates": "node scripts/verify-postgres-financial-gates.mjs",
+    "verify:isolated-recovery": "node scripts/verify-isolated-recovery.mjs",
+    "check:production-boundaries": "node scripts/check-production-boundaries.mjs",
+    "db:production-upgrade:prepare": "node scripts/prepare-production-upgrade.mjs",
+    "db:production-upgrade:check": "node scripts/prepare-production-upgrade.mjs --check"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

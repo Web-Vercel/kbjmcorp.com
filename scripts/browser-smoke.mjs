@@ -16,8 +16,8 @@ try {
     await expect(page.locator(".hero .actions .button")).toHaveCount(0);
     await expect(page.locator('.hero-visual img[src="/images/openai.svg"]')).toHaveCount(1);
     assert.equal(await page.locator(".hero-visual img").evaluate(image => image.complete && image.naturalWidth > 0), true, "Restored ChatGPT symbol loaded");
-    await expect(page.locator(".hero-visual .chatgpt-platform strong")).toHaveText("ChatGPT");
-    await expect(page.locator(".hero-visual .chatgpt-features>div")).toHaveCount(3);
+    await expect(page.locator(".hero-visual strong").first()).toHaveText("ChatGPT");
+    await expect(page.locator(".hero-visual a")).toHaveCount(3);
     await expect(page.getByRole("heading", { name: "ChatGPT 广告代理服务", exact: true })).toHaveCount(1);
     assert.equal((await page.locator("body").innerText()).includes("KBJM"), false, "Old public brand labels are removed");
     if (width < 851) {
@@ -29,7 +29,7 @@ try {
     }
     assert.equal(await page.evaluate(() => {
       const copy = document.querySelector(".hero-copy").getBoundingClientRect();
-      const artwork = document.querySelector(".hero-visual .hero-artwork").getBoundingClientRect();
+      const artwork = document.querySelector(".hero-visual>div:last-child").getBoundingClientRect();
       return artwork.left >= copy.right || artwork.top >= copy.bottom;
     }), true, `Brand artwork does not overlap hero copy at ${width}px`);
     checks++;

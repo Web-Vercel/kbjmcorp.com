@@ -1,0 +1,10 @@
+import {partnerPageTitles} from '@/lib/partners/navigation';
+import Link from 'next/link';
+import styles from '@/components/BusinessNavigation.module.css';
+import SignOutButton from '@/components/SignOutButton';
+export default function PartnerNavigation({locale,internal=false,owner=false,canPrepare=false,canReview=false,view='overview'}:{locale:'zh'|'en';internal?:boolean;owner?:boolean;canPrepare?:boolean;canReview?:boolean;view?:string}){
+ const root=`/${locale}/${internal?'operations/agents':'agent'}`;
+ const titles=partnerPageTitles({internal,owner,canPrepare,canReview});
+ const links=[['','总览'],['clients',internal?titles.clients:'我的客户'],['commissions',internal?titles.commissions:'我的佣金'],['settlements',internal?titles.settlements:'我的结算'],...(!internal||owner?[['files',titles.files]]:[]),...(internal&&owner?[['settings',titles.settings]]:[]),...(!internal?[['/access/security','账号安全']]:[])];
+ return <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:24,flexWrap:'wrap',paddingBlock:18,borderBottom:'1px solid #dbe6df',marginBottom:24}}><nav aria-label="代理业务菜单" className={styles.partnerMenu}>{links.map(([path,label])=><Link className="service-link" key={path} href={path.startsWith('/')?`/${locale}${path}`:root+(path?'/'+path:'')} aria-current={(path||'overview')===view?'page':undefined}>{label}</Link>)}</nav>{!internal&&<SignOutButton locale={locale} destination={`/${locale}/access/login`}/>}</div>;
+}

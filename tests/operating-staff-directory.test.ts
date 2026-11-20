@@ -1,0 +1,11 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const m=vi.hoisted(()=>({guard:vi.fn(),config:vi.fn(),create:vi.fn(),rpc:vi.fn(),user:vi.fn()}));
+vi.mock('@/lib/admin/guard',()=>({getStaffContext:m.guard}));
+vi.mock('@/lib/auth/privileged-config',()=>({getPrivilegedConnection:m.config}));
+vi.mock('@supabase/supabase-js',()=>({createClient:m.create}));
+import { operatingStaffEmails } from '@/lib/operations/staff-directory';
+import { staffLabel } from '@/lib/operations/staff-label';
+beforeEach(()=>{vi.clearAllMocks();m.guard.mockResolvedValue({role:'admin',client:{rpc:m.rpc}});m.config.mockReturnValue({url:'https://fixture.test',key:'fixture'});m.rpc.mockResolvedValue({data:[{user_id:'staff-id'}],error:null});m.create.mockReturnValue({auth:{admin:{getUserById:m.user}}});m.user.mockResolvedValue({data:{user:{email:'staff@example.test'}},error:null});});
+it('does not access Auth identities for operators or failed MFA',async()=>{for(const context of [{role:'operator'},{error:'mfa_required'}]){m.guard.mockResolvedValue(context);expect((await operatingStaffEmails()).size).toBe(0);}expect(m.create).not.toHaveBeenCalled();});
+it('fetches only provisioned staff and returns only email labels',async()=>{expect([...(await operatingStaffEmails())]).toEqual([['staff-id','staff@example.test']]);expect(m.user).toHaveBeenCalledExactlyOnceWith('staff-id');m.rpc.mockResolvedValue({error:{},data:null});expect((await operatingStaffEmails()).size).toBe(0);});
+it('keeps distinguishable identifiers if email is unavailable and never infers duties from an email',async()=>{m.user.mockRejectedValue(Error('private'));expect((await operatingStaffEmails()).size).toBe(0);const staff={user_id:'fixture-id',role:'operator',active:true,assignments:[]};expect(staffLabel(staff,'finance_preparer@example.test','zh')).toBe('finance_preparer@example.test · 未分配职责');expect(staffLabel(staff,undefined,'en')).toContain('fixture-id');expect(staffLabel({...staff,assignments:[{unit:'zhidian_cn',role:'finance_preparer',active:true}]},'person@example.test','zh')).toContain('中国财务制单');});

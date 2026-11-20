@@ -1,0 +1,19 @@
+.balanceBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border: 1px solid #dce5df;
+  border-radius: 12px;
+  background: #f5f8f6;
+}
+.copy { min-width: 0; }
+.copy strong { display: block; color: #123e35; }
+.copy p { margin: .35rem 0 0; }
+.balanceBar a { flex-shrink: 0; white-space: nowrap; }
+@media (max-width: 640px) {
+  .balanceBar { flex-direction: column; align-items: stretch; }
+  .balanceBar a { text-align: center; white-space: normal; }
+}

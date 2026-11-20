@@ -1,4 +1,5 @@
 'use client';
+import {useRecordSwitchLock} from '@/components/workspace/useRecordSwitchLock';
 import {useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {z} from 'zod';
 const bindingReceipt=z.discriminatedUnion('action',[
@@ -8,6 +9,7 @@ const bindingReceipt=z.discriminatedUnion('action',[
 export default function AdsBindingForm({locale,action,accountId,company,month,children,button}:{locale:'zh'|'en';action:'bind'|'access';accountId:string;company?:string;month?:string;children:ReactNode;button:string}){
  const zh=locale==='zh',lock=useRef(false);const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[unknown,setUnknown]=useState(false),[chosenCompany,setChosenCompany]=useState(company),[receipt,setReceipt]=useState<z.infer<typeof bindingReceipt>|null>(null);
  const record=`/${locale}/operations/ads-reporting?${new URLSearchParams({account:accountId,...chosenCompany?{company:chosenCompany}:{},...month?{month}:{}})}#source-handoff`;
+ useRecordSwitchLock(busy||unknown);
  async function submit(event:FormEvent<HTMLFormElement>){
   event.preventDefault();if(lock.current||receipt)return;const body=Object.fromEntries(new FormData(event.currentTarget));if(action==='bind')setChosenCompany(String(body.organizationId||''));lock.current=true;setBusy(true);setMessage('');setUnknown(false);const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{const response=await fetch('/api/admin/ads-source-handoff',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const result=await response.json(),saved=bindingReceipt.safeParse(result.receipt);

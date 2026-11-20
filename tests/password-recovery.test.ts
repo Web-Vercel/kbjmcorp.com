@@ -36,7 +36,7 @@ it("retains isolated recovery for retries if password update is rejected", async
 it("does not reveal whether email exists and forwards CAPTCHA", async () => {
   m.send.mockResolvedValue({ error: { message: "unknown account" } });
   const response = await POST(req({ action: "request", email: "fixture@example.test", captchaToken: "fixture-captcha" }));
-  expect(await response.json()).toEqual({ ok: true }); expect(m.send).toHaveBeenCalledWith("fixture@example.test", { captchaToken: "fixture-captcha" }); expect(m.update).not.toHaveBeenCalled();
+  expect(await response.json()).toEqual({ ok: true }); expect(m.send).toHaveBeenCalledWith("fixture@example.test", { captchaToken: "fixture-captcha", redirectTo:"https://site.example/zh/auth/recovery" }); expect(m.update).not.toHaveBeenCalled();
 });
 it("requires persistent throttling before verifying or sending", async () => {
   m.limit.mockResolvedValue(60); const response = await POST(req(reset)); expect(response.status).toBe(429); expect(response.headers.get("retry-after")).toBe("60"); expect(m.create).not.toHaveBeenCalled();
@@ -63,4 +63,19 @@ it("resumes the same verified recovery after a missing code without consuming th
 it("returns a specific password policy error without leaking upstream messages",async()=>{
  m.update.mockResolvedValue({error:{code:"same_password",message:"PRIVATE"}});
  const response=await POST(req(reset));expect(await response.json()).toEqual({error:"same_password"});expect(m.logout).not.toHaveBeenCalled();
+});
+
+it('uses the request deployment and selected locale, ignoring an injected redirect destination',async()=>{
+ const body={action:'request',email:'fixture@example.test',captchaToken:'fixture-captcha',locale:'en',redirectTo:'http://localhost:3000'};
+ expect((await POST(req(body))).status).toBe(200);
+ expect(m.send).toHaveBeenCalledWith('fixture@example.test',{captchaToken:'fixture-captcha',redirectTo:'https://site.example/en/auth/recovery'});
+ expect((await POST(req({...body,locale:'other'}))).status).toBe(400);
+});
+
+it('does not put the internal localhost listener into email redirects behind Vercel',async()=>{
+ vi.stubEnv('VERCEL','1');
+ try{
+  const r=new Request('http://localhost:3000/api/auth/recovery',{method:'POST',headers:{origin:'https://preview.example',host:'preview.example','x-forwarded-proto':'https','content-type':'application/json'},body:JSON.stringify({action:'request',email:'fixture@example.test',captchaToken:'fixture-captcha',locale:'zh'})});
+  expect((await POST(r)).status).toBe(200);expect(m.send).toHaveBeenCalledWith('fixture@example.test',{captchaToken:'fixture-captcha',redirectTo:'https://preview.example/zh/auth/recovery'});
+ }finally{vi.unstubAllEnvs();}
 });

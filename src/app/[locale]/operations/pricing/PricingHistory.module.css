@@ -1,0 +1,12 @@
+.filters {align-items:end;gap:16px;margin-bottom:20px;}
+.filters > label {display:flex;flex-direction:column;gap:6px;}
+.filters > label:has(input[type=checkbox]) {flex-direction:row;align-items:center;padding-bottom:12px;}
+.header {display:flex;justify-content:space-between;gap:24px;align-items:flex-start;}
+.header h3 {font-size:17px;margin:0 0 8px;}
+.header p {margin:5px 0;color:#62716c;font-size:14px;}
+.total {text-align:right;flex-shrink:0;}
+.total strong {display:block;font-size:23px;margin-top:8px;}
+.details {margin-top:14px;color:#62716c;font-size:14px;}
+.details dl > div {display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;margin:10px 0;}
+.details dd {margin:0;overflow-wrap:anywhere;}
+@media(max-width:640px) {.header {flex-direction:column;gap:10px;}.total {text-align:left;}.details dl > div {grid-template-columns:1fr;gap:4px;}}

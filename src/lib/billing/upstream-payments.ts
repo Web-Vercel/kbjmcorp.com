@@ -2,7 +2,7 @@ import {z} from 'zod';
 const money=z.string().regex(/^\d{1,8}(\.\d{1,2})?$/).refine(v=>Number(v)>0);
 const note=z.string().trim().min(3).max(1000);
 export const upstreamPaymentInput=z.discriminatedUnion('action',[
- z.object({action:z.literal('submit'),requestId:z.uuid(),organizationId:z.uuid(),bankReference:z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{2,159}$/),receivedOn:z.iso.date(),received:money,evidence:note,hash:z.string().regex(/^[a-f0-9]{64}$/),note,allocations:z.array(z.object({statementId:z.uuid(),amount:money})).min(1).max(20),confirm:z.literal('on')}),
+ z.object({action:z.literal('submit'),testMode:z.literal('on').optional(),requestId:z.uuid(),organizationId:z.uuid(),bankReference:z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{2,159}$/),receivedOn:z.iso.date(),received:money,evidence:note,hash:z.string().regex(/^[a-f0-9]{64}$/),note,allocations:z.array(z.object({statementId:z.uuid(),amount:money})).min(1).max(20),confirm:z.literal('on')}),
  z.object({action:z.literal('reversal_submit'),paymentId:z.uuid(),requestId:z.uuid(),reason:note,evidence:note,hash:z.string().regex(/^[a-f0-9]{64}$/),confirm:z.literal('on')}),
  z.object({action:z.literal('reversal_review'),reversalId:z.uuid(),decision:z.enum(['approved','rejected']),note,confirm:z.literal('on')}),
  z.object({action:z.literal('review'),paymentId:z.uuid(),decision:z.enum(['approved','rejected']),note,confirm:z.literal('on')})

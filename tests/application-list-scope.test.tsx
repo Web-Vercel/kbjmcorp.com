@@ -1,0 +1,13 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({staff:vi.fn(),from:vi.fn(),eq:vi.fn(),limit:vi.fn()}));
+vi.mock('@/lib/admin/page',()=>({requireStaffPage:m.staff}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw Error('not found');}}));
+import Page from '@/app/[locale]/admin/(workspace)/applications/page';
+beforeEach(()=>{vi.clearAllMocks();vi.stubEnv('CLIENT_APPLICATIONS_ENABLED','true');const chain={select:()=>chain,eq:m.eq,order:()=>chain,limit:m.limit};m.eq.mockReturnValue(chain);m.limit.mockResolvedValue({data:[],error:null});m.from.mockReturnValue(chain);m.staff.mockResolvedValue({client:{from:m.from}});});
+afterEach(()=>vi.unstubAllEnvs());
+const render=(status?:string)=>Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({status})}).then(renderToStaticMarkup);
+it('keeps the default submitted filter and offers the full status list',async()=>{const html=await render();expect(m.eq).toHaveBeenCalledWith('status','submitted');expect(html).toContain('查看全部状态');});
+it('reads all authorized application statuses only when explicitly selected',async()=>{const html=await render('all');expect(m.from).toHaveBeenCalledWith('customer_applications');expect(m.eq).not.toHaveBeenCalled();expect(html).not.toContain('查看全部状态');expect(html).toContain('当前状态下暂无申请');});
+it('keeps disabled online applications distinct from an empty active list',async()=>{vi.stubEnv('CLIENT_APPLICATIONS_ENABLED','false');const html=await render('all');expect(m.from).not.toHaveBeenCalled();expect(html).toContain('在线申请尚未开放');expect(html).not.toContain('当前状态下暂无申请');});
+it('keeps query failures distinct from no matching records',async()=>{m.limit.mockResolvedValue({data:null,error:{message:'PRIVATE'}});const html=await render();expect(html).toContain('申请记录暂不可用');expect(html).not.toContain('当前状态下暂无申请');expect(html).not.toContain('PRIVATE');});
