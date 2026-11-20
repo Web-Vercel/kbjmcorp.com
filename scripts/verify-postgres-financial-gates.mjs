@@ -29,7 +29,22 @@ try{
  create schema storage;grant usage on schema storage to authenticated;
  create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,unique(bucket_id,name));alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
- const dir=new URL('../supabase/migrations/',import.meta.url),migrations=(await readdir(dir)).filter(x=>/^\d{3}_.*\.sql$/.test(x)).sort();for(const name of migrations)await sql(await readFile(new URL(name,dir),'utf8'));
+ const dir=new URL('../supabase/migrations/',import.meta.url),migrations=(await readdir(dir)).filter(x=>/^\d{3}_.*\.sql$/.test(x)).sort();for(const name of migrations){
+  if(process.env.GATES_UPGRADE_FROM_040==='1'&&Number(name.slice(0,3))>40)continue;
+  await sql(await readFile(new URL(name,dir),'utf8'));
+ }
+ if(process.env.GATES_UPGRADE_FROM_040==='1'){
+  await sql(`insert into auth.users(id,email,email_confirmed_at) values('${uid(990)}','preserve@example.invalid',now());insert into public.staff_members(user_id,role) values('${uid(990)}','admin');insert into public.organizations(id,name) values('${uid(991)}','Upgrade preservation fixture');insert into public.client_wallets(id,organization_id,currency) values('${uid(992)}','${uid(991)}','CNY');insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values('${uid(992)}','${uid(991)}','CNY','topup',12345,'Preserved original history','UPGRADE-PRESERVATION');`);
+  const preserved=()=>sql(`select json_build_object('user',(select json_agg(x) from (select * from auth.users where id='${uid(990)}')x),'staff',(select json_agg(x) from (select * from public.staff_members where user_id='${uid(990)}')x),'wallet',(select json_agg(x) from (select * from public.client_wallets where id='${uid(992)}')x),'ledger',(select json_agg(x) from (select * from public.wallet_entries where wallet_id='${uid(992)}')x))`);
+  const before=JSON.parse((await preserved()).trim()),readiness=await readFile(new URL('../supabase/upgrades/production_040_readiness.sql',import.meta.url),'utf8'),upgrade=await readFile(new URL('../supabase/upgrades/production_040_to_053.sql',import.meta.url),'utf8');
+  await sql(readiness);
+  await assert.rejects(sql(upgrade.replace('-- BEGIN 053_live_client_company_profiles.sql','select 1/0;\n-- BEGIN 053_live_client_company_profiles.sql')),/division by zero/);
+  assert.equal((await sql("select to_regclass('public.balance_refunds') is null")).trim(),'t');
+  assert.deepEqual(JSON.parse((await preserved()).trim()),before);await sql(upgrade);assert.deepEqual(JSON.parse((await preserved()).trim()),before);
+  await assert.rejects(sql(upgrade),/already or partially applied/);assert.deepEqual(JSON.parse((await preserved()).trim()),before);
+  evidence.push('040->053 bundle: native PostgreSQL baseline fingerprints verified, late failure rolls back, original auth/admin/wallet/ledger preserved, replay rejected; subsequent financial and restore drills use the upgraded schema');
+ }
+
  for(let n=1;n<=5;n++){await sql(`insert into auth.users(id,email,email_confirmed_at) values('${uid(n)}','fixture${n}@example.invalid',now());`);sessions.set(n,(await sql(`insert into auth.sessions(user_id) values('${uid(n)}') returning id`)).trim());}
  await sql(`insert into public.staff_members(user_id,role) values('${uid(1)}','admin'),('${uid(2)}','operator'),('${uid(3)}','operator');insert into public.organizations(id,name) values('${uid(101)}','FICTIONAL CONCURRENCY A'),('${uid(102)}','FICTIONAL CONCURRENCY B');`);
  await as(1,`select public.assign_operating_role('${uid(2)}','zhidian_cn','finance_preparer',true);select public.assign_operating_role('${uid(3)}','zhidian_cn','finance_reviewer',true);select public.set_live_account_access('${uid(4)}','${uid(101)}','client','FICTIONAL A','fixture4@example.invalid',true,0,'FICTIONAL GRANT');select public.set_live_account_access('${uid(5)}','${uid(102)}','client','FICTIONAL B','fixture5@example.invalid',true,0,'FICTIONAL GRANT')`);

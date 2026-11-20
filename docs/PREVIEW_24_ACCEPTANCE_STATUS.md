@@ -173,3 +173,8 @@ CRM：虚构企业36d7cb6f备注第1版→第2版保存截图可见；不要把�
 - 旧生产记录只证明11月12日001–040及当时一次恢复，不能证明当前已升级053。未读取当前生产平台、未执行生产SQL或发布。
 - 两类接入仍缺：生产Vercel/Supabase只读平台与备份/Storage状态；正常完成CAPTCHA/MFA的Preview管理员/制单员/复核员会话。当前只有外部客户/代理凭证，不绕过验证、不虚构银行付款。#2–6/#14/#24及托管恢复/回滚继续保持未闭环。
 - 详见 `docs/PRODUCTION_FINANCIAL_GATES_2026-11-19.md`。机器证据 `/workspace/shared/production-gates-2026-11-19/`。
+
+### 2026-11-19 Production实际只读证据及增量升级准备
+- 用户已在Production项目rywmjguhvnppfxwhherl执行只读检查：虚构企业筛选0、测试账单0；六函数中company_profiles与upstream_reversal存在，client_scope/manual_publication/refund_workflow/credential_session_gate缺失。不能据此确认精确版本或最新函数体。
+- Production保存查询名称05生产上线前只读核对；不要沿用Preview文档编号51。已准备06只读基线指纹检查与受guard保护的一次性040→053原子升级包。下一步仅执行06；升级写入仍待基线和备份核对，不让用户直接运行07或重跑初始化。
+- 原生PG17从040升级到053的保留数据/故障回滚/拒绝重跑及后续财务并发、备份恢复验证通过。无Production写入。详见PRODUCTION_UPGRADE_040_TO_053.md。

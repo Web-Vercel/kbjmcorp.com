@@ -33,7 +33,9 @@
     "test:autonomous-access": "node scripts/autonomous-access-smoke.mjs",
     "verify:financial-gates": "node scripts/verify-postgres-financial-gates.mjs",
     "verify:isolated-recovery": "node scripts/verify-isolated-recovery.mjs",
-    "check:production-boundaries": "node scripts/check-production-boundaries.mjs"
+    "check:production-boundaries": "node scripts/check-production-boundaries.mjs",
+    "db:production-upgrade:prepare": "node scripts/prepare-production-upgrade.mjs",
+    "db:production-upgrade:check": "node scripts/prepare-production-upgrade.mjs --check"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
