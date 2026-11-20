@@ -13,6 +13,6 @@ export default async function Commerce({params}:{params:Promise<{locale:string}>
  <ServiceExamples locale={locale} kind="commerce"/>
  <section><h2>{t.stepsTitle}</h2><div className={styles.steps}>{t.steps.map(([title,body],i)=><article className={styles.step} key={title}><span>0{i+1}</span><h3>{title}</h3><p>{body}</p></article>)}</div></section>
  <section><h2>{t.conceptsTitle}</h2>{t.concepts.map(([title,body])=><article className={styles.concept} key={title}><h3>{title}</h3><p>{body}</p></article>)}<p className={styles.scope}>{t.scope}</p></section>
- <section><h2>{t.prepareTitle}</h2><ul className={styles.prepare}>{t.prepare.map(item=><li key={item}>{item}</li>)}</ul></section><section className={styles.faq}><h2>{t.faqTitle}</h2>{t.faq.map(([question,answer])=><details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</section>
+ <section><h2>{t.prepareTitle}</h2><ul className={styles.prepare}>{t.prepare.map(item=><li key={item}>{item}</li>)}</ul></section>
  <div className={styles.related}><Link className="button" href={'/'+locale+'#contact'}>{t.contact} ↗</Link><p><Link className="service-link" href={'/'+locale+'/platforms/chatgpt-ads'}>{zh?'了解 ChatGPT 广告代理服务':'Explore ChatGPT advertising services'} ↗</Link></p></div></main><SiteFooter locale={locale}/></>;
 }

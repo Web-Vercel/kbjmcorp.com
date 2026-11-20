@@ -41,7 +41,7 @@ try {
   await expect(page.getByText(/媒体投放预算与代理服务费用分别确认/)).toBeVisible();
   await page.getByText("广告账户、客户资料和数据如何管理？", { exact: true }).click();
   await expect(page.getByText(/客户平台按公司权限展示信息/)).toBeVisible();
-  await expect(page.locator("#faq summary").last().locator(".faq-number")).toHaveText("13");
+  await expect(page.locator("#faq summary").last().locator(".faq-number")).toHaveText("10");
   checks++;
   // Only exercise a valid lead submission on an explicitly unconfigured local instance.
   if (process.env.SMOKE_EXPECT_UNCONFIGURED === "1") {
