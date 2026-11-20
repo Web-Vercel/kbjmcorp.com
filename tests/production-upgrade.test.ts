@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {readFile} from 'node:fs/promises';
 import {beforeAll,afterAll,expect,it} from 'vitest';
@@ -11,6 +12,14 @@ afterAll(async()=>{await db?.close();});
 it('validates 040 without applying an upgrade and refuses baseline drift',async()=>{
  await db.exec(readiness);expect((await db.query<{obj:string|null}>("select to_regclass('public.balance_refunds') obj")).rows[0].obj).toBeNull();
  await db.exec('alter table public.organizations add column unexpected_drift text');await expect(db.exec(upgrade)).rejects.toThrow(/Baseline table columns differ/);await db.exec('rollback;alter table public.organizations drop column unexpected_drift');
+});
+it('accepts the exact historical bootstrap formatter but still rejects changed validation logic',async()=>{
+ const definition=(await db.query<{definition:string}>("select pg_get_functiondef('public.prepare_monthly_settlement(uuid,uuid,text,text)'::regprocedure) definition")).rows[0].definition;
+ const bootstrap=definition.replace(/[ \t]+$/gm,'');
+ expect(createHash('md5').update(bootstrap).digest('hex')).toBe('45ba415d6c7ba53ed18cecde6aebc911');
+ await db.exec(bootstrap);await db.exec(readiness);
+ await db.exec(bootstrap.replace('not between 3 and 1000','not between 1 and 1000'));
+ await expect(db.exec(readiness)).rejects.toThrow(/Baseline function differs/);await db.exec('rollback');await db.exec(definition);
 });
 it('rejects a partial installation before applying any migration',async()=>{
  await db.exec('create table public.balance_refunds(partial_marker integer)');await expect(db.exec(upgrade)).rejects.toThrow(/already or partially applied/);await db.exec('rollback;drop table public.balance_refunds');

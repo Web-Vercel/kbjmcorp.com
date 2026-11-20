@@ -178,3 +178,7 @@ CRM：虚构企业36d7cb6f备注第1版→第2版保存截图可见；不要把�
 - 用户已在Production项目rywmjguhvnppfxwhherl执行只读检查：虚构企业筛选0、测试账单0；六函数中company_profiles与upstream_reversal存在，client_scope/manual_publication/refund_workflow/credential_session_gate缺失。不能据此确认精确版本或最新函数体。
 - Production保存查询名称05生产上线前只读核对；不要沿用Preview文档编号51。已准备06只读基线指纹检查与受guard保护的一次性040→053原子升级包。下一步仅执行06；升级写入仍待基线和备份核对，不让用户直接运行07或重跑初始化。
 - 原生PG17从040升级到053的保留数据/故障回滚/拒绝重跑及后续财务并发、备份恢复验证通过。无Production写入。详见PRODUCTION_UPGRADE_040_TO_053.md。
+
+### 2026-11-19 生产06函数指纹误报核对
+- 用户上传Production prepare_monthly_settlement函数CSV；离线读取/对比，未执行附件SQL。与原始026只有一个空白行上的一个空格差异，且逐字匹配历史bootstrap去除行尾空格后的定义。实际MD5 45ba415d6c7ba53ed18cecde6aebc911；原始迁移a07524dc92c8e84e1e3519b981a61a1a。没有财务/权限逻辑变化。
+- 修正06与待评审升级包guard，仅认可原始和历史bootstrap两个预计算准确指纹，线上定义不宽松归一化；真实逻辑变化仍拒绝。18项针对性测试通过。下一步用户替换同一06全文并只读重跑，Production未升级。

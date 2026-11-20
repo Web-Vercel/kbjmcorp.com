@@ -31,7 +31,7 @@ try{
  create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,unique(bucket_id,name));alter table storage.objects enable row level security;grant select,insert,update,delete on storage.objects to authenticated;`);
  const dir=new URL('../supabase/migrations/',import.meta.url),migrations=(await readdir(dir)).filter(x=>/^\d{3}_.*\.sql$/.test(x)).sort();for(const name of migrations){
   if(process.env.GATES_UPGRADE_FROM_040==='1'&&Number(name.slice(0,3))>40)continue;
-  await sql(await readFile(new URL(name,dir),'utf8'));
+  const source=await readFile(new URL(name,dir),'utf8');await sql(process.env.GATES_UPGRADE_BASELINE_BOOTSTRAP==='1'?source.replace(/[ \t]+$/gm,''):source);
  }
  if(process.env.GATES_UPGRADE_FROM_040==='1'){
   await sql(`insert into auth.users(id,email,email_confirmed_at) values('${uid(990)}','preserve@example.invalid',now());insert into public.staff_members(user_id,role) values('${uid(990)}','admin');insert into public.organizations(id,name) values('${uid(991)}','Upgrade preservation fixture');insert into public.client_wallets(id,organization_id,currency) values('${uid(992)}','${uid(991)}','CNY');insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values('${uid(992)}','${uid(991)}','CNY','topup',12345,'Preserved original history','UPGRADE-PRESERVATION');`);
@@ -109,5 +109,5 @@ try{
  assert.equal(await balance(),2535);await mkdir(reportDir,{recursive:true});await writeFile(reportDir+'/fictional-native-backup.enc',Buffer.concat([nonce,tag,encrypted]),{mode:0o600});
  evidence.push('native pg_dump encrypted with AES-256-GCM, tamper rejected, pg_restore to separate database; ledger/RLS/policies/functions match, source preserved, client isolation and immutable ledger rechecked');
  const nativeBackupSha256=createHash('sha256').update(encrypted).digest('hex');
- await mkdir(reportDir,{recursive:true});const report={passed:true,localOnly:true,postgres:'17',migrations:migrations.length,trueConcurrentConnections:true,observedLockWait,nativeBackupSha256,restoredIntoSeparateDatabase:true,encryptionKeyPersisted:false,artifactPurpose:'ephemeral local drill',network:'none',financialWrites:'fictional isolated container only',evidence};await writeFile(reportDir+'/result.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
+ await mkdir(reportDir,{recursive:true});const report={passed:true,localOnly:true,postgres:'17',migrations:migrations.length,trueConcurrentConnections:true,baselineInstallFormat:process.env.GATES_UPGRADE_BASELINE_BOOTSTRAP==='1'?'historical-bootstrap':'raw-migrations',observedLockWait,nativeBackupSha256,restoredIntoSeparateDatabase:true,encryptionKeyPersisted:false,artifactPurpose:'ephemeral local drill',network:'none',financialWrites:'fictional isolated container only',evidence};await writeFile(reportDir+'/result.json',JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 }finally{if(created)await docker(['rm','-fv',container]);}
