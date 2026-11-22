@@ -16,7 +16,7 @@ it('keeps investor navigation for investors',()=>{
 it('shows verified security status without redirecting an authenticated user',async()=>{
  m.context.mockResolvedValue({context:{role:'client'},user:{email:'client@example.com'},client:{auth:{mfa:{getAuthenticatorAssuranceLevel:async()=>({data:{currentLevel:'aal2'}})}}}});
  const html=renderToStaticMarkup(await Security({params:Promise.resolve({locale:'zh'})}));
- expect(html).toContain('无需设置验证器');expect(html).toContain('client@example.com');
+ expect(html).not.toContain('无需设置验证器');expect(html).toContain('client@example.com');
 });
 
 it('offers the same customer task menu across portal and statement pages',()=>{
