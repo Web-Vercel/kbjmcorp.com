@@ -1,3 +1,4 @@
+import {requiresLiveMfa} from '@/lib/live-access/mfa-policy';
 import {z} from 'zod';
 import {getStaffContext} from '@/lib/admin/guard';
 import {getLiveContext} from '@/lib/live-access/server';
@@ -8,7 +9,7 @@ export async function POST(request:Request){
  const parsed=z.object({portal:z.enum(['admin','access']),expectedUserId:z.uuid()}).strict().safeParse(input.body);if(!parsed.success)return authResponse({error:'invalid_input'},400);
  const c=parsed.data.portal==='admin'?await getStaffContext(false):await getLiveContext(false);if('error'in c)return authResponse({error:c.error},c.status);
  if(c.user.id!==parsed.data.expectedUserId)return authResponse({error:'session_changed'},409);
- if('context'in c&&(c.context.role==='client'||c.context.role==='agent'))return authResponse({complete:true});
+ if('context'in c&&!await requiresLiveMfa(c.client,c.context.role,c.user.id))return authResponse({complete:true});
  try{
   const a=await c.client.auth.mfa.getAuthenticatorAssuranceLevel();if(a.error)return authResponse({error:'unavailable'},503);
   if(a.data?.currentLevel==='aal2')return authResponse({complete:true});

@@ -58,6 +58,7 @@
 -- 051_manual_statement_publication.sql 8559a3a313a235abb63d08853b9ed7f87fd013f3f22239fa97c04f82b73b9158
 -- 052_live_client_projects.sql f5ea506f7a7ecaaf9eed04e89b291374b1839c6d96742ec5bef1cafc714da7fa
 -- 053_live_client_company_profiles.sql 12d3471f184a2ca41a23d6a15e3b421dc1f709e66ff53dcdde23c466def68dee
+-- 054_investor_password_login.sql 474bcbc50db4adbc0b3e1b15938001c0a6ccdb88ea2bf412c6350723aa69e5df
 
 begin;
 select pg_advisory_xact_lock(187654321,130013);
@@ -4904,6 +4905,25 @@ $$;
 -- The client_visible_contracts policy remains responsible for visibility and draft exclusion.
 notify pgrst,'reload schema';
 -- END 053_live_client_company_profiles.sql
+
+-- START 054_investor_password_login.sql
+-- Investor-only password sign-in. Existing credential/session gates and read-only roles remain intact.
+
+create or replace function public.require_live_account(p_mfa boolean default true) returns public.live_access_accounts language plpgsql security definer set search_path='' as $$
+declare a public.live_access_accounts%rowtype;u jsonb;sid uuid;started timestamptz;
+begin
+ select * into a from public.live_access_accounts where user_id=auth.uid();
+ if not found or not a.active or not public.account_credential_session_valid() or (p_mfa and a.role not in ('client','investor') and coalesce(auth.jwt()->>'aal','')<>'aal2') then raise exception 'Account unavailable or verification required' using errcode='42501';end if;
+ select to_jsonb(v) into u from auth.users v where v.id=a.user_id;
+ if lower(u->>'email') is distinct from a.expected_email or nullif(u->>'email_confirmed_at','') is null or nullif(u->>'deleted_at','') is not null or coalesce(nullif(u->>'banned_until','')::timestamptz,'-infinity')>now() then raise exception 'Account unavailable' using errcode='42501';end if;
+ if exists(select 1 from public.staff_members where user_id=a.user_id) or exists(select 1 from public.memberships where user_id=a.user_id) then raise exception 'Conflicting account grants' using errcode='42501';end if;
+ begin sid:=(auth.jwt()->>'session_id')::uuid;exception when others then raise exception 'Fresh sign-in required' using errcode='42501';end;
+ select s.created_at into started from auth.sessions s where s.id=sid and s.user_id=a.user_id;
+ if started is null or started<a.session_after then raise exception 'Fresh sign-in required' using errcode='42501';end if;
+ return a;
+end $$;
+notify pgrst, 'reload schema';
+-- END 054_investor_password_login.sql
 
 -- Refresh the Data API schema only after the full transaction succeeds.
 notify pgrst, 'reload schema';
