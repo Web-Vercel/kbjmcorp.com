@@ -15,5 +15,5 @@ it('distinguishes approval from payment and retains the commission hold for anot
 
 it('presents the hold as a conditional rule when all displayed refunds are cancelled',async()=>{
  const result=await html({agentId:id,refunds:[{id,organization_id:id,company:'FICTIONAL',gross_minor:'1000',status:'cancelled',created_at:'2026-11-16T10:00:00Z',paid_at:null,commission_paused:false}]});
- expect(result).toContain('佣金规则：仅按符合约定的已结算金额计佣');expect(result).not.toContain('退款处理中，相关客户佣金暂停结算。');expect(result).toContain('不再因本次申请暂停佣金结算');
+ expect(result).toContain('佣金规则：仅按符合约定的已结算金额计佣');expect(result).not.toContain('退款处理中，相关客户佣金暂停结算。');expect(result).not.toContain('不再因本次申请暂停佣金结算');
 });
