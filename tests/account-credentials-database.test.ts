@@ -55,3 +55,14 @@ it('does not mark an unverified email update successful or change any posted mon
  expect((await db.query('select expected_email from public.live_access_accounts where user_id=$1',[id(3)])).rows[0]).toEqual({expected_email:'new-client@example.test'});
  expect((await db.query('select sum(amount_minor)::text amount from public.wallet_entries where wallet_id=$1',[id(51)])).rows[0]).toEqual({amount:'70323'});
 });
+
+it('allows investor AAL1 reads after 054 while keeping writes and staff MFA restricted',async()=>{
+ for(const [n,role] of [[7,'investor'],[8,'sales']] as const){await db.query('insert into auth.users(id,email,email_confirmed_at) values($1,$2,now())',[id(n),`user${n}@example.test`]);await db.query('insert into auth.sessions values($1,$2,clock_timestamp())',[id(100+n),id(n)]);await as(1,"select public.set_live_account_access($1,$2,$3,'Fictional test role',$4,true,0,'Verified local fixture')",[id(n),id(50),role,`user${n}@example.test`]);await fresh(n);}
+ expect((await as(7,'select public.get_live_account_context() c',[],'aal1'))[0].c).toMatchObject({role:'investor'});
+ expect((await as(7,"select public.read_investor_business('organizations',0,25) d",[],'aal1'))[0].d).toHaveProperty('rows');
+ await expect(as(7,"select public.request_client_topup($1,100,'FORGED')",[id(51)],'aal1')).rejects.toThrow();
+ await expect(as(7,'select public.list_managed_accounts()',[],'aal1')).rejects.toThrow();
+ await expect(as(8,'select public.get_live_account_context()',[],'aal1')).rejects.toThrow(/verification/);
+ await expect(as(1,'select public.list_managed_accounts()',[],'aal1')).rejects.toThrow();
+ await db.query('update public.live_access_accounts set active=false where user_id=$1',[id(7)]);await expect(as(7,'select public.get_live_account_context()',[],'aal1')).rejects.toThrow();
+});
