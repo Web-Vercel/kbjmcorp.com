@@ -34,3 +34,8 @@ it('keeps a failed query distinct from an inaccessible statement and refuses a d
  m.rpc.mockResolvedValue({data:null,error:{message:'PRIVATE'}});const query={statement:statement.id};let html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve(query)}));expect(html).toContain('账单暂不可用');expect(html).not.toContain('该账单不存在或当前账号无权查看');
  m.rpc.mockImplementation(async(name:string)=>name==='get_client_monthly_statements'?{data:[{...statement,id:'b0000000-0000-4000-8000-000000000099'}],error:null}:{data:[],error:null});html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve(query)}));expect(html).toContain('账单暂不可用');expect(html).not.toContain('下载本账单');
 });
+it('shows only the latest month by default rather than stacking repeated bills',async()=>{
+ const older={...statement,id:'b0000000-0000-4000-8000-000000000088',month:'2026-09-01',usage:{...statement.usage,since:'2026-09-01',until:'2026-09-30',daily:statement.usage.daily.map((d,i)=>({...d,date:i?'2026-09-30':'2026-09-29'}))}};
+ m.rpc.mockImplementation(async(name:string)=>name==='get_client_monthly_statements'?{data:[older,statement],error:null}:{data:[],error:null});
+ const html=await render();expect(html).toContain(`id="statement-${statement.id}"`);expect(html).not.toContain(`id="statement-${older.id}"`);expect(html).toContain('value="2026-09"');expect(html).toContain('value="2026-10"');
+});
