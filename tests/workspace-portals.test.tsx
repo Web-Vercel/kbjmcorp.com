@@ -9,6 +9,6 @@ import External from '@/app/[locale]/access/login/page';
 it('clearly separates employee and external entry pages while keeping their existing login flows',async()=>{
  const internal=renderToStaticMarkup(await Employees({params:Promise.resolve({locale:'zh'})}));
  const external=renderToStaticMarkup(await External({params:Promise.resolve({locale:'zh'})}));
- expect(internal).toContain('员工登录');expect(internal).toContain('加拿大与中国');expect(internal).toContain('employee-login-form');expect(internal).toContain('/zh/access/login');
- expect(external).toContain('客户与合作伙伴登录');expect(external).toContain('客户、代理、投资人');expect(external).toContain('external-login-form');expect(external).toContain('/zh/admin/login');
+ expect(internal).toContain('员工登录');expect(internal).not.toContain('加拿大与中国');expect(internal).toContain('employee-login-form');expect(internal).toContain('/zh/access/login');
+ expect(external).toContain('客户与合作伙伴登录');expect(external).not.toContain('客户、代理、投资人');expect(external).toContain('external-login-form');expect(external).toContain('/zh/admin/login');
 });
