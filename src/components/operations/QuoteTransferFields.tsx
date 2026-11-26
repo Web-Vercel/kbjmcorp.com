@@ -2,9 +2,10 @@
 import {useState} from 'react';
 import type {QuoteSeed} from '@/lib/billing/quote-snapshot';
 import {minorInput} from '@/lib/billing/quote-snapshot';
+import {pricingDefaults} from '@/lib/billing/pricing-rates';
 import styles from './AgencyQuoteCalculator.module.css';
-export default function QuoteTransferFields({zh,initial,included}:{zh:boolean;initial?:QuoteSeed;included:boolean}){
- const [costBearer,setCostBearer]=useState(initial?.transfer.bearer??'customer');const [mode,setMode]=useState(initial?.transfer.mode??'markup');const [values,setValues]=useState({percent:String((initial?.transfer.basisPoints??500)/100),fixed:minorInput(initial?.transfer.fixedMinor||'0')});
+export default function QuoteTransferFields({zh,initial,included,defaultBps}:{zh:boolean;initial?:QuoteSeed;included:boolean;defaultBps?:number}){
+ const [costBearer,setCostBearer]=useState(initial?.transfer.bearer??'customer');const [mode,setMode]=useState(initial?.transfer.mode??(defaultBps===0?'none':'markup'));const [values,setValues]=useState({percent:String((initial?.transfer.basisPoints??defaultBps??pricingDefaults.transfer)/100),fixed:minorInput(initial?.transfer.fixedMinor||'0')});
  const fields=[['percent','costPercent',zh?'服务商费用比例（%）':'Provider percentage'],['fixed','costFixed',zh?'固定跨境成本（CNY）':'Fixed transfer cost (CNY)']] as const;
  const active=(key:string)=>key==='percent'?mode==='markup'||mode==='gross_up':mode==='fixed';
  const input=([key,name,label]:typeof fields[number])=><label key={key}>{label}<input name={name} value={values[key]} onChange={e=>setValues(v=>({...v,[key]:e.target.value}))} required inputMode="decimal"/></label>;

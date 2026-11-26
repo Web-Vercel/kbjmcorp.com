@@ -33,3 +33,16 @@ it('preserves fee and transfer parameters when switching compact modes',async()=
  await user.selectOptions(screen.getByLabelText('成本方式'),'none');await user.selectOptions(screen.getByLabelText('成本方式'),'markup');
  expect((screen.getByLabelText('成本承担') as HTMLSelectElement).value).toBe('customer');expect((screen.getByLabelText('服务商费用比例（%）') as HTMLInputElement).value).toBe('15');
 });
+
+it('applies an explicit zero transfer fee for the selected company and month', async () => {
+ const user=userEvent.setup();
+ const company={id:'b0000000-0000-4000-8000-000000000001',name:'虚构企业'};
+ render(<AgencyQuoteCalculator locale="zh" companies={[company]}
+  contextSeed={{organizationId:company.id,period:'2026-11-01',sourceCadMinor:'10000'}}
+  pricedScope={{canada:1500,china:2000,transfer:0}}/>);
+ expect((screen.getByLabelText('成本方式') as HTMLSelectElement).value).toBe('none');
+ await user.type(screen.getByLabelText('报价说明／手动汇率依据'),'虚构测试报价');
+ await user.type(screen.getByLabelText('试算汇率：1 CAD 对应人民币'),'1');
+ await user.click(screen.getByRole('button',{name:'试算两家公司费用'}));
+ expect(screen.getByText('CNY 138.00')).toBeTruthy();
+});

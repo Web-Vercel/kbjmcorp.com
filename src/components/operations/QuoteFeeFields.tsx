@@ -2,10 +2,11 @@
 import {useState} from 'react';
 import type {AgencyFeeRule} from '@/lib/billing/agency-fees';
 import {minorInput} from '@/lib/billing/quote-snapshot';
+import {pricingDefaults} from '@/lib/billing/pricing-rates';
 import styles from './AgencyQuoteCalculator.module.css';
-export default function QuoteFeeFields({prefix,zh,seed}:{prefix:'ca'|'cn';zh:boolean;seed?:AgencyFeeRule}){
+export default function QuoteFeeFields({prefix,zh,seed,defaultBps}:{prefix:'ca'|'cn';zh:boolean;seed?:AgencyFeeRule;defaultBps?:number}){
  const [mode,setMode]=useState(seed?.mode||'percentage');
- const [values,setValues]=useState({percent:String((seed?.basisPoints??(prefix==='ca'?1500:2000))/100),fixed:minorInput(seed?.fixedMinor||'0'),minimum:minorInput(seed?.minimumMinor||'0')});
+ const [values,setValues]=useState({percent:String((seed?.basisPoints??(defaultBps??(prefix==='ca'?pricingDefaults.canada:pricingDefaults.china)))/100),fixed:minorInput(seed?.fixedMinor||'0'),minimum:minorInput(seed?.minimumMinor||'0')});
  const fields=[['percent',zh?'比例（%，未约定填0）':'Percentage (0 if not agreed)'],['fixed',zh?'固定月费':'Fixed monthly fee'],['minimum',zh?'最低月费':'Minimum monthly fee']] as const;
  const active=(key:string)=>key==='percent'?mode!=='fixed':key==='fixed'?mode==='fixed':mode==='greater_of';
  const input=([key,label]:typeof fields[number])=><label key={key}>{label}<input name={prefix+key} value={values[key]} onChange={e=>setValues(v=>({...v,[key]:e.target.value}))} required inputMode="decimal"/></label>;
