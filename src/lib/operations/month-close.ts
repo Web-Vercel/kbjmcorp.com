@@ -30,6 +30,7 @@ export function closeAction(account:CloseAccount,context:{owner:boolean;canPrepa
  const params=new URLSearchParams({company,month});
  if(state.target==='ads-reporting')params.set('account',account.account_id);
  if(state.target==='pricing')params.set('binding',account.binding_id);
+ if(account.stage==='preparation_needed')params.set('mode','prepare');
  const path=state.target==='wallet'?`/${locale}/admin/crm/${company}`:`/${locale}/operations/${state.target}`;
  return {allowed,href:path+(state.target==='wallet'?'':'?'+params.toString()),who:state.who};
 }

@@ -71,4 +71,4 @@ it('keeps a visible handoff destination when no account is bound',async()=>{
  m.rpc.mockImplementation(async(name:string,...args:unknown[])=>name==='get_month_close_overview'?{error:null,data:{...overview,accounts:[]}}:original(name,...args));
  const html=await render();expect(html).toContain('id="client-handoff"');expect(html).toContain('本月尚无已发布账单');expect(html).not.toContain('/account/statements?statement=');
 });
-it('shows automation settings above workflow records even for a published month',async()=>{const html=await render();expect(html).toContain('id="monthly-automation"');expect(html).toContain('选择自动月结账户');expect(html.indexOf('id="monthly-automation"')).toBeLessThan(html.indexOf('选择账户办理记录'));setup(false);expect(await render()).not.toContain('id="monthly-automation"');});
+it('keeps overall progress free of automation configuration and preparation controls',async()=>{const html=await render();expect(html).toContain('选择账户办理记录');expect(html).not.toContain('定时月结设置与任务');expect(html).not.toContain('自动计算并生成草稿');});

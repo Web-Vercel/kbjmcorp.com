@@ -1,0 +1,15 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({ops:vi.fn(),overview:vi.fn(),rpc:vi.fn()}));
+vi.mock('@/lib/operations/server',()=>({requireOperations:m.ops}));
+vi.mock('@/lib/operations/month-close-overview',()=>({monthCloseOverview:m.overview}));
+vi.mock('next/navigation',()=>({notFound:()=>{throw new Error('Not found');},useRouter:()=>({refresh:vi.fn()})}));
+import Automatic from '@/app/[locale]/operations/monthly-automation/page';
+import Manual from '@/app/[locale]/operations/monthly-manual/page';
+const id='b0000000-0000-4000-8000-000000000001';
+const props={params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:id,month:'2026-10'})};
+beforeEach(()=>{vi.resetAllMocks();const q={select:()=>q,order:()=>q,limit:async()=>({data:[{id,name:'FICTIONAL'}],error:null})};m.ops.mockResolvedValue({context:{owner:true},client:{from:()=>q,rpc:m.rpc}});m.rpc.mockResolvedValue({data:{},error:null});m.overview.mockReturnValue({accounts:[{binding_id:id,account_label:'FICTIONAL ADVERTISER',active:true,stage:'published'}]});});
+it('shows automation for published accounts without manual forms or mutation calls',async()=>{const html=renderToStaticMarkup(await Automatic(props));expect(html).toContain('定时月结设置与任务');expect(html).toContain('FICTIONAL ADVERTISER');expect(html).not.toContain('保存内部报价');expect(html).not.toContain('新增月度结算草稿');expect(m.rpc.mock.calls.map(c=>c[0])).toEqual(['get_month_close_overview']);expect(html).toContain(`settlements?company=${id}&amp;month=2026-10`);});
+it('keeps manual recovery separate and preserves the target company/month',async()=>{const html=renderToStaticMarkup(await Manual(props));expect(html).toContain('手动试算与报价');expect(html).toContain(`settlements?company=${id}&amp;month=2026-10&amp;mode=prepare`);expect(html).not.toContain('定时月结设置与任务');expect(m.rpc).not.toHaveBeenCalled();});
+it('retains administrator-only automation and denies source-only financial work',async()=>{const state=await m.ops();state.context={owner:false,canPrepare:false,canReview:false};await expect(Automatic(props)).rejects.toThrow('Not found');await expect(Manual(props)).rejects.toThrow('Not found');});
+it('reports scope lookup errors instead of a false empty automation list',async()=>{m.rpc.mockResolvedValue({data:null,error:{message:'private'}});const html=renderToStaticMarkup(await Automatic(props));expect(html).toContain('暂时无法读取账户及任务范围');expect(html).not.toContain('本企业尚无广告账户绑定');expect(html).not.toContain('private');});

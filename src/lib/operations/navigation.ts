@@ -4,6 +4,8 @@ export function canVisitOperationsPage(context:OpsContext|null|undefined,page:st
  if(!context)return false;
  if(context.owner)return true;
  const finance=context.canPrepare||context.canReview;
+ if(page==='monthly-automation')return false;
+ if(page==='monthly-manual')return finance;
  if(['staff','ads-reporting','upstream'].includes(page))return false;
  if(page==='manual-accounts')return context.canSource;
  if(page==='manual-sources')return context.canSource||finance;

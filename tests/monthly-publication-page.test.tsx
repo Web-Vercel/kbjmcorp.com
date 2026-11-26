@@ -23,7 +23,7 @@ it('replaces publication controls with the immutable receipt once posted',async(
 });
 
 it('carries the selected company/month into source prerequisite recovery',async()=>{
- setup(true);const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01'})}));
+ setup(true);const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01',mode:'prepare'})}));
  expect(html).toContain('当前筛选下尚无可访问的已交接来源');expect(html).toContain(`/zh/operations/source-data?company=${org}&amp;month=2024-01`);expect(html).toContain('列表为空不表示广告花费为零');
 });
 it('keeps failed source lookups distinct from a successfully empty source list',async()=>{
