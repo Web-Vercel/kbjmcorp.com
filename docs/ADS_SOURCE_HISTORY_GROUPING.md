@@ -1,0 +1,9 @@
+# Advertising source reads grouped by scope — Preview
+
+The administrator advertising sync page now groups its existing latest-ten-read window by advertiser account, exact since/until, currency and timezone. Overlapping week/month periods remain separate. Each group defaults to its newest reconciled amount version (matched report/table status, equal non-null daily/period totals and verified end boundary); otherwise it shows the latest pending version. This presentation selection is not financial approval or a change to a draft's immutable source ID. Newer unreconciled reads produce a visible warning and remain in history.
+
+Other reads are collapsed into Read history. Matching totals are explicitly described as matching spend/impression/click summaries, not proof that raw responses are byte-identical. No values are summed across versions. Existing ad-source-ID links select the correct group and open the referenced historical version. All original amount, coverage, missing-date, daily-row and SHA displays remain available.
+
+Read provenance uses monthly_automation_jobs.source_id; failed provenance lookup is marked unknown, never silently manual. Draft references use the existing administrator-authorized binding and list_monthly_settlements projection, not new direct grants to financial tables. Since this is a recent-record projection, a missing reference is described as not found among recent drafts, not a guarantee a record has never been used. These metadata queries are administrator-only and read-only.
+
+No records, source hashes, handoffs, jobs, quote/draft pins, fees, publication or ledger behavior are changed. No SQL or Production update is required. Local tests cover grouping boundaries, newest pending versus reconciled selection, immutable input order, equal summaries, old hash links, provenance failures and scoped draft links. Hosted acceptance remains separate.

@@ -1,0 +1,7 @@
+// @vitest-environment jsdom
+import {cleanup,render,screen,waitFor} from '@testing-library/react';
+import {afterEach,expect,it} from 'vitest';
+import AdsSourceVersionGroup from '@/components/operations/AdsSourceVersionGroup';
+afterEach(()=>{cleanup();window.history.replaceState(null,'','/');});
+it('keeps old records collapsed by default with an explicit non-additive explanation',()=>{render(<AdsSourceVersionGroup locale="zh" current={<p>CAD 36.24</p>} latestPending={false} history={[{id:'old',label:'Older read',content:<p>Older content</p>}]}/>);expect(screen.getByText('CAD 36.24')).toBeTruthy();expect((screen.getByText('读取历史（另有 1 个版本）').parentElement as HTMLDetailsElement).open).toBe(false);expect(screen.getByText(/不同读取版本，不能相加/)).toBeTruthy();});
+it('opens the referenced historical version for an existing source anchor',async()=>{window.history.replaceState(null,'','/#ad-source-old-2');render(<AdsSourceVersionGroup locale="zh" current={<p>Current</p>} latestPending history={[{id:'old-1',label:'First',content:<p>First version</p>},{id:'old-2',label:'Second',content:<p>Second version</p>}]}/>);await waitFor(()=>expect((screen.getByText('读取历史（另有 2 个版本）').parentElement as HTMLDetailsElement).open).toBe(true));expect(screen.getByText('Second version')).toBeTruthy();expect((screen.getByLabelText('选择历史读取版本') as HTMLSelectElement).value).toBe('old-2');expect(screen.getByText(/有更新的读取尚未通过核对/)).toBeTruthy();});

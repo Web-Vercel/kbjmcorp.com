@@ -1,0 +1,15 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+const m=vi.hoisted(()=>({ops:vi.fn(),from:vi.fn(),rpc:vi.fn(),jobError:false}));
+vi.mock('@/lib/operations/server',()=>({requireOperations:m.ops}));
+vi.mock('@/lib/ads/report-client',()=>({reportingConfig:()=>({accountId:'adacct_fixture',currency:'CAD'}),reportingDiagnostics:()=>[]}));
+vi.mock('@/lib/collections/test-mode',()=>({collectionTestOrganization:()=>null}));
+vi.mock('@/components/operations/AdsSourceControls',()=>({default:()=>null}));
+vi.mock('@/components/operations/AdsReadSync',()=>({default:()=>null}));
+import Page from '@/app/[locale]/operations/ads-reporting/page';
+const org='b0000000-0000-4000-8000-000000000001',draft='b0000000-0000-4000-8000-000000000002';
+const report={check:'matched',dailySpendMicros:'36240000',periodSpendMicros:'36240000',coverageKind:'complete_rows',endBoundary:'exclusive',impressions:'1017',clicks:'20',daily:[],missingDates:[],rawSha256:'a'.repeat(64)};
+const rows=[{id:'new-6617',account_id:'adacct_fixture',account_name:'FICTIONAL ACCOUNT',currency:'CAD',timezone:'America/Vancouver',since:'2026-10-01',until:'2026-10-31',check_status:'matched',report,created_at:'2026-11-26T12:00:00Z'},{id:'old-8b86',account_id:'adacct_fixture',account_name:'FICTIONAL ACCOUNT',currency:'CAD',timezone:'America/Vancouver',since:'2026-10-01',until:'2026-10-31',check_status:'matched',report,created_at:'2026-11-01T12:00:00Z'}];
+beforeEach(()=>{vi.stubEnv('ADS_REPORTING_ACCOUNT_ID','adacct_fixture');m.jobError=false;vi.clearAllMocks();m.from.mockImplementation((table:string)=>{const q:any={select:()=>q,eq:()=>q,order:()=>q,limit:async()=>({data:rows,error:null}),in:async()=>({data:m.jobError?null:[{source_id:'new-6617',draft_id:draft}],error:m.jobError?{message:'PRIVATE'}:null}),maybeSingle:async()=>({data:{organization_id:org},error:null})};return q;});m.rpc.mockResolvedValue({data:[{id:draft,snapshot_id:'new-6617',month:'2026-10-01'}],error:null});m.ops.mockResolvedValue({context:{owner:true},client:{from:m.from,rpc:m.rpc}});});
+it('shows one period, retains the previous read and links the pinned automatic source to its draft',async()=>{const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'})}));expect(html).toContain('选择账户与期间');expect(html).toContain('共 1 项');expect(html).toContain('读取历史（另有 1 个版本）');expect(html).toContain('自动月结');expect(html).toContain('手动读取');expect(html).toContain('已被结算草稿引用');expect(html).toContain(`company=${org}&amp;month=2026-10#draft-${draft}`);expect(html).toContain('ad-source-old-8b86');expect(m.rpc.mock.calls.map(c=>c[0])).toEqual(['list_monthly_settlements']);});
+it('does not falsely label a record manual when provenance lookup fails',async()=>{m.jobError=true;const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'})}));expect(html).toContain('读取方式：');expect(html).toContain('暂不可确认');expect(html).not.toContain('<!-- -->手动读取');expect(html).not.toContain('PRIVATE');});
