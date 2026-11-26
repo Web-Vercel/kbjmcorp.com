@@ -32,3 +32,5 @@ export function resolvePricingRates(system?: PricingRateRow, customer?: PricingR
     transfer: customer?.transfer_bps ?? system?.transfer_bps ?? pricingDefaults.transfer,
   };
 }
+
+export const savedPricingRate = z.object({revision:z.number().int().positive(),organization_id:z.uuid().nullable(),effective_month:z.iso.date(),canada_bps:z.number().int().min(0).max(10000).nullable(),china_bps:z.number().int().min(0).max(10000).nullable(),transfer_bps:z.number().int().min(0).max(10000).nullable()});

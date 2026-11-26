@@ -1,0 +1,9 @@
+import {it,expect,vi} from 'vitest';
+import {renderToStaticMarkup} from 'react-dom/server';
+import type {ReactNode} from 'react';
+const m=vi.hoisted(()=>({operations:vi.fn()}));
+vi.mock('@/lib/operations/server',()=>({requireOperations:m.operations}));
+vi.mock('@/components/admin/AdminForm',()=>({default:({children}:{children:ReactNode})=><form>{children}</form>}));
+vi.mock('@/components/operations/AgencyQuoteCalculator',()=>({default:({pricedScope}:{pricedScope:{transfer:number}})=><p>calculator-transfer:{pricedScope.transfer}</p>}));
+import Page from '@/app/[locale]/operations/pricing/page';
+it('reads the newest customer version with zero for both the settings and calculator',async()=>{const id='b0000000-0000-4000-8000-000000000001';const orders:unknown[]=[];m.operations.mockResolvedValue({context:{owner:true},client:{rpc:async()=>({data:[],error:null}),from:(table:string)=>{if(table==='monthly_pricing_rates'){let scope:string|null=null;const q:any={select:()=>q,lte:()=>q,order:(name:string,opts:unknown)=>{orders.push([name,opts]);return q;},limit:()=>q,is:()=>{scope=null;return q;},eq:(_key:string,value:string)=>{scope=value;return q;},maybeSingle:async()=>({data:{revision:scope?4:2,effective_month:'2026-10-01',canada_bps:scope?null:1500,china_bps:scope?null:2000,transfer_bps:scope?0:500},error:null})};return q;}const q:any={select:()=>q,order:()=>q,eq:()=>q,in:async()=>({data:[],error:null}),limit:async()=>({data:table==='organizations'?[{id,name:'FICTIONAL'}]:[],error:null})};return q;}}});const rendered=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:id,month:'2026-10',ratesScope:'customer'})}));const html=rendered.replace(/<!--.*?-->/g,'');expect(html).toContain('该月适用 0%');expect(html).toContain('客户专属');expect(html).toContain('已读取费率版本：4');expect(html).toContain('calculator-transfer:0');expect(orders).toContainEqual(['revision',{ascending:false}]);});
