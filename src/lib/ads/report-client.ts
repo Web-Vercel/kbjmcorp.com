@@ -1,3 +1,4 @@
+import {additionalReportingConnections} from './reporting-connections';
 import {diagnosticTimezone,canonicalReportingTimezone} from './report-timezone';
 import 'server-only';
 import {readPeriod,type ReadSelection} from './read-period';
@@ -6,7 +7,8 @@ import {accountSchema,accountRangeSeconds,insightPageSchema,parseAdsJson,summari
 const base='https://api.ads.openai.com/v1';
 export {AdsReadError} from './read-errors';
 import {AdsReadError,safeNetworkCode,type AdsFailure} from './read-errors';
-export function reportingDiagnostics(){
+export function reportingDiagnostics(requestedAccountId?:string){
+ if(requestedAccountId&&requestedAccountId!==process.env.ADS_REPORTING_ACCOUNT_ID?.trim()){const extra=additionalReportingConnections();const found=extra.connections.find(c=>c.accountId===requestedAccountId);return [{name:'ADS_REPORTING_CONNECTIONS_JSON',status:extra.invalid?'invalid':found?'ready':'missing'},{name:'Account connection',status:!found?'missing':!found.enabled?'disabled':found.key?'ready':'missing'}] as {name:string;status:'missing'|'ready'|'disabled'|'invalid'|'optional'}[];}
  const enabled=process.env.ADS_REPORTING_ENABLED?.trim().toLowerCase();const key=process.env.ADS_REPORTING_API_KEY?.trim();const accountId=process.env.ADS_REPORTING_ACCOUNT_ID?.trim();const currency=process.env.ADS_REPORTING_CURRENCY?.trim().toUpperCase();
  return [
  {name:'ADS_REPORTING_ENABLED',status:!enabled?'missing':enabled==='true'?'ready':enabled==='false'?'disabled':'invalid'},
@@ -15,7 +17,9 @@ export function reportingDiagnostics(){
  {name:'ADS_REPORTING_CURRENCY',status:!currency?'optional':/^[A-Z]{3}$/.test(currency)?'ready':'invalid'},
  ] as {name:string;status:'missing'|'ready'|'disabled'|'invalid'|'optional'}[];
 }
-export function reportingConfig(){
+export type ReportingConnection={key:string;accountId:string;currency:string|null};
+export function reportingConfig(accountId?:string):ReportingConnection|null{
+ if(accountId&&accountId!==process.env.ADS_REPORTING_ACCOUNT_ID?.trim()){const found=additionalReportingConnections().connections.find(c=>c.accountId===accountId);return found?.key?{key:found.key,accountId:found.accountId,currency:found.currency||null}:null;}
  if(reportingDiagnostics().some(d=>d.status!=='ready'&&d.status!=='optional'))return null;
  return {key:process.env.ADS_REPORTING_API_KEY!.trim(),accountId:process.env.ADS_REPORTING_ACCOUNT_ID!.trim(),currency:process.env.ADS_REPORTING_CURRENCY?.trim().toUpperCase()||null};
 }
@@ -24,8 +28,8 @@ async function read(path:string,key:string,signal:AbortSignal,phase:AdsFailure['
  if(r.status===401||r.status===403)throw new AdsReadError('upstream_auth',{phase,httpStatus:r.status});if(r.status===429)throw new AdsReadError('upstream_rate_limit',{phase,httpStatus:r.status});if(!r.ok||!r.body)throw new AdsReadError('upstream_unavailable',{phase,httpStatus:r.status});
  const reader=r.body.getReader();const chunks:Uint8Array[]=[];let bytes=0;try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.length;if(bytes>131072)throw new AdsReadError('invalid_response');chunks.push(value);}}catch(e){if(e instanceof AdsReadError)throw new AdsReadError(e.code,{phase,httpStatus:r.status});throw new AdsReadError('upstream_unavailable',{phase,networkCode:safeNetworkCode(e,signal.aborted)});}finally{await reader.cancel().catch(()=>{});}return Buffer.concat(chunks).toString('utf8');
 }
-export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelection):Promise<AdsReport>{
- const config=reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];let phase:AdsFailure['phase']='account';let utcMetadata=false;
+export async function fetchAdsReport(now=new Date(),selection?:string|ReadSelection,connection?:ReportingConnection):Promise<AdsReport>{
+ const config=connection||reportingConfig();if(!config)throw new AdsReadError('not_configured');const key=config.key;const signal=AbortSignal.timeout(25000);const rawResponses:{path:string;body:string}[]=[];let phase:AdsFailure['phase']='account';let utcMetadata=false;
  try{
  const body=await read('/ad_account',config.key,signal,'account');rawResponses.push({path:'/ad_account',body});const account=accountSchema.parse(parseAdsJson(body));if(account.id!==config.accountId||(config.currency!==null&&account.currency_code!==config.currency))throw new AdsReadError('account_mismatch');
  const requested:ReadSelection=typeof selection==='string'?{mode:'month',month:selection}:selection||{mode:'week'};

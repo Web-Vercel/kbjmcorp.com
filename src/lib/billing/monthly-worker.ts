@@ -1,19 +1,20 @@
 import 'server-only';
 import {z} from 'zod';
 import type {SupabaseClient} from '@supabase/supabase-js';
-import {fetchAdsReport,reportingConfig} from '@/lib/ads/report-client';
+import {fetchAdsReport,reportingConfig,type ReportingConnection} from '@/lib/ads/report-client';
 import {fetchBocReference} from './boc-fetch';
 import {buildMonthlyDraft,monthlyDraftInput} from './monthly-draft';
 import {roundHalfUp} from './fx';
 const jobSchema=z.object({id:z.uuid(),bindingId:z.uuid(),organizationId:z.uuid(),accountId:z.string(),month:z.string(),agreement:z.string(),leaseToken:z.uuid(),systemRate:z.unknown(),customerRate:z.unknown()});
-export async function runMonthlyAutomation(client:SupabaseClient){
- const config=reportingConfig();if(!config)throw new Error('source_not_configured');
+export async function runMonthlyAutomation(client:SupabaseClient,connection?:ReportingConnection){
+ const config=connection||reportingConfig();if(!config)throw new Error('source_not_configured');
  const claimed=await client.rpc('claim_monthly_automation',{p_account:config.accountId});
  if(claimed.error)throw new Error('queue_unavailable');if(claimed.data===null)return {state:'idle'};
  const job=jobSchema.parse(claimed.data);let code='source_unavailable';
  try{
   if(job.accountId!==config.accountId){code='scope_conflict';throw new Error();}
-  const report=await fetchAdsReport(new Date(),{mode:'month',month:job.month+'-01'});
+  const selection={mode:'month' as const,month:job.month+'-01'};
+  const report=await (connection?fetchAdsReport(new Date(),selection,config):fetchAdsReport(new Date(),selection));
   code='source_not_ready';
   if(report.account.id!==job.accountId||report.account.currency_code!=='CAD'||report.check!=='matched'||report.periodSpendMicros===null||report.periodSpendMicros!==report.dailySpendMicros||!['exclusive','last_day_label_verified'].includes(report.endBoundary||'')||!['complete_rows','aggregate_verified'].includes(report.coverageKind||''))throw new Error();
   const amount=roundHalfUp(BigInt(report.periodSpendMicros),10000n).toString();
