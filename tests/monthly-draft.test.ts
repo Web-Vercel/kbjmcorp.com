@@ -1,0 +1,11 @@
+import {expect,it} from 'vitest';
+import {buildMonthlyDraft,monthlyDraftInput} from '@/lib/billing/monthly-draft';
+import {parseBocMonthlyReference} from '@/lib/billing/boc-monthly';
+const now=new Date('2026-11-26T12:00:00Z'),org='b0000000-0000-4000-8000-000000000001';
+const input=monthlyDraftInput.parse({requestId:org,organizationId:org,bindingId:org,sourceId:org,month:'2026-10',agreement:'Agreement-001',confirm:'on'});
+const ref=parseBocMonthlyReference({observations:[{d:'2026-10-30',FXCNYCAD:{v:'1'}}]},input.month,now);
+const source={id:org,cadMinor:'10000'};
+it('creates the agreed 143.75 monthly total with immutable provenance',()=>{const {snapshot}=buildMonthlyDraft(input,source,ref,null,null,now);expect(snapshot.finalMinor).toBe('14375');expect(snapshot.automation.sourceId).toBe(org);expect(snapshot.referenceProof.date).toBe('2026-10-30');expect(snapshot.status).toBe('draft');});
+it('preserves explicit customer zero and inherited rates',()=>{const customer={revision:4,organization_id:org,effective_month:'2026-10-01',canada_bps:null,china_bps:null,transfer_bps:0};const {snapshot}=buildMonthlyDraft(input,source,ref,null,customer,now);expect(snapshot.finalMinor).toBe('13800');expect(snapshot.automation.customerRevision).toBe(4);expect(snapshot.canadaRule.basisPoints).toBe(1500);});
+it('rejects wrong-company rates, future rates and wrong-month FX',()=>{for(const row of [{revision:1,organization_id:null,effective_month:'2026-10-01',canada_bps:0,china_bps:0,transfer_bps:0},{revision:1,organization_id:org,effective_month:'2026-11-01',canada_bps:0,china_bps:0,transfer_bps:0}])expect(()=>buildMonthlyDraft(input,source,ref,null,row,now)).toThrow();expect(()=>buildMonthlyDraft(input,source,{...ref,billingMonth:'2026-09'},null,null,now)).toThrow();});
+it('has stable fingerprints for an unchanged saved calculation',()=>{expect(buildMonthlyDraft(input,source,ref,null,null,now).fingerprint).toBe(buildMonthlyDraft(input,source,ref,null,null,now).fingerprint);expect(buildMonthlyDraft(input,{...source,cadMinor:'0'},ref,null,null,now).snapshot.finalMinor).toBe('0');});

@@ -1,0 +1,16 @@
+'use client';
+import {useRef,useState} from 'react';
+import type {FormEvent} from 'react';
+import {z} from 'zod';
+const receipt=z.object({draftId:z.uuid(),quoteId:z.uuid(),sourceId:z.uuid(),bindingId:z.uuid(),organizationId:z.uuid(),month:z.string(),status:z.literal('awaiting_review')});
+export default function MonthlyDraftForm({organizationId,bindingId,sourceId,month,locale}:{organizationId:string;bindingId:string;sourceId:string;month:string;locale:'zh'|'en'}){
+ const zh=locale==='zh',lock=useRef(false),attempt=useRef<{requestId:string;agreement:string}|undefined>(undefined);
+ const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[done,setDone]=useState(false),[uncertain,setUncertain]=useState(false);
+ async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();if(lock.current||done)return;const agreement=String(new FormData(event.currentTarget).get('agreement')||'').trim();if(attempt.current&&attempt.current.agreement!==agreement){setMessage(zh?'请先核查上次处理结果，再开始新的申请。':'Check the previous result before changing this request.');return;}
+ attempt.current??={requestId:crypto.randomUUID(),agreement};lock.current=true;setBusy(true);setMessage('');
+ try{const response=await fetch('/api/admin/monthly-draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...attempt.current,organizationId,bindingId,sourceId,month,confirm:'on'}),signal:AbortSignal.timeout(55000)});const body=await response.json();const result=receipt.safeParse(body.receipt);
+ if(response.ok&&body.ok&&result.success&&result.data.organizationId===organizationId&&result.data.bindingId===bindingId&&result.data.sourceId===sourceId&&result.data.month===month){setDone(true);setUncertain(false);setMessage(zh?'草稿已生成，等待另一位财务人员复核。':'Draft created; awaiting independent review.');}
+ else{setUncertain(true);setMessage(zh?'尚未确认制单完成，请先查看本月制单记录；重试沿用相同请求，不要重复另建。':'Preparation is unconfirmed. Check monthly records; retry retains the same request.');}
+ }catch{setUncertain(true);setMessage(zh?'处理结果待核查。请查看本月制单记录后再重试。':'Result unconfirmed. Check monthly records before retrying.');}finally{lock.current=false;setBusy(false);}}
+ return <details><summary>{zh?'自动计算并生成草稿':'Calculate and prepare draft'}</summary><p>{zh?'按当月费率及加拿大央行月末参考汇率计算；跨境费按客户承担的约定单列。仅生成待复核草稿。':'Uses monthly rates and month-end Bank of Canada FX; agreed customer-borne transfer costs are separate. Creates a draft for review only.'}</p><form onSubmit={submit} className="admin-form"><label>{zh?'已确认的收费约定编号或依据':'Confirmed fee agreement reference'}<input name="agreement" required minLength={3} maxLength={1000} readOnly={busy||done||uncertain}/></label><label><input type="checkbox" required disabled={busy||done}/>{zh?'已确认适用该收费方式及跨境费用约定。':'Confirmed these fee and transfer cost terms apply.'}</label><button className="button" disabled={busy||done}>{busy?(zh?'正在处理…':'Processing…'):done?(zh?'草稿已生成':'Draft prepared'):uncertain?(zh?'按原请求重试':'Retry same request'):(zh?'自动生成待复核草稿':'Prepare draft automatically')}</button><p role="status">{message}</p><a className="service-link" href={`/${locale}/operations/settlements?${new URLSearchParams({company:organizationId,month})}`} target="_blank" rel="noopener noreferrer">{zh?'查看本月制单与复核记录':'View monthly preparation and review'}</a></form></details>;
+}
