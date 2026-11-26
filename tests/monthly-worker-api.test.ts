@@ -1,0 +1,13 @@
+import {afterEach,beforeEach,expect,it,vi} from 'vitest';
+const m=vi.hoisted(()=>({run:vi.fn(),connection:vi.fn(),config:vi.fn(),client:vi.fn()}));
+vi.mock('@/lib/auth/privileged-config',()=>({getPrivilegedConnection:m.connection}));
+vi.mock('@/lib/ads/report-client',()=>({reportingConfig:m.config}));
+vi.mock('@/lib/billing/monthly-worker',()=>({runMonthlyAutomation:m.run}));
+vi.mock('@supabase/supabase-js',()=>({createClient:m.client}));
+import {GET} from '@/app/api/internal/monthly-automation/route';
+const secret='a'.repeat(40),request=(auth='Bearer '+secret)=>new Request('https://example.com/api/internal/monthly-automation',{headers:{authorization:auth}});
+beforeEach(()=>{vi.resetAllMocks();vi.stubEnv('CRON_SECRET',secret);vi.stubEnv('VERCEL_ENV','preview');vi.stubEnv('MONTHLY_AUTOMATION_ENABLED','true');m.connection.mockReturnValue({url:'https://example.supabase.co',key:'not-a-real-key'});m.config.mockReturnValue({});m.run.mockResolvedValue({state:'idle'});});
+afterEach(()=>vi.unstubAllEnvs());
+it('requires the scheduler secret before creating a privileged client',async()=>{expect((await GET(request('Bearer invalid'))).status).toBe(403);expect(m.client).not.toHaveBeenCalled();});
+it('remains disabled in production and without explicit activation',async()=>{vi.stubEnv('VERCEL_ENV','production');expect((await (await GET(request())).json()).state).toBe('disabled');vi.stubEnv('VERCEL_ENV','preview');vi.stubEnv('MONTHLY_AUTOMATION_ENABLED','false');expect((await (await GET(request())).json()).state).toBe('disabled');expect(m.client).not.toHaveBeenCalled();});
+it('runs with server-only configuration and does not leak errors',async()=>{expect((await GET(request())).status).toBe(200);m.run.mockRejectedValue(new Error('PRIVATE'));const r=await GET(request());expect(r.status).toBe(503);expect(await r.json()).toEqual({error:'worker_unavailable'});});
