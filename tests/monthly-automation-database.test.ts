@@ -21,3 +21,31 @@ const r=(await asRole('service_role','select public.complete_monthly_automation(
 it('keeps worker functions from granting review or posting rights',async()=>{expect((await db.query<any>("select has_function_privilege('service_role','public.review_monthly_settlement(uuid,text,text)','execute') allowed")).rows[0].allowed).toBe(false);expect((await db.query<any>('select state,attempts from public.monthly_automation_jobs')).rows[0]).toMatchObject({state:'prepared',attempts:1});});
 it('rolls back invalid source writes, backs off and exhausts retries without financial changes',async()=>{const id=randomUUID(),lease=randomUUID();await db.query("insert into public.monthly_automation_jobs(id,binding_id,month,settings_revision,agreement,authorized_by,state,attempts,lease_token,lease_until) values($1,$2,($3::date-interval '1 month')::date,1,'FICTIONAL FEE AGREEMENT',$4,'running',1,$5,now()+interval '5 minutes')",[id,binding,month,owner,lease]);const before=(await db.query<any>('select count(*) n from public.ads_reporting_snapshots')).rows[0].n;await expect(asRole('service_role','select public.complete_monthly_automation($1,$2,$3,$4)',[id,lease,JSON.stringify(makeReport()),'{}'])).rejects.toThrow(/Source mismatch/);expect((await db.query<any>('select count(*) n from public.ads_reporting_snapshots')).rows[0].n).toBe(before);expect((await asRole('service_role',"select public.fail_monthly_automation($1,$2,'source_not_ready') result",[id,lease])).rows[0].result).toBe(true);expect((await db.query<any>('select state,available_at>now() delayed from public.monthly_automation_jobs where id=$1',[id])).rows[0]).toMatchObject({state:'retry',delayed:true});expect((await asRole('service_role',"select public.fail_monthly_automation($1,$2,'source_not_ready') result",[id,lease])).rows[0].result).toBe(false);await db.query("update public.monthly_automation_jobs set state='running',attempts=5,lease_token=$2,lease_until=now()+interval '5 minutes' where id=$1",[id,lease]);await asRole('service_role',"select public.fail_monthly_automation($1,$2,'source_unavailable')",[id,lease]);expect((await db.query<any>('select state from public.monthly_automation_jobs where id=$1',[id])).rows[0].state).toBe('failed');});
 it('revokes queued work on pause, while preserving completed drafts',async()=>{await asRole('authenticated',"select public.configure_monthly_automation($1,false,'FICTIONAL FEE AGREEMENT')",[binding]);expect((await asRole('service_role',"select public.claim_monthly_automation('adacct_fictional_automation') result")).rows[0].result).toBeNull();expect((await db.query<any>("select count(*) n from public.monthly_automation_jobs where state='prepared'")).rows[0].n).toBe(1);expect((await db.query<any>("select count(*) n from public.monthly_automation_jobs where state='cancelled'")).rows[0].n).toBe(1);});
+let newBinding:string;
+it('adds the start-month boundary without changing legacy activation or completed drafts',async()=>{
+ const before=(await db.query<any>('select enabled,revision from public.monthly_automation_settings where binding_id=$1',[binding])).rows[0];
+ await db.exec(await readFile(new URL('../supabase/migrations/057_monthly_automation_first_month.sql',import.meta.url),'utf8'));
+ expect((await db.query<any>('select enabled,revision,first_month from public.monthly_automation_settings where binding_id=$1',[binding])).rows[0]).toMatchObject({...before,first_month:null});
+ expect((await db.query<any>("select count(*) n from public.monthly_automation_jobs where state='prepared'")).rows[0].n).toBe(1);
+ const report=makeReport();report.account={...report.account,id:'adacct_new_first_month',name:'FICTIONAL NEW ACCOUNT'};
+ const sid=(await asRole('authenticated','select public.save_ads_reporting_snapshot($1,$2) id',[randomUUID(),JSON.stringify(report)])).rows[0].id;
+ newBinding=(await asRole('authenticated',"select public.bind_ads_reporting_account($1,$2,'FICTIONAL NEW OWNERSHIP') id",[sid,org])).rows[0].id;
+ await expect(asRole('authenticated',"select public.configure_monthly_automation($1,true,'TEST AGREEMENT')",[newBinding])).rejects.toThrow(/First month required/);
+ await expect(asRole('authenticated',"select public.configure_monthly_automation($1,true,'TEST AGREEMENT',($2::date+interval '1 day')::date)",[newBinding,month])).rejects.toThrow(/Invalid first month/);
+});
+it('skips an account before its first consumption month, including pre-existing retry jobs',async()=>{
+ await asRole('authenticated',"select public.configure_monthly_automation($1,true,'TEST AGREEMENT',($2::date+interval '1 month')::date)",[newBinding,month]);
+ expect((await asRole('service_role',"select public.claim_monthly_automation('adacct_new_first_month') result")).rows[0].result).toBeNull();
+ expect((await db.query<any>('select count(*) n from public.monthly_automation_jobs where binding_id=$1',[newBinding])).rows[0].n).toBe(0);
+ await db.query("insert into public.monthly_automation_jobs(binding_id,month,settings_revision,agreement,authorized_by,state) values($1,$2,1,'TEST AGREEMENT',$3,'retry')",[newBinding,month,owner]);
+ expect((await asRole('service_role',"select public.claim_monthly_automation('adacct_new_first_month') result")).rows[0].result).toBeNull();
+});
+it('includes the first month once closed and preserves the boundary through legacy pause calls',async()=>{
+ await asRole('authenticated',"select public.configure_monthly_automation($1,true,'TEST AGREEMENT',$2::date)",[newBinding,month]);
+ const claimed=(await asRole('service_role',"select public.claim_monthly_automation('adacct_new_first_month') result")).rows[0].result;
+ expect(claimed.month).toBe(month.slice(0,7));expect(claimed.bindingId).toBe(newBinding);
+ await asRole('authenticated',"select public.configure_monthly_automation($1,false,'TEST AGREEMENT')",[newBinding]);
+ expect((await db.query<any>('select first_month::text,enabled from public.monthly_automation_settings where binding_id=$1',[newBinding])).rows[0]).toEqual({first_month:month,enabled:false});
+ expect((await asRole('service_role',"select public.claim_monthly_automation('adacct_new_first_month') result")).rows[0].result).toBeNull();
+ for(const role of ['anon','service_role'])await expect(asRole(role,"select public.configure_monthly_automation($1,true,'TEST AGREEMENT',$2::date)",[newBinding,month])).rejects.toThrow(/permission denied/);
+});
