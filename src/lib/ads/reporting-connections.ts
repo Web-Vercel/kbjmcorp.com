@@ -9,7 +9,7 @@ export function additionalReportingConnections(){
  }catch{return {invalid:true,connections:[]};}
 }
 /** Public-to-admin metadata only. API keys and their variable names never leave the server. */
-export function reportingConnectionOptions(){
+export function reportingConnectionOptions(accountNames:Readonly<Record<string,string>>={}){
  const extra=additionalReportingConnections();const id=process.env.ADS_REPORTING_ACCOUNT_ID?.trim();
- return {invalid:extra.invalid,connections:[...(id&&/^adacct_[A-Za-z0-9_-]+$/.test(id)?[{accountId:id,label:'当前主账户 / Primary account',enabled:process.env.ADS_REPORTING_ENABLED?.trim().toLowerCase()==='true'}]:[]),...extra.connections.map(c=>({accountId:c.accountId,label:c.label,enabled:c.enabled}))]};
+ return {invalid:extra.invalid,connections:[...(id&&/^adacct_[A-Za-z0-9_-]+$/.test(id)?[{accountId:id,label:accountNames[id]?.trim()||'账户名称待读取 / Account name pending',enabled:process.env.ADS_REPORTING_ENABLED?.trim().toLowerCase()==='true'}]:[]),...extra.connections.map(c=>({accountId:c.accountId,label:accountNames[c.accountId]?.trim()||c.label,enabled:c.enabled}))]};
 }
