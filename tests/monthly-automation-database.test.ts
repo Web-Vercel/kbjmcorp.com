@@ -49,3 +49,27 @@ it('includes the first month once closed and preserves the boundary through lega
  expect((await asRole('service_role',"select public.claim_monthly_automation('adacct_new_first_month') result")).rows[0].result).toBeNull();
  for(const role of ['anon','service_role'])await expect(asRole(role,"select public.configure_monthly_automation($1,true,'TEST AGREEMENT',$2::date)",[newBinding,month])).rejects.toThrow(/permission denied/);
 });
+it('returns cross-month account summaries without inventing first months or changing settings',async()=>{
+ await db.exec(await readFile(new URL('../supabase/migrations/027_month_close_workbench.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../supabase/migrations/058_account_billing_overview.sql',import.meta.url),'utf8'));
+ const before=(await db.query<any>('select revision,enabled from public.monthly_automation_settings order by binding_id')).rows;
+ const result=(await asRole('authenticated','select public.get_account_billing_overview($1) result',[org])).rows[0].result;
+ const legacy=result.accounts.find((a:any)=>a.binding_id===binding);expect(legacy.first_month).toBeNull();expect(legacy.last_published_month).toBeNull();expect(legacy.flow.draft_id).toBeTruthy();
+ const recent=result.accounts.find((a:any)=>a.binding_id===newBinding);expect(recent.first_month).toBe(month);expect(recent.next_month).toBe(month);expect(recent.automatic).toBe(false);
+ expect((await db.query<any>('select revision,enabled from public.monthly_automation_settings order by binding_id')).rows).toEqual(before);
+ await expect(asRole('anon','select public.get_account_billing_overview($1)',[org])).rejects.toThrow(/permission denied/);
+ expect((await asRole('authenticated','select public.get_account_billing_overview($1) result',[randomUUID()])).rows[0].result.accounts).toEqual([]);
+ await expect(asRole('authenticated',"select public.get_account_billing_overview($1) from (select set_config('request.jwt.claim.sub',$2,true)) identity",[org,randomUUID()])).rejects.toThrow(/Forbidden/);
+});
+it('reports the earliest missing month even when a later month is published (isolated summary fixture)',async()=>{
+ await db.exec('begin;alter table public.monthly_client_statements disable trigger complete_monthly_statement_posting;');
+ try{
+  // Seed a published-row fixture only for this read-model test, then roll back all fixture writes.
+  const wallet=(await db.query<any>("insert into public.client_wallets(organization_id,currency) values($1,'CNY') on conflict(organization_id,currency) do update set currency=excluded.currency returning id",[org])).rows[0].id;
+  await db.query("insert into public.monthly_client_statements(draft_id,organization_id,binding_id,wallet_id,month,upstream_cny_minor,service_cny_minor,total_cny_minor,summary_zh,usage,published_by) select id,organization_id,binding_id,$1,month,total_cny_minor,0,total_cny_minor,'FICTIONAL SUMMARY FIXTURE','{}'::jsonb,$2 from public.monthly_settlement_drafts where binding_id=$3 limit 1",[wallet,owner,binding]);
+  await db.query("update public.monthly_automation_settings set first_month=($2::date-interval '1 month')::date where binding_id=$1",[binding,month]);
+  await db.exec(`set local role authenticated;select set_config('request.jwt.claim.sub','${owner}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);`);
+  const result=(await db.query<any>('select public.get_account_billing_overview($1) result',[org])).rows[0].result.accounts.find((a:any)=>a.binding_id===binding);
+  expect(result.last_published_month).toBe(month);expect(result.next_month<month).toBe(true);expect(result.gap).toBe(true);expect(result.task_month).toBe(result.next_month);
+ }finally{await db.exec('rollback');}
+});
