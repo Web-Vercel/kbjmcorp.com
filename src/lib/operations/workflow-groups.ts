@@ -9,4 +9,4 @@ export const workflowGroups=[
 ] as const;
 export function workflowGroup(page:string){return workflowGroups.find(g=>(g.key==='month'&&['month-close','pricing'].includes(page))||g.pages.some(p=>p[0]===page));}
 export function workflowPages(group:typeof workflowGroups[number],context:OpsContext|null|undefined){return group.pages.filter(p=>canVisitOperationsPage(context,p[0]));}
-export function workflowEntry(group:typeof workflowGroups[number],context:OpsContext|null|undefined){return group.key==='month'&&!context?.owner?'settlements':workflowPages(group,context)[0]?.[0];}
+export function workflowEntry(group:typeof workflowGroups[number],context:OpsContext|null|undefined){return group.key==='month'?(canVisitOperationsPage(context,'settlements')?'settlements':undefined):workflowPages(group,context)[0]?.[0];}

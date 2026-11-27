@@ -40,3 +40,9 @@ it('matches the approved draft publication anchor and never routes a posted draf
  setup(true);let html=await render();expect(html).toContain(`href="#publish-draft-${draft.id}"`);expect(html).toContain(`id="publish-draft-${draft.id}"`);
  setup(true,[{id:'statement-example',draft_id:draft.id,month:draft.month,total_cny_minor:'50000',published_at:'2026-01-01T00:00:00Z'}]);html=await render();expect(html).not.toContain(`edit=${draft.quote_id}`);expect(html).not.toContain(`href="#publish-draft-${draft.id}"`);expect(html).toContain('核查本月公司间到账与核销');
 });
+it('places account overview before the history-month filter and keeps secondary workflows closed',async()=>{
+ setup(true);const html=await render();
+ expect(html).toContain('<h1>账单工作台</h1>');expect(html.indexOf('账户结算概况')).toBeLessThan(html.indexOf('查阅月份（留空查看近期历史）'));
+ expect(html).toContain('<summary>更多操作与月度详情</summary>');expect(html).toContain('view=details');
+ expect(html).not.toContain('进度在哪里，下一步谁来做');expect(html).not.toContain('账户办理列表');expect(html).not.toContain('name="month" default');
+});
