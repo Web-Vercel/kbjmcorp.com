@@ -11,7 +11,7 @@ const owner:OpsContext={owner:true,roles:[],canSource:true,canPrepare:true,canRe
 const finance:OpsContext={...owner,owner:false,canSource:false,canSupport:false,canReview:false};
 it('places every operational task once under a named business group',()=>{
  const groups=workspaceGroups('zh',owner,true,true);const paths=groups.flatMap(g=>g.items.map(i=>i.path));
- expect(new Set(paths).size).toBe(paths.length);expect(paths.filter(p=>p.startsWith('operations/'))).toHaveLength(11);
+ expect(new Set(paths).size).toBe(paths.length);expect(paths.filter(p=>p.startsWith('operations/'))).toHaveLength(10);
  expect(groups.find(g=>g.key==='finance')?.items.some(i=>i.path==='operations/collections')).toBe(true);
  expect(groups.map(g=>g.label)).toEqual(['客户与业务','广告运营','财务与结算','代理与佣金','账号与权限']);
 });

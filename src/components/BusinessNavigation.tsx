@@ -90,7 +90,7 @@ export default function BusinessNavigation({locale, section, role, operationsCon
     <details className={styles.menu}><summary>{index === 0 ? '本中心菜单' : 'Workspace menu'}</summary>
       <nav aria-label={title}>
         <Link href={root} aria-current={path===root?'page':undefined}>{title}</Link>
-        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports'].includes(key) && (activeSection !== 'operations' || canVisitOperationsPage(operationsContext,key)) && (activeSection !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{label(key,names)}</Link>)}
+        {Object.entries(pages).filter(([key]) => !['contracts', 'projects', 'reports', 'manual-accounts'].includes(key) && (activeSection !== 'operations' || canVisitOperationsPage(operationsContext,key)) && (activeSection !== 'access' || (role && (key !== 'investor' || role === 'investor')))).map(([key, names]) => <Link key={key} href={`${root}/${key}`} aria-current={parts[0] === key ? 'page' : undefined}>{label(key,names)}</Link>)}
       </nav>
     </details>
   </div>;

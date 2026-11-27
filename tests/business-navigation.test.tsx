@@ -48,12 +48,12 @@ it.each([{...preparer}, {...preparer,canPrepare:false,canReview:true}])('filters
 });
 it('retains administrator entries and hides unverified operational permissions',()=>{
  m.path='/en/operations';const html=renderToStaticMarkup(<Navigation locale="en" section="operations" operationsContext={{...preparer,owner:true}}/>);
- for(const route of ['staff','ads-reporting','manual-accounts','upstream'])expect(html).toContain(`href="/en/operations/${route}"`);
+ for(const route of ['staff','ads-reporting','upstream'])expect(html).toContain(`href="/en/operations/${route}"`);
  expect(html).toContain('Pricing');const unavailable=renderToStaticMarkup(<Navigation locale="en" section="operations"/>);expect(unavailable).not.toContain('/operations/staff');expect(unavailable).not.toContain('/operations/collections');expect(unavailable).toContain('href="/en/operations"');
 });
 it('keeps source and support role destinations distinct',()=>{
  m.path='/zh/operations';const source=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,canPrepare:false,canSource:true}}/>);
- expect(source).toContain('/operations/manual-accounts');expect(source).toContain('/operations/manual-sources');expect(source).not.toContain('/operations/collections');expect(source).not.toContain('/operations/service-requests');
+ expect(source).not.toContain('/operations/manual-accounts');expect(source).toContain('/operations/manual-sources');expect(source).not.toContain('/operations/collections');expect(source).not.toContain('/operations/service-requests');
  const support=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={{...preparer,canPrepare:false,canSupport:true}}/>);expect(support).toContain('/operations/service-requests');expect(support).not.toContain('/operations/manual-accounts');expect(support).not.toContain('/operations/settlements');
 });
 it('names reviewer tasks as review without granting preparer or administrator destinations',()=>{
@@ -81,7 +81,8 @@ it('uses consistent administrator module names in both the home menu and workspa
  m.path='/zh/operations';const context={...preparer,owner:true,canPrepare:true,canReview:true};
  const Home=(await import('@/components/operations/OperationsHomeMenu')).default;
  const nav=renderToStaticMarkup(<Navigation locale="zh" section="operations" operationsContext={context}/>),home=renderToStaticMarkup(<Home locale="zh" context={context} finance source owner support/>);
- for(const name of ['代理与佣金管理','对公收款与入账','手工账户归属关联']){expect(nav).toContain(name);expect(home).toContain(name);}
+ for(const name of ['代理与佣金管理','对公收款与入账']){expect(nav).toContain(name);expect(home).toContain(name);}
+ expect(nav).not.toContain('/operations/manual-accounts');expect(home).not.toContain('/operations/manual-accounts');expect(home).toContain('/zh/admin/accounts');
  for(const name of ['月结办理','来源核对','资金查询','公司间对账','问题中心'])expect(home).toContain(name);
 });
 it.each(['investor','sales'] as const)('keeps %s navigation in its read-only/follow-up portal even on a legacy account URL',role=>{
