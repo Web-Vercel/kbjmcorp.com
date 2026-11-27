@@ -3,6 +3,7 @@ import {timingSafeEqual} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import {getPrivilegedConnection} from '@/lib/auth/privileged-config';
 import {reportingConfig} from '@/lib/ads/report-client';
+import {automaticReleaseEnabled,runAutomaticRelease} from '@/lib/billing/automatic-release';
 import {runMonthlyAutomation} from '@/lib/billing/monthly-worker';
 import {authResponse} from '@/lib/auth/http';
 export const maxDuration=60;
@@ -19,7 +20,7 @@ export async function GET(request:Request){
  try{const client=createClient(connection.url,connection.key,{auth:{persistSession:false,autoRefreshToken:false}});// One bounded batch of two accounts; rotate daily so a failing account cannot starve others.
  const offset=Math.floor(Date.now()/86400000)%connections.length;
  const selected=Array.from({length:Math.min(2,connections.length)},(_,i)=>connections[(offset+i)%connections.length]);
- const results=await Promise.all(selected.map(c=>connections.length===1&&legacy?runMonthlyAutomation(client):runMonthlyAutomation(client,c).catch(()=>({state:'unconfirmed'}))));
- const result=results.find(r=>r.state==='unconfirmed')||results.find(r=>r.state==='prepared')||results.find(r=>r.state==='retry')||results[0];
+ const results=await Promise.all(selected.map(async c=>{try{const prepared=await (connections.length===1&&legacy?runMonthlyAutomation(client):runMonthlyAutomation(client,c));if(!automaticReleaseEnabled()||prepared.state==='unconfirmed')return prepared;const release=await runAutomaticRelease(client,c.accountId);return ['idle','disabled'].includes(release.state)?prepared:release;}catch(e){if(connections.length===1)throw e;return {state:'unconfirmed'};}}));
+ const result=results.find(r=>r.state==='unconfirmed')||results.find(r=>r.state==='published')||results.find(r=>r.state==='manual_required')||results.find(r=>r.state==='prepared')||results.find(r=>r.state==='retry')||results[0];
  return authResponse({ok:true,...result,...(connections.length>1?{accounts:results.map((r,i)=>({accountId:selected[i].accountId,...r}))}:{})},result.state==='unconfirmed'?503:200);}catch{return authResponse({error:'worker_unavailable'},503);}
 }

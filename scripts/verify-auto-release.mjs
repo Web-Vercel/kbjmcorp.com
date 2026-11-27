@@ -1,0 +1,38 @@
+// Native PostgreSQL, simultaneous connections; fictional local fixtures only.
+import {spawn} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
+import {readFile,readdir} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const container='kbjm-auto-release-'+randomUUID().slice(0,8),actor=randomUUID();let started=false;
+const env={...process.env};for(const k of ['DOCKER_HOST','DOCKER_CONTEXT','DOCKER_TLS_VERIFY','DOCKER_CERT_PATH'])delete env[k];
+function docker(args,input=''){return new Promise((resolve,reject)=>{const p=spawn('docker',['--host=unix:///var/run/docker.sock',...args],{env,stdio:['pipe','pipe','pipe']});let out='',err='';p.stdout.on('data',b=>out+=b);p.stderr.on('data',b=>err+=b);p.on('error',reject);p.on('close',code=>code===0?resolve(out):reject(Error(err.slice(-2500))));p.stdin.end(input);});}
+const quote=s=>"'"+String(s).replaceAll("'","''")+"'";
+const sql=s=>docker(['exec','-i',container,'psql','-X','-v','ON_ERROR_STOP=1','-qAt','-U','postgres'],s);
+const as=(role,s)=>sql(`begin;set local statement_timeout='15s';set local role ${role};select set_config('request.jwt.claim.sub','${actor}',true);select set_config('request.jwt.claims','{"aal":"aal2"}',true);${s};commit;`);
+const json=async p=>JSON.parse((await p).trim().split('\n').at(-1));
+try{
+ await docker(['run','-d','--name',container,'--network','none','-e','POSTGRES_HOST_AUTH_METHOD=trust','postgres:17']);started=true;
+ for(let i=0;i<120;i++){try{await sql('select 1');break;}catch{if(i===119)throw Error('Local PostgreSQL unavailable');await new Promise(r=>setTimeout(r,250));}}
+ await sql(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,phone text,phone_confirmed_at timestamptz,deleted_at timestamptz,banned_until timestamptz);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)$$;grant usage on schema public,auth to anon,authenticated,service_role;`);
+ const dir=new URL('../supabase/migrations/',import.meta.url);for(const file of (await readdir(dir)).filter(f=>/^\d{3}_.*\.sql$/.test(f)).sort())await sql(await readFile(new URL(file,dir),'utf8'));
+ await sql(`insert into auth.users(id) values('${actor}');insert into public.staff_members(user_id,role) values('${actor}','admin');`);
+ const dates=await json(sql(`select json_build_object('month',(date_trunc('month',now() at time zone 'UTC')-interval '1 month')::date,'until',(date_trunc('month',now() at time zone 'UTC')-interval '1 day')::date)`));
+ async function fixture(){const org=randomUUID(),account='adacct_'+randomUUID();await sql(`insert into public.organizations(id,name) values('${org}','FICTIONAL NATIVE RELEASE');`);
+ const report={version:'ads-readonly-v1',account:{id:account,name:'FICTIONAL',currency_code:'CAD',timezone:'UTC'},since:dates.month,until:dates.until,check:'matched',startBoundary:'requested',endBoundary:'exclusive',dailySpendMicros:'100000000',periodSpendMicros:'100000000',missingDates:[],rawSha256:'a'.repeat(64),rawResponses:[{path:'/ad_account',body:'FICTIONAL'}],daily:Array.from({length:Number(dates.until.slice(-2))},(_,i)=>({date:dates.month.slice(0,8)+String(i+1).padStart(2,'0'),spendMicros:i?'0':'100000000',impressions:'1',clicks:'0'}))};
+ const sid=await json(as('authenticated',`select to_jsonb(public.save_ads_reporting_snapshot('${randomUUID()}',${quote(JSON.stringify(report))}::jsonb))`));
+ const binding=await json(as('authenticated',`select to_jsonb(public.bind_ads_reporting_account('${sid}','${org}','FICTIONAL OWNERSHIP'))`));
+ await as('authenticated',`select public.configure_monthly_automation('${binding}',true,'FICTIONAL FEES','${dates.month}');select public.configure_monthly_auto_release('${binding}',true,1500,2000,500,100000,5000,'FICTIONAL RELEASE AUTHORIZATION')`);
+ const job=await json(as('service_role',`select public.claim_monthly_automation('${account}')`));
+ const rule=(basis,bps)=>({mode:'percentage',basis,basisPoints:bps,fixedMinor:'0',minimumMinor:'0',waiveWhenZero:true});
+ const snapshot={calculationVersion:'two-agency-v1',status:'draft',rateMode:'automatic',rate:'1.00000000',referenceDate:dates.until,source:'Bank of Canada',canadaRule:rule('platform_ad_spend',1500),chinaRule:rule('upstream_total',2000),transferRule:{mode:'markup',basisPoints:500,fixedMinor:'0',bearer:'customer',includedInRate:false},sourceCadMinor:'10000',canadaFeeCadMinor:'1500',upstreamCadMinor:'11500',adCnyMinor:'10000',canadaFeeCnyMinor:'1500',upstreamCnyMinor:'11500',chinaFeeCnyMinor:'2300',totalCnyMinor:'13800',costMinor:'575',customerCostMinor:'575',agencyCostMinor:'0',finalMinor:'14375',costUnit:'zhidian_cn',note:'FICTIONAL',referenceProof:{rate:'1.00000000',date:dates.until,source:'Bank of Canada',series:'FXCNYCAD',originalCnyCad:'1',fetchedAt:new Date().toISOString(),billingMonth:job.month,policy:'month_end_last_published',sourceUrl:`https://www.bankofcanada.ca/valet/observations/FXCNYCAD/json?start_date=${dates.month}&end_date=${dates.until}`},automation:{version:'monthly-draft-v1',sourceId:job.id,bindingId:binding,agreement:job.agreement,systemRevision:null,customerRevision:null}};
+ const saved=await json(as('service_role',`select public.complete_monthly_automation('${job.id}','${job.leaseToken}',${quote(JSON.stringify(report))}::jsonb,${quote(JSON.stringify(snapshot))}::jsonb)`));
+ const wallet=await json(sql(`insert into public.client_wallets(organization_id,currency) values('${org}','CNY') on conflict(organization_id,currency) do update set currency=excluded.currency returning to_jsonb(id)`));await sql(`insert into public.wallet_entries(wallet_id,organization_id,currency,kind,amount_minor,description,source_reference) values('${wallet}','${org}','CNY','topup',100000,'FICTIONAL LOCAL CREDIT','${randomUUID()}')`);
+ return {account,binding,org,wallet,...saved};}
+ const release=f=>json(as('service_role',`select public.release_automatic_month('${f.account}',null)`));
+ const f=await fixture();const results=await Promise.all(Array.from({length:5},()=>release(f)));assert.equal(results.filter(r=>r.state==='published').length,1);assert.equal(results.filter(r=>r.state==='idle').length,4);
+ const money=await json(sql(`select json_build_object('statements',(select count(*) from public.monthly_client_statements where binding_id='${f.binding}'),'debits',(select sum(amount_minor) from public.wallet_entries where wallet_id='${f.wallet}' and amount_minor<0),'reviews',(select count(*) from public.monthly_settlement_reviews where draft_id='${f.draftId}'))`));assert.deepEqual(money,{statements:1,debits:-14375,reviews:0});
+ // An uncommitted financial dispute must be observed before the waiting release can proceed.
+ const g=await fixture();const dispute=sql(`begin;insert into public.service_requests(organization_id,created_by,category,subject) values('${g.org}','${actor}','billing','FICTIONAL concurrent dispute');select pg_sleep(0.4);commit;`);await new Promise(r=>setTimeout(r,150));const blocked=await release(g);await dispute;assert.equal(blocked.state,'manual_required');assert.equal(blocked.reason,'conflict_or_dispute');
+ assert.equal((await sql(`select count(*) from public.wallet_entries where wallet_id='${g.wallet}' and amount_minor<0`)).trim(),'0');
+ console.log('PASS: native PostgreSQL 17; 5 simultaneous releases post one statement/debit set, no fake human review; concurrent dispute blocks publication with no debit.');
+}finally{if(started)await docker(['rm','-f',container]);}

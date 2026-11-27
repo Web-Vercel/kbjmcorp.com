@@ -55,3 +55,4 @@ it('opens the explicitly requested draft even when another pending draft appears
  const missing=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01',draft:'d0000000-0000-4000-8000-000000000003'})}));
  expect(missing).toContain('所选草稿不在当前企业');expect(missing).not.toContain(`id="draft-${first}"`);
 });
+it('labels automatic rule publication truthfully and removes independent review controls from the already published draft',async()=>{setup(true,[{id:'statement-auto',draft_id:draft.id,month:draft.month,total_cny_minor:'50000',published_at:'2026-01-01T00:00:00Z',publication_mode:'automatic_rules'}],'pending');const html=await render();expect(html).toContain('系统规则校验通过后自动发布');expect(html).not.toContain('保存独立复核结果');expect(html).not.toContain('正式发布并扣余额 CNY');expect(html).toContain('已发布');});
