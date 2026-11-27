@@ -5,7 +5,7 @@ import type {OpsContext} from '@/lib/operations/model';
 import {workflowGroup,workflowPages} from '@/lib/operations/workflow-groups';
 import styles from './WorkflowNavigation.module.css';
 export default function WorkflowNavigation({locale,context}:{locale:'zh'|'en';context:OpsContext|null}){
- const path=usePathname(),params=useSearchParams();const page=path.split('/')[3];const group=workflowGroup(page);if(!group)return null;
+ const path=usePathname(),params=useSearchParams();const page=path.split('/')[3];const group=workflowGroup(page);if(!group||group.key==='funds')return null;
  const query=new URLSearchParams();for(const key of ['company','month']){const value=params.get(key);if(value)query.set(key,value);}
  const activePage=page==='pricing'||(page==='settlements'&&params.get('mode')==='prepare')?'monthly-manual':page==='month-close'?'settlements':page;
  const suffix=query.size?'?'+query.toString():'';
