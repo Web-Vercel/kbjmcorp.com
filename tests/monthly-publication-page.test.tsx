@@ -46,3 +46,12 @@ it('places account overview before the history-month filter and keeps secondary 
  expect(html).toContain('<summary>更多操作与月度详情</summary>');expect(html).toContain('view=details');
  expect(html).not.toContain('进度在哪里，下一步谁来做');expect(html).not.toContain('账户办理列表');expect(html).not.toContain('name="month" default');
 });
+it('opens the explicitly requested draft even when another pending draft appears first',async()=>{
+ setup(true,[],'pending');const state=await m.operations();const original=state.client.rpc;
+ const first='d0000000-0000-4000-8000-000000000001',target='d0000000-0000-4000-8000-000000000002';
+ state.client.rpc=async(name:string)=>name==='list_monthly_settlements'?{data:[{...draft,id:first,status:'pending'},{...draft,id:target,status:'pending'}],error:null}:original(name);
+ const html=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01',draft:target})}));
+ expect(html).toContain(`id="draft-${target}"`);expect(html).not.toContain(`id="draft-${first}"`);expect(html).toContain('<details class="admin-panel" open=""');
+ const missing=renderToStaticMarkup(await Page({params:Promise.resolve({locale:'zh'}),searchParams:Promise.resolve({company:org,month:'2024-01',draft:'d0000000-0000-4000-8000-000000000003'})}));
+ expect(missing).toContain('所选草稿不在当前企业');expect(missing).not.toContain(`id="draft-${first}"`);
+});
