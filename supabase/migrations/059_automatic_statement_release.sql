@@ -72,7 +72,7 @@ begin
  if coalesce((effective->>'ready')::boolean,false) is not true then raise exception 'Monthly coverage incomplete or not verified' using errcode='23514';end if;
  s.check_status:='matched';s.daily_spend_micros:=(effective->>'amount_micros')::numeric;s.period_spend_micros:=s.daily_spend_micros;
  s.report:=s.report||jsonb_build_object('daily',effective->'daily','missingDates','[]'::jsonb,'endBoundary','exclusive');
- 
+
  if d.coverage_check_id is distinct from (effective->>'coverage_check_id')::uuid then raise exception 'Coverage proof differs from preparation' using errcode='40001';end if;
  if s.account_id<>b.account_id or s.currency<>'CAD' or s.since<>d.month or s.until<>(s.since+interval '1 month'-interval '1 day')::date
  or s.check_status<>'matched' or s.period_spend_micros is null or s.period_spend_micros<>s.daily_spend_micros
