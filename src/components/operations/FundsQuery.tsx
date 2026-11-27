@@ -1,0 +1,5 @@
+'use client';
+export default function FundsQuery({locale,organizations,company,month,lastMonth,monthly}:{locale:'zh'|'en';organizations:{id:string;name:string}[];company:string;month:string;lastMonth:string;monthly:boolean}){
+ const zh=locale==='zh';
+ return <form className="admin-panel" action={`/${locale}/operations/funds`}><div className="admin-filter"><label>{zh?'客户企业':'Client company'}<select name="company" defaultValue={company}>{organizations.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></label><button className="button" name="view" value="current" formNoValidate>{zh?'查看当前余额与流水':'View current balance and entries'}</button></div><details open={monthly}><summary>{zh?'按月查看资金对账':'Monthly funds reconciliation'}</summary><div className="admin-filter"><label>{zh?'入账月份（已结束月份）':'Posting month (ended months)'}<input name="month" type="month" min="2000-01" max={lastMonth} defaultValue={month}/></label><button className="button" name="view" value="monthly">{zh?'查看客户资金对账':'View client funds reconciliation'}</button></div></details></form>;
+}
