@@ -2,7 +2,7 @@ import {z} from 'zod';
 import {monthCloseOverview} from './month-close-overview';
 import type {CloseAccount} from './month-close';
 const month=z.iso.date().refine(m=>m.endsWith('-01')).nullable();
-const schema=z.object({organization_id:z.uuid(),accounts:z.array(z.object({binding_id:z.uuid(),account_id:z.string(),account_label:z.string(),active:z.boolean(),first_month:month,automatic:z.boolean(),timezone:z.string().nullable(),current_month:month,last_published_month:month,next_month:month,gap:z.boolean(),task_month:month,flow:z.unknown().nullable(),job:z.object({month:z.iso.date(),state:z.enum(['pending','running','retry','failed','prepared','cancelled'])}).nullable()}))});
+const schema=z.object({organization_id:z.uuid(),accounts:z.array(z.object({binding_id:z.uuid(),account_id:z.string(),account_label:z.string(),active:z.boolean(),first_month:month,automatic:z.boolean(),timezone:z.string().nullable(),current_month:month,last_published_month:month,next_month:month,gap:z.boolean(),task_month:month,flow:z.unknown().nullable(),job:z.object({month:z.iso.date(),state:z.enum(['pending','running','retry','failed','prepared','cancelled']),error_code:z.string().nullable().optional()}).nullable()}))});
 export function accountBillingOverview(input:unknown,company:string){const parsed=schema.safeParse(input);if(!parsed.success||parsed.data.organization_id!==company)return null;const data=parsed.data;
  const accounts=[];
  for(const a of data.accounts){

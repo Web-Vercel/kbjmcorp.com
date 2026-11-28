@@ -21,6 +21,6 @@ export async function GET(request:Request){
  const offset=Math.floor(Date.now()/86400000)%connections.length;
  const selected=Array.from({length:Math.min(2,connections.length)},(_,i)=>connections[(offset+i)%connections.length]);
  const results=await Promise.all(selected.map(async c=>{try{const prepared=await (connections.length===1&&legacy?runMonthlyAutomation(client):runMonthlyAutomation(client,c));if(!automaticReleaseEnabled()||prepared.state==='unconfirmed')return prepared;const release=await runAutomaticRelease(client,c.accountId);return ['idle','disabled'].includes(release.state)?prepared:release;}catch(e){if(connections.length===1)throw e;return {state:'unconfirmed'};}}));
- const result=results.find(r=>r.state==='unconfirmed')||results.find(r=>r.state==='published')||results.find(r=>r.state==='manual_required')||results.find(r=>r.state==='prepared')||results.find(r=>r.state==='retry')||results[0];
+ const result=results.find(r=>r.state==='unconfirmed')||results.find(r=>r.state==='published')||results.find(r=>r.state==='manual_required')||results.find(r=>r.state==='awaiting_source')||results.find(r=>r.state==='prepared')||results.find(r=>r.state==='retry')||results[0];
  return authResponse({ok:true,...result,...(connections.length>1?{accounts:results.map((r,i)=>({accountId:selected[i].accountId,...r}))}:{})},result.state==='unconfirmed'?503:200);}catch{return authResponse({error:'worker_unavailable'},503);}
 }
